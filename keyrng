@@ -27,9 +27,34 @@ do
             do
                 case $opt in
                     "Generate New Keypair")
+                        genkey
                         ;;
                     "See/Export Public Key(s)")
-                        ;;
+                        PS3='Please enter your choice: '
+                        options=("List Public Keys By UID" "List Full Public Keys" "Export A Public Key To Terminal" "Export A Public Key To File" "Quit")
+                        select opt in "${options[@]}"
+                        do
+                            case $opt in
+                                "List Public Keys By UID")
+                                listkeyuids
+                                ;;
+                                "List Full Public Keys")
+                                listfullkeydetails
+                                ;;
+                                "Export A Public Key To Terminal")
+                                exportpubkey
+                                ;;
+                                "Export A Public Key To File")
+                                exportpubkeyfile
+                                ;;
+                                "Quit")
+                                echo "Press enter TWICE! to return to Key Management menu."
+                                read
+                                break
+                                ;;
+                                *) echo "Invalid Option";;
+                            esac
+                        done
                     "See/Export Secret Key(s)")
                         ;;
                     "Send Keys To Keyserver")
@@ -37,6 +62,8 @@ do
                     "Receive Keys From Keyserver")
                         ;;
                     "Quit")
+                        echo "Press enter TWICE! to return to main menu."
+                        read
                         break
                         ;;
                     *) echo "Invalid option";;

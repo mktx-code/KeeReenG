@@ -27,7 +27,7 @@ gpg2 --homedir gpg-KeyRNG/ --gen-key
 #--------------------------
 listfullkeydetails ()
 {
-gpg2 --homedir gpg-KeyRNG --list-keys | less
+gpg2 --quiet --homedir gpg-KeyRNG --list-keys | less
 }
 #------------------
 ## LIST KEY UIDS ##
@@ -36,7 +36,7 @@ listkeyuids ()
 {
 echo "Press enter to see a list of keys by UID. Press "q" when finished."
 read
-gpg2 --homedir gpg-KeyRNG --list-keys | grep "uid" | cut -b 21- | less
+gpg2 --quiet --homedir gpg-KeyRNG --list-keys | grep "uid" | cut -b 21- | less
 }
 #---------------------------------
 ## LIST FULL SECRET KEY DETAILS ##
@@ -72,6 +72,20 @@ gpg2 --homedir gpg-KeyRNG --list-keys | grep "uid" | cut -b 21- | less
 echo "Enter the uid you would like to export."
 read EXPORT_UID
 gpg2 --homedir gpg-KeyRNG --armor --export "$EXPORT_UID"
+}
+#------------------------------
+## EXPORT PUBLIC KEY TO FILE ##
+#------------------------------
+exportpubkeyfile ()
+{
+echo "Press enter to see a list of your public keys. Press "q" when finished."
+read
+gpg2 --homedir gpg-KeyRNG --list-keys | grep "uid" | cut -b 21- | less
+echo "Enter the uid you would like to export."
+read EXPORT_UID
+echo "What file to write to?"
+read PUBKEY_FILE
+gpg2 --homedir gpg-KeyRNG --armor --output "$PUBKEY_FILE" --export "$EXPORT_UID"
 }
 #----------------------
 ## EXPORT SECRET KEY ##
