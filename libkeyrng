@@ -34,7 +34,7 @@ gpg2 --homedir gpg-KeyRNG --list-keys | less
 #------------------
 listkeyuids ()
 {
-echo "Press enter to see a list of keys by uid. Press "q" when finished."
+echo "Press enter to see a list of keys by UID. Press "q" when finished."
 read
 gpg2 --homedir gpg-KeyRNG --list-keys | grep "uid" | cut -b 21- | less
 }
