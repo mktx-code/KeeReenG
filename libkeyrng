@@ -5,11 +5,10 @@
 firstrun ()
 {
 echo "Generating gpg key-pair. Please answer the questions."
-gpg2 --homedir gpg-KeyRNG/ gen-key
+gpg2 --homedir gpg-KeyRNG/ --gen-key
 sudo chown -R "$USER" gpg-KeyRNG/
 sudo chown -R "$USER" gpg-KeyRNG/*
-sudo chmod -R 0600 gpg-KeyRNG/
-sudo chmod -R 0600 gpg-KeyRNG/*
+sudo chmod -R 0600 gpg-KeyRNG/gpg.conf
 }
 #
 ##########################
@@ -21,7 +20,7 @@ sudo chmod -R 0600 gpg-KeyRNG/*
 #---------------------
 genkey ()
 {
-gpg2 --homedir gpg-KeyRNG/ gen-key
+gpg2 --homedir gpg-KeyRNG/ --gen-key
 }
 #--------------------------
 ## LIST FULL KEY DETAILS ##
