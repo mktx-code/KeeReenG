@@ -15,54 +15,64 @@ FIRST_RUN=$(ls gpg-KeyRNG | grep -c "secring")
       firstrun
   fi
 ## What now?
-PS3='Please enter your choice: '
+clear
+echo "---------------------"
+echo "| M A I N   M E N U |"
+echo "---------------------"
+PS3='Enter your choice (press enter to see options again): '
 options=("Key Management" "Encryption" "Quit")
-select opt in "${options[@]}"
+select a in "${options[@]}"
 do
-    case $opt in
+    case "$a" in
         "Key Management")
-            PS3='Please enter your choice: '
-            options=("Generate New Keypair" "See/Export Public Key(s)" "See/Export Secret Key(s)" "Send Keys To Keyserver" "Receive Keys From Keyserver" "Quit")
-            select opt in "${options[@]}"
+            PS3='Enter your choice (press enter to see options again): '
+            options=("Generate New Keypair" "Public Key(s)" "Quit")
+            select b in "${options[@]}"
             do
-                case $opt in
+                case "$b" in
                     "Generate New Keypair")
                         genkey
                         ;;
-                    "See/Export Public Key(s)")
-                        PS3='Please enter your choice: '
-                        options=("List Public Keys By UID" "List Full Public Keys" "Export A Public Key To Terminal" "Export A Public Key To File" "Quit")
-                        select opt in "${options[@]}"
+                    "Public Key(s)")
+                        PS3='Enter your choice (press enter to see options again): '
+                        options=("List Public Keys By UID" "List Full Public Keys" "Import Key" "Export A Public Key To Terminal" "Export A Public Key To File" "Send Keys To Keyserver" "Receive Keys From Keyserver" "Quit")
+                        select c in "${options[@]}"
                         do
-                            case $opt in
+                            case "$c" in
                                 "List Public Keys By UID")
-                                listkeyuids
-                                ;;
+                                    listkeyuids
+                                    ;;
                                 "List Full Public Keys")
-                                listfullkeydetails
-                                ;;
+                                    listfullkeydetails
+                                    ;;
+                                "Import Key")
+                                    sleep 1
+                                    ;;
                                 "Export A Public Key To Terminal")
-                                exportpubkey
-                                ;;
+                                    exportpubkey
+                                    ;;
                                 "Export A Public Key To File")
-                                exportpubkeyfile
-                                ;;
+                                    exportpubkeyfile
+                                    ;;
+                                "Send Keys To Keyserver")
+                                    sendkeyserv
+                                    ;;
+                                "Receive Keys From Keyserver")
+                                    recvkeyserv
+                                    ;;
                                 "Quit")
-                                echo "Press enter TWICE! to return to Key Management menu."
-                                read
-                                break
-                                ;;
+                                    echo "Press enter to return to Key Management menu."
+                                    read
+                                    break
+                                    ;;
                                 *) echo "Invalid Option";;
                             esac
                         done
-                    "See/Export Secret Key(s)")
-                        ;;
-                    "Send Keys To Keyserver")
-                        ;;
-                    "Receive Keys From Keyserver")
+#                   "See/Export Secret Keys")
+                        exportseckeyfile
                         ;;
                     "Quit")
-                        echo "Press enter TWICE! to return to main menu."
+                        echo "Press enter to return to main menu."
                         read
                         break
                         ;;

@@ -99,7 +99,42 @@ echo "Enter the uid you would like to export."
 read EXPORT_SECRET_UID
 gpg2 --homedir gpg-KeyRNG --armor --export "$EXPORT_SECRET_UID"
 }
+#------------------------------
+## EXPORT SECRET KEY TO FILE ##
+#------------------------------
+exportseckeyfile ()
+{
+echo "Press enter to see a list of your public keys. Press "q" when finished."
+read
+gpg2 --homedir gpg-KeyRNG --list-secret-keys | grep "uid" | cut -b 21- | less
+echo "Enter the UID you would like to export."
+read EXPORT_SECRET_UID
+echo "What file to write to?"
+read SECKEY_FILE
+gpg2 --homedir gpg-KeyRNG --armor --output "$SECKEY_FILE" --export "$EXPORT_SECRET_UID"
+}
+#---------------------------
+## SEND KEYS TO KEYSERVER ##
+#---------------------------
+sendkeyserv ()
+{
+echo "Press enter to see a list of your public keys. Copy the 0xlong key id, and press "q" when finished."
+read
+gpg2 --homedir gpg-KeyRNG --list-keys | less
+echo "Enter the UID you would like to send to the keyserver."
+read SEND_KEYSERV_UID
+gpg2 --homedir gpg-KeyRNG --send-keys "$SEND_KEYSERV_UID"
+}
+#-----------------------------
+## RECEIVE KEYS FROM SERVER ##
+#-----------------------------
 #
+recvkeyserv ()
+{
+echo "Please enter the UID you would like to receive from the keyserver."
+read RECV_KEYSERV_UID
+gpg2 --homedir gpg-KeyRNG --recv-keys "$RECV_KEYSERV_UID"
+}
 #################
 ##### USAGE #####
 #################
