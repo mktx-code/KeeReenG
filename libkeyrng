@@ -1,0 +1,134 @@
+#####################
+##### FIRST RUN #####
+#####################
+#
+firstrun ()
+{
+echo "Generating gpg key-pair. Please answer the questions."
+gpg2 --homedir gpg-KeyRNG/ gen-key
+sudo chown -R "$USER" gpg-KeyRNG/
+sudo chown -R "$USER" gpg-KeyRNG/*
+sudo chmod -R 0600 gpg-KeyRNG/
+sudo chmod -R 0600 gpg-KeyRNG/*
+}
+#
+##########################
+##### KEY MANAGEMENT #####
+##########################
+#
+#---------------------
+## GENERATE NEW KEY ##
+#---------------------
+genkey ()
+{
+gpg2 --homedir gpg-KeyRNG/ gen-key
+}
+#--------------------------
+## LIST FULL KEY DETAILS ##
+#--------------------------
+listfullkeydetails ()
+{
+gpg2 --homedir gpg-KeyRNG --list-keys | less
+}
+#------------------
+## LIST KEY UIDS ##
+#------------------
+listkeyuids ()
+{
+echo "Press enter to see a list of keys by uid. Press "q" when finished."
+read
+gpg2 --homedir gpg-KeyRNG --list-keys | grep "uid" | cut -b 21- | less
+}
+#---------------------------------
+## LIST FULL SECRET KEY DETAILS ##
+#---------------------------------
+listfullseckeydetails ()
+{
+gpg2 --homedir gpg-KeyRNG --list-secret-keys | less
+}
+#-------------------------
+## LIST SECRET KEY UIDS ##
+#-------------------------
+listseckeydetails ()
+{
+gpg2 --homedir gpg-KeyRNG --list-secret-keys | grep "uid" | cut -b 21- | less
+}
+#-------------------------
+## IMPORT KEY FROM FILE ##
+#-------------------------
+importkeyfile ()
+{
+echo "What file to import to KeyRNG?"
+read $IMPORT_KEYFILE
+gpg2 --homedir gpg-KeyRNG --import "$IMPORT_KEYFILE"
+}
+#----------------------
+## EXPORT PUBLIC KEY ##
+#----------------------
+exportpubkey ()
+{
+echo "Press enter to see a list of your public keys. Press "q" when finished."
+read
+gpg2 --homedir gpg-KeyRNG --list-keys | grep "uid" | cut -b 21- | less
+echo "Enter the uid you would like to export."
+read EXPORT_UID
+gpg2 --homedir gpg-KeyRNG --armor --export "$EXPORT_UID"
+}
+#----------------------
+## EXPORT SECRET KEY ##
+#----------------------
+exportseckey ()
+{
+echo "Press enter to see a list of your secret keys. Press "q" when finished."
+read
+gpg2 --homedir gpg-KeyRNG --list-secret-keys | grep "uid" | cut -b 21- | less
+echo "Enter the uid you would like to export."
+read EXPORT_SECRET_UID
+gpg2 --homedir gpg-KeyRNG --armor --export "$EXPORT_SECRET_UID"
+}
+#
+#################
+##### USAGE #####
+#################
+#
+#-------------------
+## ENCRYPT A FILE ##
+#-------------------
+encryptfile ()
+{
+echo "What file?"
+read EFILE
+echo "See uids of possible recipients? (y/no)"
+read EFILE_SHOW_UIDS
+  if [ "$EFILE_SHOW_UIDS" != "no" ]; then
+      echo "Press enter to see a list of possible recipients by uid. Press "q" when finished."
+      read
+      gpg2 --homedir gpg-KeyRNG --list-keys | grep "uid" | cut -b 21- | less
+  fi
+echo "What recipient?"
+read EFILE_RECP
+echo "Another recipient (yourself possibly)? (y/no)"
+read MORE_EFILE_RECP
+  if [[ "$MORE_EFILE_RECP" != "no" ]]; then
+      echo "See uids again? (y/no)"
+      read EFILE_SHOW_UIDS
+        if [ "$EFILE_SHOW_UIDS" != "no" ]; then
+            echo "Press enter to see a list of possible recipients by uid. Press "q" when finished."
+            read
+            gpg2 --homedir gpg-KeyRNG --list-keys | grep "uid" | cut -b 21- | less
+        fi
+      echo "Second recipient?"
+      read EFILE_RECP_TWO
+  fi
+if [[ "$MORE_EFILE_RECP" = "no" ]]; then
+    gpg2 --homedir gpg-KeyRNG --armor --recipient "$EFILE_RECP" --output /tmp/efile.asc --encrypt "$EFILE"
+else
+    gpg2 --homedir gpg-KeyRNG --armor --recipient "$EFILE_RECP" --recipient "$EFILE_RECP_TWO" --output /tmp/efile.asc --encrypt "$EFILE"
+fi
+echo "File is stored temporarily at /tmp/efile.asc. Would you like to print it now? (y/no)"
+read CAT_EFILE
+  if [ "$CAT_EFILE" != "no" ]; then
+      cat /tmp/efile.asc
+  fi
+}
+

@@ -1,0 +1,54 @@
+#!/bin/bash
+#
+#
+#
+#
+#
+#Blah first run, about, menu.
+#
+## Load libkeyrng
+. libkeyrng
+## Check if it is the first run.
+FIRST_RUN=$(ls gpg-KeyRNG | grep -c "secring")
+  if [ "$FIRST_RUN" -lt "1" ]; then
+      clear
+      firstrun
+  fi
+## What now?
+PS3='Please enter your choice: '
+options=("Key Management" "Encryption" "Quit")
+select opt in "${options[@]}"
+do
+    case $opt in
+        "Key Management")
+            PS3='Please enter your choice: '
+            options=("Generate New Keypair" "See/Export Public Key(s)" "See/Export Secret Key(s)" "Send Keys To Keyserver" "Receive Keys From Keyserver" "Quit")
+            select opt in "${options[@]}"
+            do
+                case $opt in
+                    "Generate New Keypair")
+                        ;;
+                    "See/Export Public Key(s)")
+                        ;;
+                    "See/Export Secret Key(s)")
+                        ;;
+                    "Send Keys To Keyserver")
+                        ;;
+                    "Receive Keys From Keyserver")
+                        ;;
+                    "Quit")
+                        break
+                        ;;
+                    *) echo "Invalid option";;
+                esac
+            done
+            ;;
+        "Encryption")
+            encryptfile
+            ;;
+        "Quit")
+            break
+            ;;
+        *) echo "Invalid option";;
+    esac
+done
