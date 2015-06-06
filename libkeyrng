@@ -41,14 +41,14 @@ gpg2 --quiet --homedir gpg-KeyRNG --list-keys | grep "uid" | cut -b 21- | less
 #---------------------------------
 ## LIST FULL SECRET KEY DETAILS ##
 #---------------------------------
-listfullseckeydetails ()
+listfullseckey ()
 {
 gpg2 --homedir gpg-KeyRNG --list-secret-keys | less
 }
 #-------------------------
 ## LIST SECRET KEY UIDS ##
 #-------------------------
-listseckeydetails ()
+listseckeyuid ()
 {
 gpg2 --homedir gpg-KeyRNG --list-secret-keys | grep "uid" | cut -b 21- | less
 }
@@ -61,6 +61,19 @@ echo "What file to import to KeyRNG?"
 read $IMPORT_KEYFILE
 gpg2 --homedir gpg-KeyRNG --import "$IMPORT_KEYFILE"
 }
+#------------------------------
+## IMPORT KEY FROM CLIPBOARD ##
+#------------------------------
+importkeyclip ()
+{
+echo "Press enter when you are ready to paste your key."
+read
+rm -rf /tmp/import
+nano /tmp/import
+gpg2 --homedir gpg-KeyRNG --import /tmp/import
+rm -rf /tmp/import
+}
+
 #----------------------
 ## EXPORT PUBLIC KEY ##
 #----------------------

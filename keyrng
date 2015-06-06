@@ -19,23 +19,31 @@ clear
 echo "---------------------"
 echo "| M A I N   M E N U |"
 echo "---------------------"
-PS3='Enter your choice (press enter to see options again): '
+PS3='Enter choice (press enter to see options again): '
 options=("Key Management" "Encryption" "Quit")
 select a in "${options[@]}"
 do
     case "$a" in
         "Key Management")
-            PS3='Enter your choice (press enter to see options again): '
-            options=("Generate New Keypair" "Public Key(s)" "Quit")
+            clear
+            echo "-------------------------------"
+            echo "| K E Y   M A N A G E M E N T |"
+            echo "-------------------------------"
+            PS3='Enter choice (press enter to see options again): '
+            options=("Generate New Keypair" "Public Keys" "Secret Keys" "Back")
             select b in "${options[@]}"
             do
                 case "$b" in
                     "Generate New Keypair")
                         genkey
                         ;;
-                    "Public Key(s)")
-                        PS3='Enter your choice (press enter to see options again): '
-                        options=("List Public Keys By UID" "List Full Public Keys" "Import Key" "Export A Public Key To Terminal" "Export A Public Key To File" "Send Keys To Keyserver" "Receive Keys From Keyserver" "Quit")
+                    "Public Keys")
+                        clear
+                        echo "-------------------------"
+                        echo "| P U B L I C   K E Y S |"
+                        echo "-------------------------"
+                        PS3='Enter choice (press enter to see options again): '
+                        options=("List Public Keys By UID" "List Full Public Keys" "Import Key" "Export A Public Key To Terminal" "Export A Public Key To File" "Send Keys To Keyserver" "Receive Keys From Keyserver" "Back")
                         select c in "${options[@]}"
                         do
                             case "$c" in
@@ -46,7 +54,27 @@ do
                                     listfullkeydetails
                                     ;;
                                 "Import Key")
-                                    sleep 1
+                                    clear
+                                    echo "------------------------"
+                                    echo "| I M P O R T   K E Y S|"
+                                    echo "------------------------"
+                                    PS3='Enter choice (press enter to see options again): '
+                                    options=("Import From File" "Import From Clipboard" "Back")
+                                    select d in "${options[@]}"
+                                    do
+                                        case "$d" in
+                                            "Import From File")
+                                                importkeyfile
+                                                ;;
+                                            "Import From Clipboard")
+                                                importkeyclip
+                                                ;;
+                                            "Back")
+                                                break
+                                                ;;
+                                            *) echo "Invalid Option";;
+                                        esac
+                                    done
                                     ;;
                                 "Export A Public Key To Terminal")
                                     exportpubkey
@@ -60,23 +88,46 @@ do
                                 "Receive Keys From Keyserver")
                                     recvkeyserv
                                     ;;
-                                "Quit")
-                                    echo "Press enter to return to Key Management menu."
-                                    read
+                                "Back")
                                     break
                                     ;;
                                 *) echo "Invalid Option";;
                             esac
                         done
-#                   "See/Export Secret Keys")
-                        exportseckeyfile
                         ;;
-                    "Quit")
-                        echo "Press enter to return to main menu."
-                        read
+                    "Secret Keys")
+                        clear
+                        echo "-------------------------"
+                        echo "| S E C R E T   K E Y S |"
+                        echo "-------------------------"
+                        PS3='Enter choice (press enter to see options again): '
+                        options=("List Secret Keys By UID" "List Full Secret Key Info" "Export Secret Key To Terminal" "Export Secret Key To File" "Back")
+                        select e in "${options[@]}"
+                        do
+                            case "$e" in
+                            "List Secret Keys By UID")
+                                listseckeyuid
+                                ;;
+                            "List Full Secret Key Info")
+                                listfullseckey
+                                ;;
+                            "Export Secret Key To Terminal")
+                                exportseckey
+                                ;;
+                            "Export Secret Key To File")
+                                exportseckeyfile
+                                ;;
+                            "Back")
+                                break
+                                ;;
+                            *) echo "Invalid Option";;
+                            esac
+                        done
+                        ;;
+                    "Back")
                         break
                         ;;
-                    *) echo "Invalid option";;
+                    *) echo "Invalid Option";;
                 esac
             done
             ;;
@@ -84,7 +135,7 @@ do
             encryptfile
             ;;
         "Quit")
-            break
+            exit 0
             ;;
         *) echo "Invalid option";;
     esac
