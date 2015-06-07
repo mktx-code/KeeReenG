@@ -48,7 +48,7 @@ fi
 exit 0
 }
 #----------
-## ULOCK ##
+## UNLOCK ##
 #----------
 unlock ()
 {
@@ -125,9 +125,9 @@ gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --import "$IMPORT_KEYFILE"
 #------------------------------
 importkeyclip ()
 {
-echo "Press enter when you are ready to paste your key."
+echo "Press enter when you are ready to paste key to import."
 read
-rm -rf temp/import.fil
+rm -rf temp/import.file
 nano temp/import.file
 gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --import temp/import.file
 echo "Shredding temp file..."
@@ -147,11 +147,11 @@ read IS_DEFAULT_GPG
   else
       DEFAULT_GPG=/home/"$USER"/.gnupg/
   fi
-echo "List keys from $"DEFAULT_GPG"? (y/no)"
+echo "List keys from "$DEFAULT_GPG"? (y/no)"
 read LIST_KEYS
   if [ "$LIST_KEYS" != "no" ]; then
       echo "Press enter to see a list of possible recipients by UID."
-      echo "Use up/down arrows to navigate. Press "q" when your finished."
+      echo "Use up/down arrows to navigate. Press "q" when finished."
       read
       gpg2 --homedir "$DEFAULT_GPG" --list-keys | less
   fi
@@ -216,7 +216,8 @@ gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --output "$SECKEY_FIL
 #---------------------------
 sendkeyserv ()
 {
-echo "Press enter to see a list of your public keys. Copy the 0xlong key id, and press "q" when finished."
+echo "Copy the key ID starting with "0x...", press "q" when finished."
+echo "Press enter to see a list of your public keys."
 read
 gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | less
 echo "Enter the UID you would like to send to the keyserver."
@@ -283,6 +284,12 @@ echo "Would you like to print it now? (y/no)"
 read CAT_EFILE
   if [ "$CAT_EFILE" != "no" ]; then
       cat temp/newmsg.asc
+      echo "Destroy now? (y/no)"
+      read DESTROY
+      if [ "$DESTROY" != "no" ]; then
+          DEL=temp/newmsg.asc
+          secdelete
+      fi
   fi
 }
 #--------------------------
@@ -327,17 +334,23 @@ if [ "$IF_NEWMSG_RECP_TWO" != "no" ]; then
     gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$NEWMSG_RECP" --output temp/newmsg.asc --encrypt temp/newmsg
 fi
 echo "File is stored temporarily at KeyRNG/temp/newmsg.asc"
-echo "Would you like to print it now? (y/no)"
-read CAT_EFILE
-  if [ "$CAT_EFILE" != "no" ]; then
-      cat temp/newmsg.asc
-  fi
 echo "Would you like to destroy the original, unencrypted message? (y/no)"
 read DESTROY
   if [ "$DESTROY" != "no" ]; then
       echo "Shredding temp file..."
       DEL=temp/newmsg
       secdelete
+  fi
+echo "Would you like to print it now? (y/no)"
+read CAT_EFILE
+  if [ "$CAT_EFILE" != "no" ]; then
+      cat temp/newmsg.asc
+      echo "Destroy now? (y/no)"
+      read DESTROY
+      if [ "$DESTROY" != "no" ]; then
+          DEL=temp/newmsg.asc
+          secdelete
+      fi
   fi
 }
 #-----------------
