@@ -11,6 +11,36 @@ sudo chown -R "$USER" gpg-KeyRNG/*
 sudo chmod -R 0600 gpg-KeyRNG/gpg.conf
 }
 #
+######################################
+##### LOCK AND UNLOCK GPG-KEYRNG #####
+######################################
+#
+#-----------
+## LOCKUP ##
+#-----------
+lockup ()
+{
+tar -c *-KeyRNG libkeyrng > lock.KeyRNG.tar.gz
+echo "Shredding temp files..."
+find *-KeyRNG -depth -type f -exec shred -n 1 -u {} \;
+rm -rf *-KeyRNG
+shred -u libkeyrng
+gpg --symmetric --cipher-algo aes256 lock.KeyRNG.tar.gz
+echo "Shredding temp files..."
+shred -zn 3 -u lock.KeyRNG.tar.gz
+exit 0
+}
+#----------
+## ULOCK ##
+#----------
+unlock ()
+{
+gpg2 -d lock.KeyRNG.tar.gz.gpg > lock.KeyRNG.tar.gz
+tar -xf lock.KeyRNG.tar.gz
+echo "Shredding temp files..."
+shred -zn 3 -u lock.KeyRNG.tar*
+}
+#
 ##########################
 ##### KEY MANAGEMENT #####
 ##########################
@@ -180,9 +210,9 @@ echo "Please enter the UID you would like to receive from the keyserver."
 read RECV_KEYSERV_UID
 gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --recv-keys "$RECV_KEYSERV_UID"
 }
-#################
-##### USAGE #####
-#################
+#####################################
+##### ENCRYPTION AND DECRYPTION #####
+#####################################
 #
 #-------------------
 ## ENCRYPT A FILE ##

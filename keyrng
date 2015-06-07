@@ -6,13 +6,54 @@
 #
 #Blah first run, about, menu.
 #
-## Load libkeyrng
-. libkeyrng
+#
 ## Check if it is the first run.
-FIRST_RUN=$(ls gpg-KeyRNG | grep -c "secring")
-  if [ "$FIRST_RUN" -lt "1" ]; then
-      clear
-      firstrun
+IS_LOCKED=$(ls | grep -c ".tar.gz.gpg")
+  if [[ "$IS_LOCKED" -gt "0" ]]; then
+      PS3='Enter choice: '
+      options=("Unlock KeyRNG Files" "Copy Encrypted Files For Backup" "Quit")
+      select opt in "${options[@]}"
+      do
+          case "$opt" in
+              "Unlock KeyRNG Files")
+unlock ()
+{
+gpg2 -d *.tar.gz.gpg > lock.KeyRNG.tar.gz
+tar -xf lock.KeyRNG.tar.gz
+echo "Shredding temp files..."
+shred -zn 3 -u lock.KeyRNG.tar*
+}
+                  unlock
+                  . libkeyrng
+                  break
+                  ;;
+              "Copy Encrypted Files For Backup")
+                  echo "What would you like to name the backup copy?"
+                  read BACKUP
+                  echo "Copying..."
+                  cp *.tar.gz.gpg /tmp/"$BACKUP".tar.gz.gpg
+                  echo "File is at /tmp/"$BACKUP".tar.gz.gpg"
+                  echo "You should move somewhere else if you would like to keep it."
+                  echo "Press enter to exit."
+                  read
+                  exit 0
+                  ;;
+              "Quit")
+                  exit 0
+                  ;;
+          esac
+      done
+  else
+      . libkeyrng
+      IS_FIRST_RUN=$(ls gpg-KeyRNG | grep -c "secring")
+      if [ "$IS_FIRST_RUN" -lt "1" ]; then
+          echo "This is your first run."
+          echo "You must create a gpg key to begin with."
+          echo "Press enter to move on."
+          read
+          clear
+          firstrun
+      fi
   fi
 ## What now?
 clear
@@ -20,7 +61,7 @@ echo "---------------------"
 echo "| M A I N   M E N U |"
 echo "---------------------"
 PS3='Enter choice (press enter to see options again): '
-options=("GnuPG Management" "Quit")
+options=("GnuPG Management" "LOCK UP!" "Quit")
 select opt in "${options[@]}"
 do
     case "$opt" in
@@ -30,7 +71,7 @@ do
             echo "| GPG MENU |"
             echo "------------"
             PS3='Enter choice (press enter to see options again): '
-            options=("Key Management" "Encryption" "Decryption" "Lock Keys" "Quit")
+            options=("Key Management" "Encryption" "Decryption" "LOCK UP!" "Back To MAIN MENU")
             select opt in "${options[@]}"
             do
                 case "$opt" in
@@ -40,7 +81,7 @@ do
                         echo "| K E Y   M A N A G E M E N T |"
                         echo "-------------------------------"
                         PS3='Enter choice (press enter to see options again): '
-                        options=("Generate New Keypair" "Public Keys" "Secret Keys" "Back")
+                        options=("Generate New Keypair" "Public Keys" "Secret Keys" "LOCK UP!" "Back To GPG MENU")
                         select opt in "${options[@]}"
                         do
                             case "$opt" in
@@ -53,7 +94,7 @@ do
                                     echo "| P U B L I C   K E Y S |"
                                     echo "-------------------------"
                                     PS3='Enter choice (press enter to see options again): '
-                                    options=("List Public Keys By UID" "List Full Public Keys" "Import Keys" "Export A Public Key To Terminal" "Export A Public Key To File" "Send Keys To Keyserver" "Receive Keys From Keyserver" "Back")
+                                    options=("List Public Keys By UID" "List Full Public Keys" "Import Keys" "Export A Public Key To Terminal" "Export A Public Key To File" "Send Keys To Keyserver" "Receive Keys From Keyserver" "LOCK UP!" "Back To KEY MANAGEMENT MENU")
                                     select opt in "${options[@]}"
                                     do
                                         case "$opt" in
@@ -69,7 +110,7 @@ do
                                                 echo "| I M P O R T   K E Y S|"
                                                 echo "------------------------"
                                                 PS3='Enter choice (press enter to see options again): '
-                                                options=("Import From File" "Import From Clipboard" "Import From Another GPG" "Back")
+                                                options=("Import From File" "Import From Clipboard" "Import From Another GPG" "LOCK UP!" "Back To PUBLIC KEYS MENU")
                                                 select opt in "${options[@]}"
                                                 do
                                                     case "$opt" in
@@ -82,7 +123,10 @@ do
                                                         "Import From Another GPG")
                                                             importkeyfromgpg
                                                             ;;
-                                                        "Back")
+                                                        "LOCK UP!")
+                                                            lockup
+                                                            ;;
+                                                        "Back To PUBLIC KEYS MENU")
                                                             break
                                                             ;;
                                                         *) echo "Invalid Option";;
@@ -101,7 +145,10 @@ do
                                             "Receive Keys From Keyserver")
                                                 recvkeyserv
                                                 ;;
-                                            "Back")
+                                            "LOCK UP!")
+                                                lockup
+                                                ;;
+                                            "Back To KEY MANAGEMENT MENU")
                                                 break
                                                 ;;
                                             *) echo "Invalid Option";;
@@ -114,7 +161,7 @@ do
                                     echo "| S E C R E T   K E Y S |"
                                     echo "-------------------------"
                                     PS3='Enter choice (press enter to see options again): '
-                                    options=("List Secret Keys By UID" "List Full Secret Key Info" "Export Secret Key To Terminal" "Export Secret Key To File" "Back")
+                                    options=("List Secret Keys By UID" "List Full Secret Key Info" "Export Secret Key To Terminal" "Export Secret Key To File" "LOCK UP!" "Back To KEY MANAGEMENT MENU")
                                     select opt in "${options[@]}"
                                     do
                                         case "$opt" in
@@ -130,14 +177,20 @@ do
                                         "Export Secret Key To File")
                                             exportseckeyfile
                                             ;;
-                                        "Back")
+                                        "LOCK UP!")
+                                            lockup
+                                            ;;
+                                        "Back To KEY MANAGEMENT MENU")
                                             break
                                             ;;
                                         *) echo "Invalid Option";;
                                         esac
                                     done
                                     ;;
-                                "Back")
+                                "LOCK UP!")
+                                    lockup
+                                    ;;
+                                "Back To GPG MENU")
                                     break
                                     ;;
                                 *) echo "Invalid Option";;
@@ -150,7 +203,7 @@ do
                         echo "| E N C R Y P T I O N   M E N U |"
                         echo "---------------------------------"
                         PS3='Enter choice (press enter to see options again): '
-                        options=("Encrypt A File" "Encrypt A New Message" "Back")
+                        options=("Encrypt A File" "Encrypt A New Message" "LOCK UP!" "Back To GPG MENU")
                         select opt in "${options[@]}"
                         do
                             case "$opt" in
@@ -160,7 +213,10 @@ do
                                 "Encrypt A New Message")
                                     encryptnewmsg
                                     ;;
-                                "Back")
+                                "LOCK UP!")
+                                    lockup
+                                    ;;
+                                "Back To GPG MENU")
                                     break
                                     ;;
                                 *) echo "Invalid Option";;
@@ -173,7 +229,7 @@ do
                         echo "| D E C R Y P T I O N   M E N U |"
                         echo "---------------------------------"
                         PS3='Enter choice (press enter to see options again): '
-                        options=("Decrypt From A File" "Decrypt From Clipboard" "Back")
+                        options=("Decrypt From A File" "Decrypt From Clipboard" "LOCK UP!" "Back To GPG MENU")
                         select opt in "${options[@]}"
                         do
                             case "$opt" in
@@ -183,20 +239,29 @@ do
                                 "Decrypt From Clipboard")
                                     decryptclip
                                     ;;
-                                "Back")
+                                "LOCK UP!")
+                                    lockup
+                                    ;;
+                                "Back To GPG MENU")
                                     break
                                     ;;
                                 *) echo "Invalid Option";;
                             esac
                         done
                         ;;
-                    "Quit")
-                        exit 0
+                    "LOCK UP!")
+                        lockup
+                        ;;
+                    "Back To MAIN MENU")
+                        break
                         ;;
                     *) echo "Invalid option";;
                 esac
             done
             ;;
+        "LOCK UP!")
+            lockup
+            ;;    
         "Quit")
             exit 0
             ;;
