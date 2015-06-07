@@ -10,6 +10,19 @@ chown -R "$USER" gpg-KeyRNG/
 chown -R "$USER" gpg-KeyRNG/*
 chmod -R 0600 gpg-KeyRNG/gpg.conf
 }
+#########################
+##### SECURE-DELETE #####
+#########################
+#
+secdelete ()
+{
+HAS_SRM=$(ls /usr/bin/ /usr/sbin/ /usr/local/bin/ /home/"$USER"/bin/ | grep -c srm)
+if [[ "$HAS_SRM" -gt "0" ]]; then
+    srm -dlrv
+else
+    shred -vuz
+fi
+}
 #
 ######################################
 ##### LOCK AND UNLOCK GPG-KEYRNG #####
@@ -23,9 +36,14 @@ lockup ()
 tar -c *-KeyRNG libkeyrng > lock.KeyRNG.tar.gz
 gpg --symmetric --cipher-algo aes256 lock.KeyRNG.tar.gz
 echo "Shredding temp files..."
-find *-KeyRNG -depth -type f -exec shred -n 1 -u {} \;
-shred -zn 3 -u lock.KeyRNG.tar.gz libkeyrng
-rm -rf *-KeyRNG *.tar.gz libkeyrng
+HAS_SRM=$(ls /usr/bin/ /usr/sbin/ /usr/local/bin/ /home/"$USER"/bin/ | grep -c srm)
+if [[ "$HAS_SRM" -gt "0" ]]; then
+    srm -dlrv *-KeyRNG libkeyrng
+else
+    find *-KeyRNG -depth -type f -exec shred -u -z -n 3 {} \;
+    shred -vuzn 3 lock.KeyRNG.tar.gz libkeyrng
+    rm -rf *-KeyRNG *.tar.gz libkeyrng
+fi
 exit 0
 }
 #----------
@@ -36,7 +54,13 @@ unlock ()
 gpg2 -d lock.KeyRNG.tar.gz.gpg > lock.KeyRNG.tar.gz
 tar -xf lock.KeyRNG.tar.gz
 echo "Shredding temp files..."
-shred -zn 3 -u lock.KeyRNG.tar*
+HAS_SRM=$(ls /usr/bin/ /usr/sbin/ /usr/local/bin/ /home/"$USER"/bin/ | grep -c srm)
+if [[ "$HAS_SRM" -gt "0" ]]; then
+    srm -dlrv *-KeyRNG libkeyrng
+else
+    shred -vuzn 3 *.tar.gz.gpg
+    rm -rf *.tar.gz.gpg
+fi
 }
 #
 ##########################
@@ -107,7 +131,7 @@ rm -rf /tmp/import
 nano /tmp/import
 gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --import /tmp/import
 echo "Shredding temp file..."
-shred -zn 3 /tmp/import
+secdelete /tmp/import
 }
 #--------------------------------
 ## IMPORT KEY FROM ANOTHER GPG ##
@@ -311,7 +335,7 @@ echo "Would you like to destroy the original, unencrypted message? (y/no)"
 read DESTROY
   if [ "$DESTROY" != "no" ]; then
       echo "Shredding temp file..."
-      shred -zn 3 /tmp/newmsg
+      secdelete /tmp/newmsg
   fi
 }
 #-----------------
@@ -343,7 +367,7 @@ read IS_HIDDEN_UID
                   read DESTROY
                     if [ "$DESTROY" != "no" ]; then
                         echo "Shredding temp file..."
-                        shred -zu /tmp/newmsg
+                        secdelete /tmp/newmsg
                     fi
               fi
         else
@@ -362,7 +386,7 @@ read IS_HIDDEN_UID
                   read DESTROY
                     if [ "$DESTROY" != "no" ]; then
                         echo "Shredding temp file..."
-                        shred -zu /tmp/newmsg
+                        secdelete /tmp/newmsg
                     fi
               fi
         fi
@@ -380,7 +404,7 @@ read IS_HIDDEN_UID
                   read DESTROY
                     if [ "$DESTROY" != "no" ]; then
                         echo "Shredding temp file..."
-                        shred -zu /tmp/newmsg
+                        secdelete /tmp/newmsg
                     fi
               fi 
   fi
@@ -417,7 +441,7 @@ read IS_HIDDEN_UID
                   read DESTROY
                     if [ "$DESTROY" != "no" ]; then
                         echo "Shredding temp file..."
-                        shred -zu /tmp/newmsg
+                        secdelete /tmp/newmsg
                     fi
               fi
         else
@@ -436,7 +460,7 @@ read IS_HIDDEN_UID
                   read DESTROY
                     if [ "$DESTROY" != "no" ]; then
                         echo "Shredding temp file..."
-                        shred -zu /tmp/newmsg
+                        secdelete /tmp/newmsg
                     fi
               fi
         fi
@@ -454,7 +478,7 @@ read IS_HIDDEN_UID
                   read DESTROY
                     if [ "$DESTROY" != "no" ]; then
                         echo "Shredding temp file..."
-                        shred -zu /tmp/newmsg
+                        secdelete /tmp/newmsg
                     fi
               fi 
   fi
