@@ -327,6 +327,8 @@ read IS_HIDDEN_UID
       echo "Do you know the UID it is encrypted to? (y/no)"
       read KNOW_UID
         if [[ "$KNOW_UID" = "no" ]]; then
+            echo "Press enter to try all secret keys."
+            read
             rm -rf /tmp/newmsg
             gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --try-all-secrets --output /tmp/newmsg --decrypt "$DFILE"
             echo "File is stored temporarily at /tmp/newmsg."
@@ -341,7 +343,7 @@ read IS_HIDDEN_UID
                   read DESTROY
                     if [ "$DESTROY" != "no" ]; then
                         echo "Shredding temp file..."
-                        shred -zn 3 /tmp/newmsg
+                        shred -zu /tmp/newmsg
                     fi
               fi
         else
@@ -360,7 +362,7 @@ read IS_HIDDEN_UID
                   read DESTROY
                     if [ "$DESTROY" != "no" ]; then
                         echo "Shredding temp file..."
-                        shred -zn 3 /tmp/newmsg
+                        shred -zu /tmp/newmsg
                     fi
               fi
         fi
@@ -378,7 +380,7 @@ read IS_HIDDEN_UID
                   read DESTROY
                     if [ "$DESTROY" != "no" ]; then
                         echo "Shredding temp file..."
-                        shred -zn 3 /tmp/newmsg
+                        shred -zu /tmp/newmsg
                     fi
               fi 
   fi
@@ -399,6 +401,8 @@ read IS_HIDDEN_UID
       echo "Do you know the UID it is encrypted to? (y/no)"
       read KNOW_UID
         if [[ "$KNOW_UID" = "no" ]]; then
+            echo "Press enter to try all secret keys."
+            read
             rm -rf /tmp/newmsg
             gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --try-all-secrets --output /tmp/newmsg --decrypt "$DFILE"
             echo "File is stored temporarily at /tmp/newmsg."
@@ -413,7 +417,7 @@ read IS_HIDDEN_UID
                   read DESTROY
                     if [ "$DESTROY" != "no" ]; then
                         echo "Shredding temp file..."
-                        shred -zn 3 /tmp/newmsg
+                        shred -zu /tmp/newmsg
                     fi
               fi
         else
@@ -432,7 +436,7 @@ read IS_HIDDEN_UID
                   read DESTROY
                     if [ "$DESTROY" != "no" ]; then
                         echo "Shredding temp file..."
-                        shred -zn 3 /tmp/newmsg
+                        shred -zu /tmp/newmsg
                     fi
               fi
         fi
@@ -450,11 +454,11 @@ read IS_HIDDEN_UID
                   read DESTROY
                     if [ "$DESTROY" != "no" ]; then
                         echo "Shredding temp file..."
-                        shred -zn 3 /tmp/newmsg
+                        shred -zu /tmp/newmsg
                     fi
               fi 
   fi
 }
-#
-##
-#
+#########################
+########## END ##########
+#########################
