@@ -7,7 +7,7 @@
 #Blah first run, about, menu.
 #
 #
-## Check if it is the first run.
+## IS LOCKED
 IS_LOCKED=$(ls | grep -c ".tar.gz.gpg")
   if [[ "$IS_LOCKED" -gt "0" ]]; then
       echo "---------------------------------------"
@@ -23,8 +23,15 @@ unlock ()
 {
 gpg2 -d *.tar.gz.gpg > lock.KeyRNG.tar.gz
 tar -xf lock.KeyRNG.tar.gz
+chown -R "$USER" * */ */*
+chmod 0600 gpg-KeyRNG/gpg.conf
 echo "Shredding temp files..."
-shred -zn 3 -u lock.KeyRNG.tar*
+HAS_SRM=$(ls /usr/bin/ /usr/sbin/ /usr/local/bin/ /home/"$USER"/bin/ | grep -c srm)
+if [[ "$HAS_SRM" -gt "0" ]]; then
+    srm -drv *.tar.gz*
+else
+    shred -vuz *.tar.gz*
+fi
 }
                   unlock
                   . libkeyrng
@@ -52,6 +59,7 @@ shred -zn 3 -u lock.KeyRNG.tar*
                   ;;
           esac
       done
+## FIRST RUN
   else
       . libkeyrng
       IS_FIRST_RUN=$(ls gpg-KeyRNG | grep -c "secring")
@@ -67,7 +75,12 @@ shred -zn 3 -u lock.KeyRNG.tar*
           firstrun
       fi
   fi
-## What now?
+## TEMP FILE
+HAS_TEMP_FILE=$(ls | grep -c "temp")
+if [ "$HAS_TEMP_FILE" -lt "1" ]; then
+    mkdir temp/
+fi
+## MAIN MENU 
 clear
 echo "---------------------"
 echo "| M A I N   M E N U |"

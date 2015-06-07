@@ -18,15 +18,15 @@ secdelete ()
 {
 HAS_SRM=$(ls /usr/bin/ /usr/sbin/ /usr/local/bin/ /home/"$USER"/bin/ | grep -c srm)
 if [[ "$HAS_SRM" -gt "0" ]]; then
-    srm -dlrv
+    srm -d -r -v "$DEL"
 else
-    shred -vuz
+    shred -v -u -z "$DEL"
 fi
 }
 #
-######################################
-##### LOCK AND UNLOCK GPG-KEYRNG #####
-######################################
+###########################
+##### LOCK AND UNLOCK #####
+###########################
 #
 #-----------
 ## LOCKUP ##
@@ -38,11 +38,12 @@ gpg --symmetric --cipher-algo aes256 lock.KeyRNG.tar.gz
 echo "Shredding temp files..."
 HAS_SRM=$(ls /usr/bin/ /usr/sbin/ /usr/local/bin/ /home/"$USER"/bin/ | grep -c srm)
 if [[ "$HAS_SRM" -gt "0" ]]; then
-    srm -dlrv *-KeyRNG libkeyrng
+    srm -drv *-KeyRNG/ libkeyrng temp/ *.tar.gz
 else
-    find *-KeyRNG -depth -type f -exec shred -u -z -n 3 {} \;
-    shred -vuzn 3 lock.KeyRNG.tar.gz libkeyrng
-    rm -rf *-KeyRNG *.tar.gz libkeyrng
+    find *-KeyRNG -depth -type f -exec shred -u -z {} \;
+    find temp/ -depth -type f -exec shred -u -z {} \;
+    shred -vuz *.tar.gz libkeyrng
+    rm -rf temp/ *-KeyRNG/
 fi
 exit 0
 }
@@ -56,10 +57,9 @@ tar -xf lock.KeyRNG.tar.gz
 echo "Shredding temp files..."
 HAS_SRM=$(ls /usr/bin/ /usr/sbin/ /usr/local/bin/ /home/"$USER"/bin/ | grep -c srm)
 if [[ "$HAS_SRM" -gt "0" ]]; then
-    srm -dlrv *-KeyRNG libkeyrng
+    srm -drv *-KeyRNG libkeyrng
 else
-    shred -vuzn 3 *.tar.gz.gpg
-    rm -rf *.tar.gz.gpg
+    shred -vuz *.tar.gz.gpg
 fi
 }
 #
@@ -127,11 +127,12 @@ importkeyclip ()
 {
 echo "Press enter when you are ready to paste your key."
 read
-rm -rf /tmp/import
-nano /tmp/import
-gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --import /tmp/import
+rm -rf temp/import.fil
+nano temp/import.file
+gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --import temp/import.file
 echo "Shredding temp file..."
-secdelete /tmp/import
+DEL=temp/import.file
+secdelete
 }
 #--------------------------------
 ## IMPORT KEY FROM ANOTHER GPG ##
@@ -268,20 +269,20 @@ read IF_MSG_RECP_TWO
       read MSG_RECP_TWO
   fi
 if [[ "$IF_MSG_RECP_TWO" = "no" ]]; then
-    gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$MSG_RECP" --output /tmp/newmsg.asc --encrypt "$EFILE"
+    gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$MSG_RECP" --output temp/newmsg.asc --encrypt "$EFILE"
 else
     echo "Do you want the second recipient hidden? (y/no)"
     read HIDE_RECP_TWO
       if [ "$HIDE_RECP_TWO" != "no" ]; then
-          gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$MSG_RECP" --hidden-recipient "$MSG_RECP_TWO" --output /tmp/newmsg.asc --encrypt "$EFILE"
+          gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --hidden-recipient "$MSG_RECP_TWO" --recipient "$MSG_RECP" --output temp/newmsg.asc --encrypt "$EFILE"
       fi
-    gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$MSG_RECP" --recipient "$MSG_RECP_TWO" --output /tmp/newmsg.asc --encrypt "$EFILE"
+    gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$MSG_RECP" --recipient "$MSG_RECP_TWO" --output temp/newmsg.asc --encrypt "$EFILE"
 fi
-echo "File is stored temporarily at /tmp/newmsg.asc."
+echo "File is stored temporarily at KeyRNG/temp/newmsg.asc."
 echo "Would you like to print it now? (y/no)"
 read CAT_EFILE
   if [ "$CAT_EFILE" != "no" ]; then
-      cat /tmp/efile.asc
+      cat temp/newmsg.asc
   fi
 }
 #--------------------------
@@ -290,8 +291,8 @@ read CAT_EFILE
 encryptnewmsg ()
 {
 echo "Press enter to type message."
-rm -rf /tmp/newmsg
-nano /tmp/newmsg
+rm -rf temp/newmsg
+nano temp/newmsg
 echo "See UIDS of possible recipients? (y/no)"
 read SHOW_UIDS
   if [ "$SHOW_UIDS" != "no" ]; then
@@ -304,38 +305,39 @@ echo "What recipient?"
 read NEWMSG_RECP
 echo "Another recipient (yourself possibly)? (y/no)"
 read IF_NEWMSG_RECP_TWO
-  if [ "$IF_NEWMSG_RECP_TWO" != "no" ]; then
-      echo "See UID list again? (y/no)"
-      read SHOW_UIDS
-        if [ "$SHOW_UIDS" != "no" ]; then
-            echo "Press enter to see a list of possible recipients by UID."
-            echo "Use up/down arrows to navigate. Press "q" when your finished."
-            read
-            gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "uid" | cut -b 21- | less
-        fi
-      echo "Second recipient UID?"
-      read NEWMSG_RECP_TWO
-  fi
-if [[ "$IF_NEWMSG_RECP_TWO" = "no" ]]; then
-    gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$NEWMSG_RECP" --output /tmp/newmsg.asc --encrypt /tmp/newmsg
-else
+if [ "$IF_NEWMSG_RECP_TWO" != "no" ]; then
+    echo "See UID list again? (y/no)"
+    read SHOW_UIDS
+    if [ "$SHOW_UIDS" != "no" ]; then
+        echo "Press enter to see a list of possible recipients by UID."
+        echo "Use up/down arrows to navigate. Press "q" when your finished."
+        read
+        gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "uid" | cut -b 21- | less
+    fi
+    echo "Second recipient UID?"
+    read NEWMSG_RECP_TWO
     echo "Do you want the second recipient hidden? (y/no)"
     read HIDE_RECP_TWO
-      if [ "$HIDE_RECP_TWO" != "no" ]; then
-          gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$NEWMSG_RECP" --hidden-recipient "$NEWMSG_RECP_TWO" --output /tmp/newmsg.asc --encrypt /tmp/newmsg
-      fi
-    gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$NEWMSG_RECP" --recipient "$NEWMSG_RECP_TWO" --output /tmp/newmsg.asc --encrypt /tmp/newmsg
+    if [[ "$HIDE_RECP_TWO" != "no" ]]; then
+        gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$NEWMSG_RECP" --hidden-recipient "$NEWMSG_RECP_TWO" --output temp/newmsg.asc --encrypt temp/newmsg
+    else
+        gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$NEWMSG_RECP" --recipient "$NEWMSG_RECP_TWO" --output temp/newmsg.asc --encrypt temp/newmsg
+    fi
+  else
+    gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$NEWMSG_RECP" --output temp/newmsg.asc --encrypt temp/newmsg
 fi
-echo "File is stored temporarily at /tmp/newmsg.asc. Would you like to print it now? (y/no)"
+echo "File is stored temporarily at KeyRNG/temp/newmsg.asc"
+echo "Would you like to print it now? (y/no)"
 read CAT_EFILE
   if [ "$CAT_EFILE" != "no" ]; then
-      cat /tmp/newmsg.asc
+      cat temp/newmsg.asc
   fi
 echo "Would you like to destroy the original, unencrypted message? (y/no)"
 read DESTROY
   if [ "$DESTROY" != "no" ]; then
       echo "Shredding temp file..."
-      secdelete /tmp/newmsg
+      DEL=temp/newmsg
+      secdelete
   fi
 }
 #-----------------
@@ -353,58 +355,61 @@ read IS_HIDDEN_UID
         if [[ "$KNOW_UID" = "no" ]]; then
             echo "Press enter to try all secret keys."
             read
-            rm -rf /tmp/newmsg
-            gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --try-all-secrets --output /tmp/newmsg --decrypt "$DFILE"
-            echo "File is stored temporarily at /tmp/newmsg."
+            rm -rf temp/newmsg
+            gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --try-all-secrets --output temp/newmsg --decrypt "$DFILE"
+            echo "File is stored temporarily at KeyRNG/temp/newmsg."
             echo "Do you want to print it now? (y/no)"
             read PRINT_NOW
               if [ "$PRINT_NOW" != "no" ]; then
                   echo "Press enter to see message."
                   echo "Use up/down arrows to navigate. Press "q" when your finished."
                   read
-                  cat /tmp/newmsg | less
+                  cat temp/newmsg | less
                   echo "Destroy message now? (y/no)"
                   read DESTROY
                     if [ "$DESTROY" != "no" ]; then
                         echo "Shredding temp file..."
-                        secdelete /tmp/newmsg
+                        DEL=temp/newmsg
+                        secdelete
                     fi
               fi
         else
             echo "What UID?"
             read HIDDEN_UID
-            gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --local-user "$HIDDEN_ID" --output /tmp/newmsg --decrypt "$DFILE"
-            echo "File is stored temporarily at /tmp/newmsg."
+            gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --local-user "$HIDDEN_ID" --output temp/newmsg --decrypt "$DFILE"
+            echo "File is stored temporarily at KeyRNG/temp/newmsg."
             echo "Do you want to print it now? (y/no)"
             read PRINT_NOW
               if [ "$PRINT_NOW" != "no" ]; then
                   echo "Press enter to see message."
                   echo "Use up/down arrows to navigate. Press "q" when your finished."
                   read
-                  cat /tmp/newmsg | less
+                  cat temp/newmsg | less
                   echo "Destroy message now? (y/no)"
                   read DESTROY
                     if [ "$DESTROY" != "no" ]; then
                         echo "Shredding temp file..."
-                        secdelete /tmp/newmsg
+                        DEL=temp/newmsg
+                        secdelete
                     fi
               fi
         fi
   else
-      gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --local-user "$HIDDEN_ID" --output /tmp/newmsg --decrypt "$DFILE"   
-      echo "File is stored temporarily at /tmp/newmsg."
+      gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --local-user "$HIDDEN_ID" --output temp/newmsg --decrypt "$DFILE"   
+      echo "File is stored temporarily at KeyRNG/temp/newmsg."
             echo "Do you want to print it now? (y/no)"
             read PRINT_NOW
               if [ "$PRINT_NOW" != "no" ]; then
                   echo "Press enter to see message."
                   echo "Use up/down arrows to navigate. Press "q" when your finished."
                   read
-                  cat /tmp/newmsg | less
+                  cat temp/newmsg | less
                   echo "Destroy message now? (y/no)"
                   read DESTROY
                     if [ "$DESTROY" != "no" ]; then
                         echo "Shredding temp file..."
-                        secdelete /tmp/newmsg
+                        DEL=temp/newmsg
+                        secdelete
                     fi
               fi 
   fi
@@ -416,9 +421,9 @@ decryptclip ()
 {
 echo "Press enter when you are ready to paste the message."
 read
-rm -rf /tmp/newmsg
-nano /tmp/newmsg
-DFILE=/tmp/newmsg
+rm -rf temp/newmsg
+nano temp/newmsg
+DFILE=temp/newmsg
 echo "Is this encrypted to a hidden UID? (y/no)"
 read IS_HIDDEN_UID
   if [[ "$IS_HIDDEN_UID" != "no" ]]; then
@@ -427,58 +432,61 @@ read IS_HIDDEN_UID
         if [[ "$KNOW_UID" = "no" ]]; then
             echo "Press enter to try all secret keys."
             read
-            rm -rf /tmp/newmsg
-            gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --try-all-secrets --output /tmp/newmsg --decrypt "$DFILE"
-            echo "File is stored temporarily at /tmp/newmsg."
+            rm -rf temp/newmsg
+            gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --try-all-secrets --output temp/newmsg --decrypt "$DFILE"
+            echo "File is stored temporarily at KeyRNG/temp/newmsg."
             echo "Do you want to print it now? (y/no)"
             read PRINT_NOW
               if [ "$PRINT_NOW" != "no" ]; then
                   echo "Press enter to see message."
                   echo "Use up/down arrows to navigate. Press "q" when your finished."
                   read
-                  cat /tmp/newmsg | less
+                  cat temp/newmsg | less
                   echo "Destroy message now? (y/no)"
                   read DESTROY
                     if [ "$DESTROY" != "no" ]; then
                         echo "Shredding temp file..."
-                        secdelete /tmp/newmsg
+                        DEL=temp/newmsg
+                        secdelete
                     fi
               fi
         else
             echo "What UID?"
             read HIDDEN_UID
-            gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --local-user "$HIDDEN_ID" --output /tmp/newmsg --decrypt "$DFILE"
-            echo "File is stored temporarily at /tmp/newmsg."
+            gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --local-user "$HIDDEN_ID" --output temp/newmsg --decrypt "$DFILE"
+            echo "File is stored temporarily at KeyRNG/temp/newmsg."
             echo "Do you want to print it now? (y/no)"
             read PRINT_NOW
               if [ "$PRINT_NOW" != "no" ]; then
                   echo "Press enter to see message."
                   echo "Use up/down arrows to navigate. Press "q" when your finished."
                   read
-                  cat /tmp/newmsg | less
+                  cat temp/newmsg | less
                   echo "Destroy message now? (y/no)"
                   read DESTROY
                     if [ "$DESTROY" != "no" ]; then
                         echo "Shredding temp file..."
-                        secdelete /tmp/newmsg
+                        DEL=temp/newmsg
+                        secdelete
                     fi
               fi
         fi
   else
-      gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --local-user "$HIDDEN_ID" --output /tmp/newmsg --decrypt "$DFILE"   
-      echo "File is stored temporarily at /tmp/newmsg."
+      gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --local-user "$HIDDEN_ID" --output temp/newmsg --decrypt "$DFILE"   
+      echo "File is stored temporarily at KeyRNG/temp/newmsg."
             echo "Do you want to print it now? (y/no)"
             read PRINT_NOW
               if [ "$PRINT_NOW" != "no" ]; then
                   echo "Press enter to see message."
                   echo "Use up/down arrows to navigate. Press "q" when your finished."
                   read
-                  cat /tmp/newmsg | less
+                  cat temp/newmsg | less
                   echo "Destroy message now? (y/no)"
                   read DESTROY
                     if [ "$DESTROY" != "no" ]; then
                         echo "Shredding temp file..."
-                        secdelete /tmp/newmsg
+                        DEL=temp/newmsg
+                        secdelete
                     fi
               fi 
   fi
