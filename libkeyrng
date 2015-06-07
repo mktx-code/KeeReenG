@@ -27,6 +27,8 @@ gpg2 --homedir gpg-KeyRNG/ --gen-key
 #--------------------------
 listfullkeydetails ()
 {
+echo "Press enter to see a list of possible recipients by uid."
+echo "Use up/down arrows to navigate. Press "q" when your finished."
 gpg2 --quiet --homedir gpg-KeyRNG --list-keys | less
 }
 #------------------
@@ -34,7 +36,8 @@ gpg2 --quiet --homedir gpg-KeyRNG --list-keys | less
 #------------------
 listkeyuids ()
 {
-echo "Press enter to see a list of keys by UID. Press "q" when finished."
+echo "Press enter to see a list of possible recipients by uid."
+echo "Use up/down arrows to navigate. Press "q" when your finished."
 read
 gpg2 --quiet --homedir gpg-KeyRNG --list-keys | grep "uid" | cut -b 21- | less
 }
@@ -43,6 +46,8 @@ gpg2 --quiet --homedir gpg-KeyRNG --list-keys | grep "uid" | cut -b 21- | less
 #---------------------------------
 listfullseckey ()
 {
+echo "Press enter to see a list of possible recipients by uid."
+echo "Use up/down arrows to navigate. Press "q" when your finished."
 gpg2 --homedir gpg-KeyRNG --list-secret-keys | less
 }
 #-------------------------
@@ -50,6 +55,8 @@ gpg2 --homedir gpg-KeyRNG --list-secret-keys | less
 #-------------------------
 listseckeyuid ()
 {
+echo "Press enter to see a list of possible recipients by uid."
+echo "Use up/down arrows to navigate. Press "q" when your finished."
 gpg2 --homedir gpg-KeyRNG --list-secret-keys | grep "uid" | cut -b 21- | less
 }
 #-------------------------
@@ -159,37 +166,235 @@ encryptfile ()
 {
 echo "What file?"
 read EFILE
-echo "See uids of possible recipients? (y/no)"
-read EFILE_SHOW_UIDS
-  if [ "$EFILE_SHOW_UIDS" != "no" ]; then
-      echo "Press enter to see a list of possible recipients by uid. Press "q" when finished."
+echo "See UIDS of possible recipients? (y/no)"
+read SHOW_UIDS
+  if [ "$SHOW_UIDS" != "no" ]; then
+      echo "Press enter to see a list of possible recipients by uid."
+      echo "Use up/down arrows to navigate. Press "q" when your finished."
       read
       gpg2 --homedir gpg-KeyRNG --list-keys | grep "uid" | cut -b 21- | less
   fi
 echo "What recipient?"
-read EFILE_RECP
+read MSG_RECP
 echo "Another recipient (yourself possibly)? (y/no)"
-read MORE_EFILE_RECP
-  if [[ "$MORE_EFILE_RECP" != "no" ]]; then
-      echo "See uids again? (y/no)"
-      read EFILE_SHOW_UIDS
-        if [ "$EFILE_SHOW_UIDS" != "no" ]; then
-            echo "Press enter to see a list of possible recipients by uid. Press "q" when finished."
+read IF_MSG_RECP_TWO
+  if [[ "$IF_MSG_RECP_TWO" != "no" ]]; then
+      echo "See UID list again? (y/no)"
+      read SHOW_UIDS
+        if [ "$SHOW_UIDS" != "no" ]; then
+            echo "Press enter to see a list of possible recipients by uid."
+            echo "Use up/down arrows to navigate. Press "q" when your finished."
             read
             gpg2 --homedir gpg-KeyRNG --list-keys | grep "uid" | cut -b 21- | less
         fi
       echo "Second recipient?"
-      read EFILE_RECP_TWO
+      read MSG_RECP_TWO
   fi
-if [[ "$MORE_EFILE_RECP" = "no" ]]; then
-    gpg2 --homedir gpg-KeyRNG --armor --recipient "$EFILE_RECP" --output /tmp/efile.asc --encrypt "$EFILE"
+if [[ "$IF_MSG_RECP_TWO" = "no" ]]; then
+    gpg2 --homedir gpg-KeyRNG --armor --recipient "$MSG_RECP" --output /tmp/newmsg.asc --encrypt "$EFILE"
 else
-    gpg2 --homedir gpg-KeyRNG --armor --recipient "$EFILE_RECP" --recipient "$EFILE_RECP_TWO" --output /tmp/efile.asc --encrypt "$EFILE"
+    echo "Do you want the second recipient hidden? (y/no)"
+    read HIDE_RECP_TWO
+      if [ "$HIDE_RECP_TWO" != "no" ]; then
+          gpg2 --homedir gpg-KeyRNG --armor --recipient "$MSG_RECP" --hidden-recipient "$MSG_RECP_TWO" --output /tmp/newmsg.asc --encrypt "$EFILE"
+      fi
+    gpg2 --homedir gpg-KeyRNG --armor --recipient "$MSG_RECP" --recipient "$MSG_RECP_TWO" --output /tmp/newmsg.asc --encrypt "$EFILE"
 fi
-echo "File is stored temporarily at /tmp/efile.asc. Would you like to print it now? (y/no)"
+echo "File is stored temporarily at /tmp/newmsg.asc."
+echo "Would you like to print it now? (y/no)"
 read CAT_EFILE
   if [ "$CAT_EFILE" != "no" ]; then
       cat /tmp/efile.asc
   fi
 }
-
+#--------------------------
+## ENCRYPT A NEW MESSAGE ##
+#--------------------------
+encryptnewmsg ()
+{
+echo "Press enter to type message."
+rm -rf /tmp/newmsg
+nano /tmp/newmsg
+echo "See UIDS of possible recipients? (y/no)"
+read SHOW_UIDS
+  if [ "$SHOW_UIDS" != "no" ]; then
+      echo "Press enter to see a list of possible recipients by uid."
+      echo "Use up/down arrows to navigate. Press "q" when your finished."
+      read
+      gpg2 --homedir gpg-KeyRNG --list-keys | grep "uid" | cut -b 21- | less
+  fi
+echo "What recipient?"
+read NEWMSG_RECP
+echo "Another recipient (yourself possibly)? (y/no)"
+read IF_NEWMSG_RECP_TWO
+  if [ "$IF_NEWMSG_RECP_TWO" != "no" ]; then
+      echo "See UID list again? (y/no)"
+      read SHOW_UIDS
+        if [ "$SHOW_UIDS" != "no" ]; then
+            echo "Press enter to see a list of possible recipients by uid."
+            echo "Use up/down arrows to navigate. Press "q" when your finished."
+            read
+            gpg2 --homedir gpg-KeyRNG --list-keys | grep "uid" | cut -b 21- | less
+        fi
+      echo "Second recipient UID?"
+      read NEWMSG_RECP_TWO
+  fi
+if [[ "$IF_NEWMSG_RECP_TWO" = "no" ]]; then
+    gpg2 --homedir gpg-KeyRNG --armor --recipient "$NEWMSG_RECP" --output /tmp/newmsg.asc --encrypt /tmp/newmsg
+else
+    echo "Do you want the second recipient hidden? (y/no)"
+    read HIDE_RECP_TWO
+      if [ "$HIDE_RECP_TWO" != "no" ]; then
+          gpg2 --homedir gpg-KeyRNG --armor --recipient "$NEWMSG_RECP" --hidden-recipient "$NEWMSG_RECP_TWO" --output /tmp/newmsg.asc --encrypt /tmp/newmsg
+      fi
+    gpg2 --homedir gpg-KeyRNG --armor --recipient "$NEWMSG_RECP" --recipient "$NEWMSG_RECP_TWO" --output /tmp/newmsg.asc --encrypt /tmp/newmsg
+fi
+echo "File is stored temporarily at /tmp/newmsg.asc. Would you like to print it now? (y/no)"
+read CAT_EFILE
+  if [ "$CAT_EFILE" != "no" ]; then
+      cat /tmp/newmsg.asc
+  fi
+echo "Would you like to destroy the original, unencrypted message? (y/no)"
+read DESTROY
+  if [ "$DESTROY" != "no" ]; then
+      rm -rf /tmp/newmsg
+  fi
+}
+#-----------------
+## DECRYPT FILE ##
+#-----------------
+decryptfile ()
+{
+echo "Which file?"
+read DFILE
+echo "Is this encrypted to a hidden UID? (y/no)"
+read IS_HIDDEN_UID
+  if [[ "$IS_HIDDEN_UID" != "no" ]]; then
+      echo "Do you know the UID it is encrypted to? (y/no)"
+      read KNOW_UID
+        if [[ "$KNOW_UID" = "no" ]]; then
+            rm -rf /tmp/newmsg
+            gpg2 --homedir gpg-KeyRNG --try-all-secrets --output /tmp/newmsg --decrypt "$DFILE"
+            echo "File is stored temporarily at /tmp/newmsg."
+            echo "Do you want to print it now? (y/no)"
+            read PRINT_NOW
+              if [ "$PRINT_NOW" != "no" ]; then
+                  echo "Press enter to see message."
+                  echo "Use up/down arrows to navigate. Press "q" when your finished."
+                  read
+                  cat /tmp/newmsg | less
+                  echo "Destroy message now? (y/no)"
+                  read DESTROY
+                    if [ "$DESTROY" != "no" ]; then
+                        rm -rf /tmp/newmsg
+                    fi
+              fi
+        else
+            echo "What UID?"
+            read HIDDEN_UID
+            gpg2 --homedir gpg-KeyRNG --local-user "$HIDDEN_ID" --output /tmp/newmsg --decrypt "$DFILE"
+            echo "File is stored temporarily at /tmp/newmsg."
+            echo "Do you want to print it now? (y/no)"
+            read PRINT_NOW
+              if [ "$PRINT_NOW" != "no" ]; then
+                  echo "Press enter to see message."
+                  echo "Use up/down arrows to navigate. Press "q" when your finished."
+                  read
+                  cat /tmp/newmsg | less
+                  echo "Destroy message now? (y/no)"
+                  read DESTROY
+                    if [ "$DESTROY" != "no" ]; then
+                        rm -rf /tmp/newmsg
+                    fi
+              fi
+        fi
+  else
+      gpg2 --homedir gpg-KeyRNG --local-user "$HIDDEN_ID" --output /tmp/newmsg --decrypt "$DFILE"   
+      echo "File is stored temporarily at /tmp/newmsg."
+            echo "Do you want to print it now? (y/no)"
+            read PRINT_NOW
+              if [ "$PRINT_NOW" != "no" ]; then
+                  echo "Press enter to see message."
+                  echo "Use up/down arrows to navigate. Press "q" when your finished."
+                  read
+                  cat /tmp/newmsg | less
+                  echo "Destroy message now? (y/no)"
+                  read DESTROY
+                    if [ "$DESTROY" != "no" ]; then
+                        rm -rf /tmp/newmsg
+                    fi
+              fi 
+  fi
+}
+#---------------------------
+## DECRYPT FROM CLIPBOARD ##
+#---------------------------
+decryptclip ()
+{
+echo "Press enter when you are ready to paste the message."
+read
+rm -rf /tmp/newmsg
+nano /tmp/newmsg
+DFILE=/tmp/newmsg
+echo "Is this encrypted to a hidden UID? (y/no)"
+read IS_HIDDEN_UID
+  if [[ "$IS_HIDDEN_UID" != "no" ]]; then
+      echo "Do you know the UID it is encrypted to? (y/no)"
+      read KNOW_UID
+        if [[ "$KNOW_UID" = "no" ]]; then
+            rm -rf /tmp/newmsg
+            gpg2 --homedir gpg-KeyRNG --try-all-secrets --output /tmp/newmsg --decrypt "$DFILE"
+            echo "File is stored temporarily at /tmp/newmsg."
+            echo "Do you want to print it now? (y/no)"
+            read PRINT_NOW
+              if [ "$PRINT_NOW" != "no" ]; then
+                  echo "Press enter to see message."
+                  echo "Use up/down arrows to navigate. Press "q" when your finished."
+                  read
+                  cat /tmp/newmsg | less
+                  echo "Destroy message now? (y/no)"
+                  read DESTROY
+                    if [ "$DESTROY" != "no" ]; then
+                        rm -rf /tmp/newmsg
+                    fi
+              fi
+        else
+            echo "What UID?"
+            read HIDDEN_UID
+            gpg2 --homedir gpg-KeyRNG --local-user "$HIDDEN_ID" --output /tmp/newmsg --decrypt "$DFILE"
+            echo "File is stored temporarily at /tmp/newmsg."
+            echo "Do you want to print it now? (y/no)"
+            read PRINT_NOW
+              if [ "$PRINT_NOW" != "no" ]; then
+                  echo "Press enter to see message."
+                  echo "Use up/down arrows to navigate. Press "q" when your finished."
+                  read
+                  cat /tmp/newmsg | less
+                  echo "Destroy message now? (y/no)"
+                  read DESTROY
+                    if [ "$DESTROY" != "no" ]; then
+                        rm -rf /tmp/newmsg
+                    fi
+              fi
+        fi
+  else
+      gpg2 --homedir gpg-KeyRNG --local-user "$HIDDEN_ID" --output /tmp/newmsg --decrypt "$DFILE"   
+      echo "File is stored temporarily at /tmp/newmsg."
+            echo "Do you want to print it now? (y/no)"
+            read PRINT_NOW
+              if [ "$PRINT_NOW" != "no" ]; then
+                  echo "Press enter to see message."
+                  echo "Use up/down arrows to navigate. Press "q" when your finished."
+                  read
+                  cat /tmp/newmsg | less
+                  echo "Destroy message now? (y/no)"
+                  read DESTROY
+                    if [ "$DESTROY" != "no" ]; then
+                        rm -rf /tmp/newmsg
+                    fi
+              fi 
+  fi
+}
+#
+##
+#

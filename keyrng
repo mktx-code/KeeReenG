@@ -20,10 +20,10 @@ echo "---------------------"
 echo "| M A I N   M E N U |"
 echo "---------------------"
 PS3='Enter choice (press enter to see options again): '
-options=("Key Management" "Encryption" "Quit")
-select a in "${options[@]}"
+options=("Key Management" "Encryption" "Decryption" "Quit")
+select opt in "${options[@]}"
 do
-    case "$a" in
+    case "$opt" in
         "Key Management")
             clear
             echo "-------------------------------"
@@ -31,9 +31,9 @@ do
             echo "-------------------------------"
             PS3='Enter choice (press enter to see options again): '
             options=("Generate New Keypair" "Public Keys" "Secret Keys" "Back")
-            select b in "${options[@]}"
+            select opt in "${options[@]}"
             do
-                case "$b" in
+                case "$opt" in
                     "Generate New Keypair")
                         genkey
                         ;;
@@ -44,9 +44,9 @@ do
                         echo "-------------------------"
                         PS3='Enter choice (press enter to see options again): '
                         options=("List Public Keys By UID" "List Full Public Keys" "Import Key" "Export A Public Key To Terminal" "Export A Public Key To File" "Send Keys To Keyserver" "Receive Keys From Keyserver" "Back")
-                        select c in "${options[@]}"
+                        select opt in "${options[@]}"
                         do
-                            case "$c" in
+                            case "$opt" in
                                 "List Public Keys By UID")
                                     listkeyuids
                                     ;;
@@ -60,9 +60,9 @@ do
                                     echo "------------------------"
                                     PS3='Enter choice (press enter to see options again): '
                                     options=("Import From File" "Import From Clipboard" "Back")
-                                    select d in "${options[@]}"
+                                    select opt in "${options[@]}"
                                     do
-                                        case "$d" in
+                                        case "$opt" in
                                             "Import From File")
                                                 importkeyfile
                                                 ;;
@@ -102,9 +102,9 @@ do
                         echo "-------------------------"
                         PS3='Enter choice (press enter to see options again): '
                         options=("List Secret Keys By UID" "List Full Secret Key Info" "Export Secret Key To Terminal" "Export Secret Key To File" "Back")
-                        select e in "${options[@]}"
+                        select opt in "${options[@]}"
                         do
-                            case "$e" in
+                            case "$opt" in
                             "List Secret Keys By UID")
                                 listseckeyuid
                                 ;;
@@ -132,7 +132,50 @@ do
             done
             ;;
         "Encryption")
-            encryptfile
+            clear
+            echo "---------------------------------"
+            echo "| E N C R Y P T I O N   M E N U |"
+            echo "---------------------------------"
+            PS3='Enter choice (press enter to see options again): '
+            options=("Encrypt A File" "Encrypt A New Message" "Back")
+            select opt in "${options[@]}"
+            do
+                case "$opt" in
+                    "Encrypt A File")
+                        encryptfile
+                        ;;
+                    "Encrypt A New Message")
+                        encryptnewmsg
+                        ;;
+                    "Back")
+                        break
+                        ;;
+                    *) echo "Invalid Option";;
+                esac
+            done
+            ;;
+        "Decryption")
+            clear
+            echo "---------------------------------"
+            echo "| D E C R Y P T I O N   M E N U |"
+            echo "---------------------------------"
+            PS3='Enter choice (press enter to see options again): '
+            options=("Decrypt From A File" "Decrypt From Clipboard" "Back")
+            select opt in "${options[@]}"
+            do
+                case "$opt" in
+                    "Decrypt From A File")
+                        decryptfile
+                        ;;
+                    "Decrypt From Clipboard")
+                        decryptclip
+                        ;;
+                    "Back")
+                        break
+                        ;;
+                    *) echo "Invalid Option";;
+                esac
+            done
             ;;
         "Quit")
             exit 0
