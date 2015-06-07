@@ -6,9 +6,9 @@ firstrun ()
 {
 echo "Generating gpg key-pair. Please answer the questions."
 gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --gen-key
-sudo chown -R "$USER" gpg-KeyRNG/
-sudo chown -R "$USER" gpg-KeyRNG/*
-sudo chmod -R 0600 gpg-KeyRNG/gpg.conf
+chown -R "$USER" gpg-KeyRNG/
+chown -R "$USER" gpg-KeyRNG/*
+chmod -R 0600 gpg-KeyRNG/gpg.conf
 }
 #
 ######################################
@@ -21,13 +21,11 @@ sudo chmod -R 0600 gpg-KeyRNG/gpg.conf
 lockup ()
 {
 tar -c *-KeyRNG libkeyrng > lock.KeyRNG.tar.gz
-echo "Shredding temp files..."
-find *-KeyRNG -depth -type f -exec shred -n 1 -u {} \;
-rm -rf *-KeyRNG
-shred -u libkeyrng
 gpg --symmetric --cipher-algo aes256 lock.KeyRNG.tar.gz
 echo "Shredding temp files..."
-shred -zn 3 -u lock.KeyRNG.tar.gz
+find *-KeyRNG -depth -type f -exec shred -n 1 -u {} \;
+shred -zn 3 -u lock.KeyRNG.tar.gz libkeyrng
+rm -rf *-KeyRNG *.tar.gz libkeyrng
 exit 0
 }
 #----------

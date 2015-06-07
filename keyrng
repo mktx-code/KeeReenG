@@ -10,8 +10,11 @@
 ## Check if it is the first run.
 IS_LOCKED=$(ls | grep -c ".tar.gz.gpg")
   if [[ "$IS_LOCKED" -gt "0" ]]; then
-      PS3='Enter choice: '
-      options=("Unlock KeyRNG Files" "Copy Encrypted Files For Backup" "Quit")
+      echo "---------------------------------------"
+      echo "| L O C K E D   K e y R N G   M E N U |"
+      echo "---------------------------------------"
+      PS3='Enter choice (press enter to see options again): '
+      options=("Unlock KeyRNG Files" "Copy Encrypted Files For Backup" "About Locked File" "Quit")
       select opt in "${options[@]}"
       do
           case "$opt" in
@@ -38,6 +41,12 @@ shred -zn 3 -u lock.KeyRNG.tar*
                   read
                   exit 0
                   ;;
+              "About Locked File")
+                  echo "---------------------------------------------------------------------"
+                  echo "| Permissions |    Owner    | Size |   Date   |      Filename       |"
+                  echo "---------------------------------------------------------------------"
+                  ls -alh *.tar.gz.gpg
+                  ;;
               "Quit")
                   exit 0
                   ;;
@@ -47,6 +56,9 @@ shred -zn 3 -u lock.KeyRNG.tar*
       . libkeyrng
       IS_FIRST_RUN=$(ls gpg-KeyRNG | grep -c "secring")
       if [ "$IS_FIRST_RUN" -lt "1" ]; then
+          echo "---------------------"
+          echo "| F I R S T   R U N |"
+          echo "---------------------"
           echo "This is your first run."
           echo "You must create a gpg key to begin with."
           echo "Press enter to move on."
