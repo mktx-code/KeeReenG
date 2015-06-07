@@ -5,7 +5,7 @@
 firstrun ()
 {
 echo "Generating gpg key-pair. Please answer the questions."
-gpg2 --homedir gpg-KeyRNG/ --gen-key
+gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --gen-key
 sudo chown -R "$USER" gpg-KeyRNG/
 sudo chown -R "$USER" gpg-KeyRNG/*
 sudo chmod -R 0600 gpg-KeyRNG/gpg.conf
@@ -20,44 +20,44 @@ sudo chmod -R 0600 gpg-KeyRNG/gpg.conf
 #---------------------
 genkey ()
 {
-gpg2 --homedir gpg-KeyRNG/ --gen-key
+gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --gen-key
 }
 #--------------------------
 ## LIST FULL KEY DETAILS ##
 #--------------------------
 listfullkeydetails ()
 {
-echo "Press enter to see a list of possible recipients by uid."
+echo "Press enter to see a list of possible recipients by UID."
 echo "Use up/down arrows to navigate. Press "q" when your finished."
-gpg2 --quiet --homedir gpg-KeyRNG --list-keys | less
+gpg2 --quiet --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | less
 }
 #------------------
 ## LIST KEY UIDS ##
 #------------------
 listkeyuids ()
 {
-echo "Press enter to see a list of possible recipients by uid."
+echo "Press enter to see a list of possible recipients by UID."
 echo "Use up/down arrows to navigate. Press "q" when your finished."
 read
-gpg2 --quiet --homedir gpg-KeyRNG --list-keys | grep "uid" | cut -b 21- | less
+gpg2 --quiet --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "uid" | cut -b 21- | less
 }
 #---------------------------------
 ## LIST FULL SECRET KEY DETAILS ##
 #---------------------------------
 listfullseckey ()
 {
-echo "Press enter to see a list of possible recipients by uid."
+echo "Press enter to see a list of possible recipients by UID."
 echo "Use up/down arrows to navigate. Press "q" when your finished."
-gpg2 --homedir gpg-KeyRNG --list-secret-keys | less
+gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --list-secret-keys | less
 }
 #-------------------------
 ## LIST SECRET KEY UIDS ##
 #-------------------------
 listseckeyuid ()
 {
-echo "Press enter to see a list of possible recipients by uid."
+echo "Press enter to see a list of possible recipients by UID."
 echo "Use up/down arrows to navigate. Press "q" when your finished."
-gpg2 --homedir gpg-KeyRNG --list-secret-keys | grep "uid" | cut -b 21- | less
+gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --list-secret-keys | grep "uid" | cut -b 21- | less
 }
 #-------------------------
 ## IMPORT KEY FROM FILE ##
@@ -66,7 +66,7 @@ importkeyfile ()
 {
 echo "What file to import to KeyRNG?"
 read $IMPORT_KEYFILE
-gpg2 --homedir gpg-KeyRNG --import "$IMPORT_KEYFILE"
+gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --import "$IMPORT_KEYFILE"
 }
 #------------------------------
 ## IMPORT KEY FROM CLIPBOARD ##
@@ -77,10 +77,35 @@ echo "Press enter when you are ready to paste your key."
 read
 rm -rf /tmp/import
 nano /tmp/import
-gpg2 --homedir gpg-KeyRNG --import /tmp/import
-rm -rf /tmp/import
+gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --import /tmp/import
+echo "Shredding temp file..."
+shred -zn 3 /tmp/import
 }
-
+#--------------------------------
+## IMPORT KEY FROM ANOTHER GPG ##
+#--------------------------------
+importkeyfromgpg ()
+{
+echo "From defualt /home/"$USER"/.gnupg file? (y/no)"
+read IS_DEFAULT_GPG
+  if [[ "$DEFAULT_GPG" = "no" ]]; then
+      echo "Please give the full path to the gnupg file:"
+      read DEFAULT_GPG
+  else
+      DEFAULT_GPG=/home/"$USER"/.gnupg/
+  fi
+echo "List keys from $"DEFAULT_GPG"? (y/no)"
+read LIST_KEYS
+  if [ "$LIST_KEYS" != "no" ]; then
+      echo "Press enter to see a list of possible recipients by UID."
+      echo "Use up/down arrows to navigate. Press "q" when your finished."
+      read
+      gpg2 --homedir "$DEFAULT_GPG" --list-keys | less
+  fi
+echo "What key UID do you want to import to KeyRNG?"
+read IMPORT_KEY
+gpg2 --homedir "$DEFAULT_GPG" --export "$IMPORT_KEY" | gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --import -
+}
 #----------------------
 ## EXPORT PUBLIC KEY ##
 #----------------------
@@ -88,10 +113,10 @@ exportpubkey ()
 {
 echo "Press enter to see a list of your public keys. Press "q" when finished."
 read
-gpg2 --homedir gpg-KeyRNG --list-keys | grep "uid" | cut -b 21- | less
-echo "Enter the uid you would like to export."
+gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "uid" | cut -b 21- | less
+echo "Enter the UID you would like to export."
 read EXPORT_UID
-gpg2 --homedir gpg-KeyRNG --armor --export "$EXPORT_UID"
+gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --export "$EXPORT_UID"
 }
 #------------------------------
 ## EXPORT PUBLIC KEY TO FILE ##
@@ -100,12 +125,12 @@ exportpubkeyfile ()
 {
 echo "Press enter to see a list of your public keys. Press "q" when finished."
 read
-gpg2 --homedir gpg-KeyRNG --list-keys | grep "uid" | cut -b 21- | less
-echo "Enter the uid you would like to export."
+gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "uid" | cut -b 21- | less
+echo "Enter the UID you would like to export."
 read EXPORT_UID
 echo "What file to write to?"
 read PUBKEY_FILE
-gpg2 --homedir gpg-KeyRNG --armor --output "$PUBKEY_FILE" --export "$EXPORT_UID"
+gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --output "$PUBKEY_FILE" --export "$EXPORT_UID"
 }
 #----------------------
 ## EXPORT SECRET KEY ##
@@ -114,10 +139,10 @@ exportseckey ()
 {
 echo "Press enter to see a list of your secret keys. Press "q" when finished."
 read
-gpg2 --homedir gpg-KeyRNG --list-secret-keys | grep "uid" | cut -b 21- | less
-echo "Enter the uid you would like to export."
+gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --list-secret-keys | grep "uid" | cut -b 21- | less
+echo "Enter the UID you would like to export."
 read EXPORT_SECRET_UID
-gpg2 --homedir gpg-KeyRNG --armor --export "$EXPORT_SECRET_UID"
+gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --export "$EXPORT_SECRET_UID"
 }
 #------------------------------
 ## EXPORT SECRET KEY TO FILE ##
@@ -126,12 +151,12 @@ exportseckeyfile ()
 {
 echo "Press enter to see a list of your public keys. Press "q" when finished."
 read
-gpg2 --homedir gpg-KeyRNG --list-secret-keys | grep "uid" | cut -b 21- | less
+gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --list-secret-keys | grep "uid" | cut -b 21- | less
 echo "Enter the UID you would like to export."
 read EXPORT_SECRET_UID
 echo "What file to write to?"
 read SECKEY_FILE
-gpg2 --homedir gpg-KeyRNG --armor --output "$SECKEY_FILE" --export "$EXPORT_SECRET_UID"
+gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --output "$SECKEY_FILE" --export "$EXPORT_SECRET_UID"
 }
 #---------------------------
 ## SEND KEYS TO KEYSERVER ##
@@ -140,10 +165,10 @@ sendkeyserv ()
 {
 echo "Press enter to see a list of your public keys. Copy the 0xlong key id, and press "q" when finished."
 read
-gpg2 --homedir gpg-KeyRNG --list-keys | less
+gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | less
 echo "Enter the UID you would like to send to the keyserver."
 read SEND_KEYSERV_UID
-gpg2 --homedir gpg-KeyRNG --send-keys "$SEND_KEYSERV_UID"
+gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --send-keys "$SEND_KEYSERV_UID"
 }
 #-----------------------------
 ## RECEIVE KEYS FROM SERVER ##
@@ -153,7 +178,7 @@ recvkeyserv ()
 {
 echo "Please enter the UID you would like to receive from the keyserver."
 read RECV_KEYSERV_UID
-gpg2 --homedir gpg-KeyRNG --recv-keys "$RECV_KEYSERV_UID"
+gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --recv-keys "$RECV_KEYSERV_UID"
 }
 #################
 ##### USAGE #####
@@ -172,7 +197,7 @@ read SHOW_UIDS
       echo "Press enter to see a list of possible recipients by uid."
       echo "Use up/down arrows to navigate. Press "q" when your finished."
       read
-      gpg2 --homedir gpg-KeyRNG --list-keys | grep "uid" | cut -b 21- | less
+      gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "uid" | cut -b 21- | less
   fi
 echo "What recipient?"
 read MSG_RECP
@@ -185,20 +210,20 @@ read IF_MSG_RECP_TWO
             echo "Press enter to see a list of possible recipients by uid."
             echo "Use up/down arrows to navigate. Press "q" when your finished."
             read
-            gpg2 --homedir gpg-KeyRNG --list-keys | grep "uid" | cut -b 21- | less
+            gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "uid" | cut -b 21- | less
         fi
       echo "Second recipient?"
       read MSG_RECP_TWO
   fi
 if [[ "$IF_MSG_RECP_TWO" = "no" ]]; then
-    gpg2 --homedir gpg-KeyRNG --armor --recipient "$MSG_RECP" --output /tmp/newmsg.asc --encrypt "$EFILE"
+    gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$MSG_RECP" --output /tmp/newmsg.asc --encrypt "$EFILE"
 else
     echo "Do you want the second recipient hidden? (y/no)"
     read HIDE_RECP_TWO
       if [ "$HIDE_RECP_TWO" != "no" ]; then
-          gpg2 --homedir gpg-KeyRNG --armor --recipient "$MSG_RECP" --hidden-recipient "$MSG_RECP_TWO" --output /tmp/newmsg.asc --encrypt "$EFILE"
+          gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$MSG_RECP" --hidden-recipient "$MSG_RECP_TWO" --output /tmp/newmsg.asc --encrypt "$EFILE"
       fi
-    gpg2 --homedir gpg-KeyRNG --armor --recipient "$MSG_RECP" --recipient "$MSG_RECP_TWO" --output /tmp/newmsg.asc --encrypt "$EFILE"
+    gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$MSG_RECP" --recipient "$MSG_RECP_TWO" --output /tmp/newmsg.asc --encrypt "$EFILE"
 fi
 echo "File is stored temporarily at /tmp/newmsg.asc."
 echo "Would you like to print it now? (y/no)"
@@ -218,10 +243,10 @@ nano /tmp/newmsg
 echo "See UIDS of possible recipients? (y/no)"
 read SHOW_UIDS
   if [ "$SHOW_UIDS" != "no" ]; then
-      echo "Press enter to see a list of possible recipients by uid."
+      echo "Press enter to see a list of possible recipients by UID."
       echo "Use up/down arrows to navigate. Press "q" when your finished."
       read
-      gpg2 --homedir gpg-KeyRNG --list-keys | grep "uid" | cut -b 21- | less
+      gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "uid" | cut -b 21- | less
   fi
 echo "What recipient?"
 read NEWMSG_RECP
@@ -231,23 +256,23 @@ read IF_NEWMSG_RECP_TWO
       echo "See UID list again? (y/no)"
       read SHOW_UIDS
         if [ "$SHOW_UIDS" != "no" ]; then
-            echo "Press enter to see a list of possible recipients by uid."
+            echo "Press enter to see a list of possible recipients by UID."
             echo "Use up/down arrows to navigate. Press "q" when your finished."
             read
-            gpg2 --homedir gpg-KeyRNG --list-keys | grep "uid" | cut -b 21- | less
+            gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "uid" | cut -b 21- | less
         fi
       echo "Second recipient UID?"
       read NEWMSG_RECP_TWO
   fi
 if [[ "$IF_NEWMSG_RECP_TWO" = "no" ]]; then
-    gpg2 --homedir gpg-KeyRNG --armor --recipient "$NEWMSG_RECP" --output /tmp/newmsg.asc --encrypt /tmp/newmsg
+    gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$NEWMSG_RECP" --output /tmp/newmsg.asc --encrypt /tmp/newmsg
 else
     echo "Do you want the second recipient hidden? (y/no)"
     read HIDE_RECP_TWO
       if [ "$HIDE_RECP_TWO" != "no" ]; then
-          gpg2 --homedir gpg-KeyRNG --armor --recipient "$NEWMSG_RECP" --hidden-recipient "$NEWMSG_RECP_TWO" --output /tmp/newmsg.asc --encrypt /tmp/newmsg
+          gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$NEWMSG_RECP" --hidden-recipient "$NEWMSG_RECP_TWO" --output /tmp/newmsg.asc --encrypt /tmp/newmsg
       fi
-    gpg2 --homedir gpg-KeyRNG --armor --recipient "$NEWMSG_RECP" --recipient "$NEWMSG_RECP_TWO" --output /tmp/newmsg.asc --encrypt /tmp/newmsg
+    gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$NEWMSG_RECP" --recipient "$NEWMSG_RECP_TWO" --output /tmp/newmsg.asc --encrypt /tmp/newmsg
 fi
 echo "File is stored temporarily at /tmp/newmsg.asc. Would you like to print it now? (y/no)"
 read CAT_EFILE
@@ -257,7 +282,8 @@ read CAT_EFILE
 echo "Would you like to destroy the original, unencrypted message? (y/no)"
 read DESTROY
   if [ "$DESTROY" != "no" ]; then
-      rm -rf /tmp/newmsg
+      echo "Shredding temp file..."
+      shred -zn 3 /tmp/newmsg
   fi
 }
 #-----------------
@@ -274,7 +300,7 @@ read IS_HIDDEN_UID
       read KNOW_UID
         if [[ "$KNOW_UID" = "no" ]]; then
             rm -rf /tmp/newmsg
-            gpg2 --homedir gpg-KeyRNG --try-all-secrets --output /tmp/newmsg --decrypt "$DFILE"
+            gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --try-all-secrets --output /tmp/newmsg --decrypt "$DFILE"
             echo "File is stored temporarily at /tmp/newmsg."
             echo "Do you want to print it now? (y/no)"
             read PRINT_NOW
@@ -286,13 +312,14 @@ read IS_HIDDEN_UID
                   echo "Destroy message now? (y/no)"
                   read DESTROY
                     if [ "$DESTROY" != "no" ]; then
-                        rm -rf /tmp/newmsg
+                        echo "Shredding temp file..."
+                        shred -zn 3 /tmp/newmsg
                     fi
               fi
         else
             echo "What UID?"
             read HIDDEN_UID
-            gpg2 --homedir gpg-KeyRNG --local-user "$HIDDEN_ID" --output /tmp/newmsg --decrypt "$DFILE"
+            gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --local-user "$HIDDEN_ID" --output /tmp/newmsg --decrypt "$DFILE"
             echo "File is stored temporarily at /tmp/newmsg."
             echo "Do you want to print it now? (y/no)"
             read PRINT_NOW
@@ -304,12 +331,13 @@ read IS_HIDDEN_UID
                   echo "Destroy message now? (y/no)"
                   read DESTROY
                     if [ "$DESTROY" != "no" ]; then
-                        rm -rf /tmp/newmsg
+                        echo "Shredding temp file..."
+                        shred -zn 3 /tmp/newmsg
                     fi
               fi
         fi
   else
-      gpg2 --homedir gpg-KeyRNG --local-user "$HIDDEN_ID" --output /tmp/newmsg --decrypt "$DFILE"   
+      gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --local-user "$HIDDEN_ID" --output /tmp/newmsg --decrypt "$DFILE"   
       echo "File is stored temporarily at /tmp/newmsg."
             echo "Do you want to print it now? (y/no)"
             read PRINT_NOW
@@ -321,7 +349,8 @@ read IS_HIDDEN_UID
                   echo "Destroy message now? (y/no)"
                   read DESTROY
                     if [ "$DESTROY" != "no" ]; then
-                        rm -rf /tmp/newmsg
+                        echo "Shredding temp file..."
+                        shred -zn 3 /tmp/newmsg
                     fi
               fi 
   fi
@@ -343,7 +372,7 @@ read IS_HIDDEN_UID
       read KNOW_UID
         if [[ "$KNOW_UID" = "no" ]]; then
             rm -rf /tmp/newmsg
-            gpg2 --homedir gpg-KeyRNG --try-all-secrets --output /tmp/newmsg --decrypt "$DFILE"
+            gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --try-all-secrets --output /tmp/newmsg --decrypt "$DFILE"
             echo "File is stored temporarily at /tmp/newmsg."
             echo "Do you want to print it now? (y/no)"
             read PRINT_NOW
@@ -355,13 +384,14 @@ read IS_HIDDEN_UID
                   echo "Destroy message now? (y/no)"
                   read DESTROY
                     if [ "$DESTROY" != "no" ]; then
-                        rm -rf /tmp/newmsg
+                        echo "Shredding temp file..."
+                        shred -zn 3 /tmp/newmsg
                     fi
               fi
         else
             echo "What UID?"
             read HIDDEN_UID
-            gpg2 --homedir gpg-KeyRNG --local-user "$HIDDEN_ID" --output /tmp/newmsg --decrypt "$DFILE"
+            gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --local-user "$HIDDEN_ID" --output /tmp/newmsg --decrypt "$DFILE"
             echo "File is stored temporarily at /tmp/newmsg."
             echo "Do you want to print it now? (y/no)"
             read PRINT_NOW
@@ -373,12 +403,13 @@ read IS_HIDDEN_UID
                   echo "Destroy message now? (y/no)"
                   read DESTROY
                     if [ "$DESTROY" != "no" ]; then
-                        rm -rf /tmp/newmsg
+                        echo "Shredding temp file..."
+                        shred -zn 3 /tmp/newmsg
                     fi
               fi
         fi
   else
-      gpg2 --homedir gpg-KeyRNG --local-user "$HIDDEN_ID" --output /tmp/newmsg --decrypt "$DFILE"   
+      gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --local-user "$HIDDEN_ID" --output /tmp/newmsg --decrypt "$DFILE"   
       echo "File is stored temporarily at /tmp/newmsg."
             echo "Do you want to print it now? (y/no)"
             read PRINT_NOW
@@ -390,7 +421,8 @@ read IS_HIDDEN_UID
                   echo "Destroy message now? (y/no)"
                   read DESTROY
                     if [ "$DESTROY" != "no" ]; then
-                        rm -rf /tmp/newmsg
+                        echo "Shredding temp file..."
+                        shred -zn 3 /tmp/newmsg
                     fi
               fi 
   fi

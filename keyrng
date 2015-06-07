@@ -20,54 +20,86 @@ echo "---------------------"
 echo "| M A I N   M E N U |"
 echo "---------------------"
 PS3='Enter choice (press enter to see options again): '
-options=("Key Management" "Encryption" "Decryption" "Quit")
+options=("GnuPG Management" "Quit")
 select opt in "${options[@]}"
 do
     case "$opt" in
-        "Key Management")
+        "GnuPG Management")
             clear
-            echo "-------------------------------"
-            echo "| K E Y   M A N A G E M E N T |"
-            echo "-------------------------------"
+            echo "------------"
+            echo "| GPG MENU |"
+            echo "------------"
             PS3='Enter choice (press enter to see options again): '
-            options=("Generate New Keypair" "Public Keys" "Secret Keys" "Back")
+            options=("Key Management" "Encryption" "Decryption" "Lock Keys" "Quit")
             select opt in "${options[@]}"
             do
                 case "$opt" in
-                    "Generate New Keypair")
-                        genkey
-                        ;;
-                    "Public Keys")
+                    "Key Management")
                         clear
-                        echo "-------------------------"
-                        echo "| P U B L I C   K E Y S |"
-                        echo "-------------------------"
+                        echo "-------------------------------"
+                        echo "| K E Y   M A N A G E M E N T |"
+                        echo "-------------------------------"
                         PS3='Enter choice (press enter to see options again): '
-                        options=("List Public Keys By UID" "List Full Public Keys" "Import Key" "Export A Public Key To Terminal" "Export A Public Key To File" "Send Keys To Keyserver" "Receive Keys From Keyserver" "Back")
+                        options=("Generate New Keypair" "Public Keys" "Secret Keys" "Back")
                         select opt in "${options[@]}"
                         do
                             case "$opt" in
-                                "List Public Keys By UID")
-                                    listkeyuids
+                                "Generate New Keypair")
+                                    genkey
                                     ;;
-                                "List Full Public Keys")
-                                    listfullkeydetails
-                                    ;;
-                                "Import Key")
+                                "Public Keys")
                                     clear
-                                    echo "------------------------"
-                                    echo "| I M P O R T   K E Y S|"
-                                    echo "------------------------"
+                                    echo "-------------------------"
+                                    echo "| P U B L I C   K E Y S |"
+                                    echo "-------------------------"
                                     PS3='Enter choice (press enter to see options again): '
-                                    options=("Import From File" "Import From Clipboard" "Back")
+                                    options=("List Public Keys By UID" "List Full Public Keys" "Import Keys" "Export A Public Key To Terminal" "Export A Public Key To File" "Send Keys To Keyserver" "Receive Keys From Keyserver" "Back")
                                     select opt in "${options[@]}"
                                     do
                                         case "$opt" in
-                                            "Import From File")
-                                                importkeyfile
+                                            "List Public Keys By UID")
+                                                listkeyuids
                                                 ;;
-                                            "Import From Clipboard")
-                                                importkeyclip
+                                            "List Full Public Keys")
+                                                listfullkeydetails
+                                                ;;
+                                            "Import Keys")
+                                                clear
+                                                echo "------------------------"
+                                                echo "| I M P O R T   K E Y S|"
+                                                echo "------------------------"
+                                                PS3='Enter choice (press enter to see options again): '
+                                                options=("Import From File" "Import From Clipboard" "Import From Another GPG" "Back")
+                                                select opt in "${options[@]}"
+                                                do
+                                                    case "$opt" in
+                                                        "Import From File")
+                                                            importkeyfile
+                                                            ;;
+                                                        "Import From Clipboard")
+                                                            importkeyclip
+                                                            ;;
+                                                        "Import From Another GPG")
+                                                            importkeyfromgpg
+                                                            ;;
+                                                        "Back")
+                                                            break
+                                                            ;;
+                                                        *) echo "Invalid Option";;
+                                                    esac
+                                                done
+                                                ;;
+                                            "Export A Public Key To Terminal")
+                                                exportpubkey
+                                                ;;
+                                            "Export A Public Key To File")
+                                                exportpubkeyfile
+                                                ;;
+                                            "Send Keys To Keyserver")
+                                                sendkeyserv
+                                                ;;
+                                            "Receive Keys From Keyserver")
+                                                recvkeyserv
                                                 ;;
                                             "Back")
                                                 break
@@ -76,17 +108,34 @@ do
                                         esac
                                     done
                                     ;;
-                                "Export A Public Key To Terminal")
-                                    exportpubkey
-                                    ;;
-                                "Export A Public Key To File")
-                                    exportpubkeyfile
-                                    ;;
-                                "Send Keys To Keyserver")
-                                    sendkeyserv
-                                    ;;
-                                "Receive Keys From Keyserver")
-                                    recvkeyserv
+                                "Secret Keys")
+                                    clear
+                                    echo "-------------------------"
+                                    echo "| S E C R E T   K E Y S |"
+                                    echo "-------------------------"
+                                    PS3='Enter choice (press enter to see options again): '
+                                    options=("List Secret Keys By UID" "List Full Secret Key Info" "Export Secret Key To Terminal" "Export Secret Key To File" "Back")
+                                    select opt in "${options[@]}"
+                                    do
+                                        case "$opt" in
+                                        "List Secret Keys By UID")
+                                            listseckeyuid
+                                            ;;
+                                        "List Full Secret Key Info")
+                                            listfullseckey
+                                            ;;
+                                        "Export Secret Key To Terminal")
+                                            exportseckey
+                                            ;;
+                                        "Export Secret Key To File")
+                                            exportseckeyfile
+                                            ;;
+                                        "Back")
+                                            break
+                                            ;;
+                                        *) echo "Invalid Option";;
+                                        esac
+                                    done
                                     ;;
                                 "Back")
                                     break
@@ -95,91 +144,62 @@ do
                             esac
                         done
                         ;;
-                    "Secret Keys")
+                    "Encryption")
                         clear
-                        echo "-------------------------"
-                        echo "| S E C R E T   K E Y S |"
-                        echo "-------------------------"
+                        echo "---------------------------------"
+                        echo "| E N C R Y P T I O N   M E N U |"
+                        echo "---------------------------------"
                         PS3='Enter choice (press enter to see options again): '
-                        options=("List Secret Keys By UID" "List Full Secret Key Info" "Export Secret Key To Terminal" "Export Secret Key To File" "Back")
+                        options=("Encrypt A File" "Encrypt A New Message" "Back")
                         select opt in "${options[@]}"
                         do
                             case "$opt" in
-                            "List Secret Keys By UID")
-                                listseckeyuid
-                                ;;
-                            "List Full Secret Key Info")
-                                listfullseckey
-                                ;;
-                            "Export Secret Key To Terminal")
-                                exportseckey
-                                ;;
-                            "Export Secret Key To File")
-                                exportseckeyfile
-                                ;;
-                            "Back")
-                                break
-                                ;;
-                            *) echo "Invalid Option";;
+                                "Encrypt A File")
+                                    encryptfile
+                                    ;;
+                                "Encrypt A New Message")
+                                    encryptnewmsg
+                                    ;;
+                                "Back")
+                                    break
+                                    ;;
+                                *) echo "Invalid Option";;
                             esac
                         done
                         ;;
-                    "Back")
-                        break
+                    "Decryption")
+                        clear
+                        echo "---------------------------------"
+                        echo "| D E C R Y P T I O N   M E N U |"
+                        echo "---------------------------------"
+                        PS3='Enter choice (press enter to see options again): '
+                        options=("Decrypt From A File" "Decrypt From Clipboard" "Back")
+                        select opt in "${options[@]}"
+                        do
+                            case "$opt" in
+                                "Decrypt From A File")
+                                    decryptfile
+                                    ;;
+                                "Decrypt From Clipboard")
+                                    decryptclip
+                                    ;;
+                                "Back")
+                                    break
+                                    ;;
+                                *) echo "Invalid Option";;
+                            esac
+                        done
                         ;;
-                    *) echo "Invalid Option";;
-                esac
-            done
-            ;;
-        "Encryption")
-            clear
-            echo "---------------------------------"
-            echo "| E N C R Y P T I O N   M E N U |"
-            echo "---------------------------------"
-            PS3='Enter choice (press enter to see options again): '
-            options=("Encrypt A File" "Encrypt A New Message" "Back")
-            select opt in "${options[@]}"
-            do
-                case "$opt" in
-                    "Encrypt A File")
-                        encryptfile
+                    "Quit")
+                        exit 0
                         ;;
-                    "Encrypt A New Message")
-                        encryptnewmsg
-                        ;;
-                    "Back")
-                        break
-                        ;;
-                    *) echo "Invalid Option";;
-                esac
-            done
-            ;;
-        "Decryption")
-            clear
-            echo "---------------------------------"
-            echo "| D E C R Y P T I O N   M E N U |"
-            echo "---------------------------------"
-            PS3='Enter choice (press enter to see options again): '
-            options=("Decrypt From A File" "Decrypt From Clipboard" "Back")
-            select opt in "${options[@]}"
-            do
-                case "$opt" in
-                    "Decrypt From A File")
-                        decryptfile
-                        ;;
-                    "Decrypt From Clipboard")
-                        decryptclip
-                        ;;
-                    "Back")
-                        break
-                        ;;
-                    *) echo "Invalid Option";;
+                    *) echo "Invalid option";;
                 esac
             done
             ;;
         "Quit")
             exit 0
             ;;
-        *) echo "Invalid option";;
+        *) echo "Invalid Option";;
     esac
 done
