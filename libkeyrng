@@ -10,6 +10,31 @@ chown -R "$USER" gpg-KeyRNG/
 chown -R "$USER" gpg-KeyRNG/*
 chmod -R 0600 gpg-KeyRNG/gpg.conf
 }
+###################
+##### QUITING #####
+###################
+badquit ()
+{
+BAD_BTC=$(ls btc-KeyRNG/ | grep -c "addr")
+if [[ "$BAD_BTC" -gt "0" ]]; then
+    echo "If you quit like this you are leaving sensitive data unencrypted (bitcoin private keys)."
+    echo "I suggest quitting by using the "LOCK UP!" option on any menu."
+    echo "Do you still want to quit now? (Y/no)"
+    read RLYQUIT
+    if [ "$RLYQUIT" = "Y" ]; then
+        echo "Will you at least encrypt the btc address file with a password? (y/no)"
+        read ENC
+        if [[ "$ENC" != "no" ]]; then
+            gpg --symmetric --cipher-algo aes256 btc-KeyRNG/addr
+            exit 0
+        else
+            exit 0
+        fi
+    fi
+else
+    exit 0
+fi
+}
 #########################
 ##### SECURE-DELETE #####
 #########################
@@ -38,12 +63,13 @@ gpg --symmetric --cipher-algo aes256 lock.KeyRNG.tar.gz
 echo "Shredding temp files..."
 HAS_SRM=$(ls /usr/bin/ /usr/sbin/ /usr/local/bin/ /home/"$USER"/bin/ | grep -c srm)
 if [[ "$HAS_SRM" -gt "0" ]]; then
-    srm -drv *-KeyRNG/ libkeyrng temp/ *.tar.gz
+    srm -drv *-KeyRNG/ temp/ *.tar.gz
+    rm -rf libkeyrng pybtctools
 else
     find *-KeyRNG -depth -type f -exec shred -u -z {} \;
     find temp/ -depth -type f -exec shred -u -z {} \;
-    shred -vuz *.tar.gz libkeyrng
-    rm -rf temp/ *-KeyRNG/
+    shred -vuz *.tar.gz
+    rm -rf temp/ *-KeyRNG/ libkeyrng pybtctools
 fi
 exit 0
 }
@@ -503,6 +529,55 @@ read IS_HIDDEN_UID
                     fi
               fi 
   fi
+}
+#######################################
+##### BITCOIN ADDRESSES MANAGEMENT ####
+#######################################
+#----------------
+## NEW ADDRESS ##
+#----------------
+getnewaddress ()
+{
+HAS_ADDRFILE=$(ls btc-KeyRNG/ | grep -c "addr")
+if [ "$HAS_ADDRFILE" -lt "1" ]; then
+    touch btc-KeyRNG/addr
+    chown -R "$USER" btc-KeyRNG/addr
+    chmod 0600 btc-KeyRNG/addr
+    echo "-------------------------------------" > btc-KeyRNG/addr
+    echo "| B I T C O I N   A D D R E S S E S |" >> btc-KeyRNG/addr
+    echo "-------------------------------------" >> btc-KeyRNG/addr
+fi
+PRIVKEY=$(head -c 1000000 /dev/urandom | sha512sum | sha256sum | cut -b -65)
+WIF=$(pybtctools/pybtctool encode_privkey $(echo -n "$PRIVKEY") wif)
+WIF_COMP=$(pybtctools/pybtctool encode_privkey $(echo -n "$PRIVKEY") wif_compressed)
+PUBKEY=$(pybtctools/pybtctool privtopub $(echo -n "$WIF_COMP"))
+ADDRESS=$(pybtctools/pybtctool pubkey_to_address $(echo -n "$PUBKEY"))
+echo -e "\n\nAddress: "$ADDRESS"\nPubkey:  "$PUBKEY"\nPrivate Key (wif):  "$WIF"\nPrivate Key (wif compressed):  "$WIF_COMP"\n\n---"
+echo "Add to backup file: btc-KeyRNG/addr? (y/no)"
+read BACKUPKEY
+if [ "$BACKUPKEY" != "no" ]; then
+    echo -e "\n\nAddress: "$ADDRESS"\nPubkey:  "$PUBKEY"\nPrivate Key (wif):  "$WIF"\nPrivate Key (wif compressed):  "$WIF_COMP"\n\n---" >> btc-KeyRNG/addr
+fi
+}
+#-----------------------
+## SHOW ALL ADDRESSES ##
+#-----------------------
+showaddr ()
+{
+echo "Press enter to see addresses."
+echo "Use up/down arrows to navigate. Press "q" when your finished."
+read
+cat btc-KeyRNG/addr | grep "Address" | less
+}
+#--------------------------------
+## SHOW ADDRESSES AND PRIVKEYS ##
+#--------------------------------
+showalladdr ()
+{
+echo "Press enter to see addresses and private keys."
+echo "Use up/down arrows to navigate. Press "q" when your finished."
+read
+cat btc-KeyRNG/addr | less
 }
 #########################
 ########## END ##########
