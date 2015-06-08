@@ -52,7 +52,7 @@ fi
                   echo "---------------------------------------------------------------------"
                   echo "| Permissions |    Owner    | Size |   Date   |      Filename       |"
                   echo "---------------------------------------------------------------------"
-                  ls -alh *.tar.gz.gpg
+                  ls -lh *.tar.gz.gpg
                   ;;
               "Quit")
                   exit 0
@@ -86,7 +86,7 @@ echo "---------------------"
 echo "| M A I N   M E N U |"
 echo "---------------------"
 PS3='Enter choice (press enter to see options again): '
-options=("GnuPG Management" "LOCK UP!" "Quit")
+options=("GnuPG Management" "Bitcoin Addresses" "LOCK UP!" "Quit")
 select opt in "${options[@]}"
 do
     case "$opt" in
@@ -155,7 +155,7 @@ do
                                                             break
                                                             ;;
                                                         "Quit")
-                                                            exit 0
+                                                            badquit
                                                             ;;
                                                         *) echo "Invalid Option";;
                                                     esac
@@ -180,7 +180,7 @@ do
                                                 break
                                                 ;;
                                             "Quit")
-                                                exit 0
+                                                badquit
                                                 ;;
                                             *) echo "Invalid Option";;
                                         esac
@@ -215,7 +215,7 @@ do
                                             break
                                             ;;
                                         "Quit")
-                                            exit 0
+                                            badquit
                                             ;;
                                         *) echo "Invalid Option";;
                                         esac
@@ -228,7 +228,7 @@ do
                                     break
                                     ;;
                                 "Quit")
-                                    exit 0
+                                    badquit
                                     ;;
                                 *) echo "Invalid Option";;
                             esac
@@ -257,7 +257,7 @@ do
                                     break
                                     ;;
                                 "Quit")
-                                    exit 0
+                                    badquit
                                     ;;
                                 *) echo "Invalid Option";;
                             esac
@@ -286,7 +286,7 @@ do
                                     break
                                     ;;
                                 "Quit")
-                                    exit 0
+                                    badquit
                                     ;;
                                 *) echo "Invalid Option";;
                             esac
@@ -299,17 +299,63 @@ do
                         break
                         ;;
                     "Quit")
-                        exit 0
+                        badquit
                         ;;
                     *) echo "Invalid option";;
                 esac
             done
             ;;
+        "Bitcoin Addresses")
+            HAS_BTCFILE=$(ls | grep -c "btc-KeyRNG")
+            if [ "$HAS_BTCFILE" -lt "1" ]; then
+                mkdir btc-KeyRNG
+                chown "$USER" btc-KeyRNG/
+            fi
+            ENC_ADDRFILE=$(ls btc-KeyRNG | grep -c "addr.gpg")
+            if [ "$ENC_ADDRFILE" -gt "0" ]; then
+                echo "Address file is locked."
+                echo "Press enter to decrypt."
+                read
+                gpg2 --output btc-KeyRNG/addr --decrypt btc-KeyRNG/addr.gpg
+                echo "Shredding old file."
+                DEL=btc-KeyRNG/addr.gpg
+                secdelete
+            fi
+            echo "---------------------------"
+            echo "| B I T C O I N   M E N U |"
+            echo "---------------------------"
+            PS3='Enter option (press enter to see options again): '
+            options=("Create New Address" "List Addresses" "See All Addresses/Keys" "Back To MAIN MENU" "LOCK UP!" "Quit")
+            select opt in "${options[@]}"
+            do
+                case "$opt" in
+                    "Create New Address")
+                        getnewaddress
+                        ;;
+                    "List Addresses")
+                        showaddr
+                        ;;
+                    "See All Addresses/Keys")
+                        showalladdr
+                        ;;
+                    "LOCK UP!")
+                        lockup
+                        ;;
+                    "Back To MAIN MENU")
+                        break
+                        ;;
+                    "Quit")
+                        badquit
+                        ;;
+                    *) echo "Invalid Option";;
+                 esac
+             done
+             ;;
         "LOCK UP!")
             lockup
             ;;    
         "Quit")
-            exit 0
+            badquit
             ;;
         *) echo "Invalid Option";;
     esac
