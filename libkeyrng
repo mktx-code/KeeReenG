@@ -16,16 +16,19 @@ chmod -R 0600 gpg-KeyRNG/gpg.conf
 badquit ()
 {
 BAD_BTC=$(ls btc-KeyRNG/ | grep -c "addr")
-if [[ "$BAD_BTC" -gt "0" ]]; then
+BAD_SEED=$(ls btc-KeyRNG/ | grep -c "seed")
+if [[ "$BAD_BTC" -gt "0" || "$BAD_SEED" -gt "0" ]]; then
     echo "If you quit like this you are leaving sensitive data unencrypted (bitcoin private keys)."
     echo "I suggest quitting by using the "LOCK UP!" option on any menu."
     echo "Do you still want to quit now? (Y/no)"
     read RLYQUIT
     if [ "$RLYQUIT" = "Y" ]; then
-        echo "Will you at least encrypt the btc address file with a password? (y/no)"
+        echo "Will you at least encrypt the btc address and seed files with a password? (y/no)"
         read ENC
         if [[ "$ENC" != "no" ]]; then
-            gpg --symmetric --cipher-algo aes256 btc-KeyRNG/addr
+            tar -c btc-KeyRNG/ > btc.tar.gz
+            gpg --ouput btc.tar.gz.gpg --symmetric --cipher-algo aes256 btc.tar.gz
+            rm -rf btc-KeyRNG/
             exit 0
         else
             exit 0
@@ -440,7 +443,7 @@ read IS_HIDDEN_UID
             read PRINT_NOW
               if [ "$PRINT_NOW" != "no" ]; then
                   echo "Press enter to see message."
-                  echo "Use up/down arrows to navigate. Press "q" when your finished."
+                  echo "Use up/down arrows to navigate. Press "q" when finished."
                   read
                   cat temp/newmsg | less
                   echo "Destroy message now? (y/no)"
@@ -478,7 +481,7 @@ read IS_HIDDEN_UID
             read PRINT_NOW
               if [ "$PRINT_NOW" != "no" ]; then
                   echo "Press enter to see message."
-                  echo "Use up/down arrows to navigate. Press "q" when your finished."
+                  echo "Use up/down arrows to navigate. Press "q" when finished."
                   read
                   cat temp/newmsg | less
                   echo "Destroy message now? (y/no)"
@@ -498,7 +501,7 @@ read IS_HIDDEN_UID
             read PRINT_NOW
               if [ "$PRINT_NOW" != "no" ]; then
                   echo "Press enter to see message."
-                  echo "Use up/down arrows to navigate. Press "q" when your finished."
+                  echo "Use up/down arrows to navigate. Press "q" when finished."
                   read
                   cat temp/newmsg | less
                   echo "Destroy message now? (y/no)"
@@ -517,7 +520,7 @@ read IS_HIDDEN_UID
             read PRINT_NOW
               if [ "$PRINT_NOW" != "no" ]; then
                   echo "Press enter to see message."
-                  echo "Use up/down arrows to navigate. Press "q" when your finished."
+                  echo "Use up/down arrows to navigate. Press "q" when finished."
                   read
                   cat temp/newmsg | less
                   echo "Destroy message now? (y/no)"
@@ -530,9 +533,9 @@ read IS_HIDDEN_UID
               fi 
   fi
 }
-#######################################
-##### BITCOIN ADDRESSES MANAGEMENT ####
-#######################################
+###########################################
+##### STANDARD BTC ADDRESS MANAGEMENT #####
+###########################################
 #----------------
 ## NEW ADDRESS ##
 #----------------
@@ -543,42 +546,227 @@ if [ "$HAS_ADDRFILE" -lt "1" ]; then
     touch btc-KeyRNG/addr
     chown -R "$USER" btc-KeyRNG/addr
     chmod 0600 btc-KeyRNG/addr
-    echo "-------------------------------------" > btc-KeyRNG/addr
-    echo "| B I T C O I N   A D D R E S S E S |" >> btc-KeyRNG/addr
-    echo "-------------------------------------" >> btc-KeyRNG/addr
+    echo "---------------------------------------" > btc-KeyRNG/addr
+    echo "| S T A N D A R D   A D D R E S S E S |" >> btc-KeyRNG/addr
+    echo "---------------------------------------" >> btc-KeyRNG/addr
 fi
-PRIVKEY=$(head -c 1000000 /dev/urandom | sha512sum | sha256sum | cut -b -65)
-WIF=$(pybtctools/pybtctool encode_privkey $(echo -n "$PRIVKEY") wif)
+PRIVKEY=$(pybtctools/pybtctool random_key)
 WIF_COMP=$(pybtctools/pybtctool encode_privkey $(echo -n "$PRIVKEY") wif_compressed)
 PUBKEY=$(pybtctools/pybtctool privtopub $(echo -n "$WIF_COMP"))
 ADDRESS=$(pybtctools/pybtctool pubkey_to_address $(echo -n "$PUBKEY"))
-echo -e "\n\nAddress: "$ADDRESS"\nPubkey:  "$PUBKEY"\nPrivate Key (wif):  "$WIF"\nPrivate Key (wif compressed):  "$WIF_COMP"\n\n---"
+echo -e "\n\nAddress: "$ADDRESS"\nPubkey:  "$PUBKEY"\nPrivkey (wif compressed):  "$WIF_COMP"\n\n---"
 echo "Add to backup file: btc-KeyRNG/addr? (y/no)"
 read BACKUPKEY
 if [ "$BACKUPKEY" != "no" ]; then
-    echo -e "\n\nAddress: "$ADDRESS"\nPubkey:  "$PUBKEY"\nPrivate Key (wif):  "$WIF"\nPrivate Key (wif compressed):  "$WIF_COMP"\n\n---" >> btc-KeyRNG/addr
-    echo "DONE!"
+    echo "Add a note to address? (y/no)"
+    read IS_NOTE
+    if [[ "$IS_NOTE" = "y" ]]; then
+        echo "Type the note and press enter:"
+        read NOTE 
+        echo -e "\n\nAddress: "$ADDRESS"     Note: "$NOTE"\nPubkey:  "$PUBKEY"\nPrivkey (wif compressed):  "$WIF_COMP"\n\n---" >> btc-KeyRNG/addr
+        echo "DONE!"
+    else
+        echo -e "\n\nAddress: "$ADDRESS"\nPubkey:  "$PUBKEY"\nPrivkey (wif compressed):  "$WIF_COMP"\n\n---" >> btc-KeyRNG/addr
+        echo "DONE!"
+    fi
 fi
 }
-#-----------------------
-## SHOW ALL ADDRESSES ##
-#-----------------------
+#--------------------------------
+## SHOW ALL STANDARD ADDRESSES ##
+#--------------------------------
 showaddr ()
 {
 echo "Press enter to see addresses."
-echo "Use up/down arrows to navigate. Press "q" when your finished."
+echo "Use up/down arrows to navigate. Press "q" when finished."
 read
 cat btc-KeyRNG/addr | grep "Address" | less
 }
-#--------------------------------
-## SHOW ADDRESSES AND PRIVKEYS ##
-#--------------------------------
+#-----------------------------------------
+## SHOW STANDARD ADDRESSES AND PRIVKEYS ##
+#-----------------------------------------
 showalladdr ()
 {
 echo "Press enter to see addresses and private keys."
-echo "Use up/down arrows to navigate. Press "q" when your finished."
+echo "Use up/down arrows to navigate. Press "q" when finished."
 read
 cat btc-KeyRNG/addr | less
+}
+#-------------------
+## SIGN A MESSAGE ##
+#-------------------
+#btcsign ()
+#{
+#echo "Press enter to type message."
+#read
+#rm -rf temp/newmsg
+#nano temp/newmsg
+#echo "Do you have "
+#}
+#------------------------
+## GET ADDRESS BALANCE ##
+#------------------------
+addrbalance ()
+{
+echo "Show list of your addresses? (y/no)"
+read SHOW
+if [ "$SHOW" != "no" ]; then
+    echo "Press enter to see addresses."
+    echo "Use up/down arrows to navigate. Press "q" when finished."
+    read
+    cat btc-KeyRNG/addr | grep "Address" | less
+fi
+echo "Put address to check the balance of:"
+read ADDR
+pybtctools/pybtctool unspent "$ADDR"
+}
+#------------------------
+## GET ADDRESS HISTORY ##
+#------------------------
+addrhistory ()
+{
+echo "Show list of your addresses? (y/no)"
+read SHOW
+if [ "$SHOW" != "no" ]; then
+    echo "Press enter to see addresses."
+    echo "Use up/down arrows to navigate. Press "q" when finished."
+    read
+    cat btc-KeyRNG/addr | grep "Address" | less
+fi
+echo "Put address to check the history of:"
+read ADDR
+pybtctools/pybtctool history "$ADDR"
+}
+############################################
+##### ELECTRUM SEED ADDRESS MANAGEMENT #####
+############################################
+#----------------------
+## CHECK/CREATE SEED ##
+#----------------------
+checkeleseed ()
+{
+HAS_SEEDFILE=$(ls btc-KeyRNG/ | grep -c "ele.seed")
+if [[ "$HAS_SEEDFILE" -lt "1" ]]; then
+    touch btc-KeyRNG/ele.seed
+    chown "$USER" btc-KeyRNG/ele.seed
+    chmod 0600 btc-KeyRNG/ele.seed
+    newelectrumseed
+    echo ""$SEED"" > btc-KeyRNG/ele.seed
+    echo "Initial electrum seed created."
+    echo "Seed stored at KeyRNG/btc-KeyRNG/ele.seed"
+    echo "Would you like to see the seed? (y/no)"
+    read SEE_SEED
+    if [ "$SEE_SEED" != "no" ]; then
+        cat btc-KeyRNG/ele.seed
+        echo "Press enter for ELECTRUM ADDRESS MENU."
+        read
+    fi
+else
+    EMPTY=$(cat btc-KeyRNG/ele.seed | grep -c "")
+    if [ "$EMPTY" -lt "1" ]; then
+        chown "$USER" btc-KeyRNG/ele.seed
+        chmod 0600 btc-KeyRNG/ele.seed
+        newelectrumseed
+        echo ""$SEED"" > btc-KeyRNG/ele.seed
+        echo "Initial electrum seed created."
+        echo "Seed stored at KeyRNG/btc-KeyRNG/ele.seed"
+        echo "Would you like to see the seed? (y/no)"
+        read SEE_SEED
+        if [ "$SEE_SEED" != "no" ]; then
+            cat btc-KeyRNG/ele.seed
+            echo "Press enter for ELECTRUM ADDRESS MENU."
+            read
+        fi
+    fi
+fi
+clear
+}
+#----------------
+## SEED CREATE ##
+#----------------
+newelectrumseed ()
+{
+SEED=$(pybtctools/pybtctool random_electrum_seed)
+echo -n "$SEED" > btc-KeyRNG/ele.seed
+}
+#-------------------------
+## NEW ELECTRUM ADDRESS ##
+#-------------------------
+elecreateaddr ()
+{
+SEED=$(cat btc-KeyRNG/ele.seed)
+HAS_ADDRFILE=$(ls btc-KeyRNG/ | grep -c "ele.addr")
+if [ "$HAS_ADDRFILE" -lt "1" ]; then
+    touch btc-KeyRNG/ele.addr
+    chown -R "$USER" btc-KeyRNG/
+    chmod 0600 btc-KeyRNG/ele.addr
+    echo "----------------------------------------" > btc-KeyRNG/ele.addr
+    echo "| E L E C T R U M    A D D R E S S E S |" >> btc-KeyRNG/ele.addr
+    echo "----------------------------------------" >> btc-KeyRNG/ele.addr
+    echo -e "\n\n-----------------------------------------\n|Seed| "$SEED" |\n-----------------------------------------" >> btc-KeyRNG/ele.addr
+fi
+ADDR_COUNT=$(cat btc-KeyRNG/ele.addr | grep -c "Pubkey")
+if [[ "$ADDR_COUNT" = "0" ]]; then
+    WIF_COMP=$(pybtctools/pybtctool electrum_privkey $(echo -n "$SEED") 0 wif_compressed)
+    PUB=$(pybtctools/pybtctool privtopub $(echo -n "$WIF_COMP"))
+    ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$PUB"))
+    echo -e "\n\nAddress 1: "$ADDR"\nPubkey:  "$PUB"\nPrivkey (wif compressed):  "$WIF_COMP"\n\n---"
+    echo "Add to backup file: btc-KeyRNG/ele.addr? (y/no)"
+    read BACKUPKEY
+    if [ "$BACKUPKEY" != "no" ]; then
+        echo "Add a note to address? (y/no)"
+        read IS_NOTE
+        if [[ "$IS_NOTE" = "y" ]]; then
+            echo "Type the note and press enter:"
+            read NOTE 
+            echo -e "\nAddress 1: "$ADDR"     Note: "$NOTE"\nPubkey:  "$PUB"\nPrivkey (wif compressed):  "$WIF_COMP"\n\n---" >> btc-KeyRNG/ele.addr
+            echo "DONE!"
+        else
+            echo -e "\n\nAddress 1: "$ADDR"\nPubkey:  "$PUB"\nPrivkey (wif compressed):  "$WIF_COMP"\n\n---" >> btc-KeyRNG/ele.addr
+            echo "DONE!"
+        fi
+    fi
+else
+    ADDR_COUNT=$(expr "$ADDR_COUNT" + 1)
+    WIF_COMP=$(pybtctools/pybtctool electrum_privkey $(echo -n "$SEED") $(echo -n "$ADDR_COUNT") wif_compressed)
+    PUB=$(pybtctools/pybtctool privtopub $(echo -n "$WIF_COMP"))
+    ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$PUB"))
+    echo -e "\n\nAddress "$ADDR_COUNT": "$ADDR"\nPubkey:  "$PUB"\nPrivkey (wif compressed):  "$WIF_COMP"\n\n---"
+    echo "Add to backup file: btc-KeyRNG/ele.addr? (y/no)"
+    read BACKUPKEY
+    if [ "$BACKUPKEY" != "no" ]; then
+        echo "Add a note to address? (y/no)"
+        read IS_NOTE
+        if [[ "$IS_NOTE" = "y" ]]; then
+            echo "Type the note and press enter:"
+            read NOTE 
+            echo -e "\n\nAddress "$ADDR_COUNT": "$ADDR"     Note: "$NOTE"\nPubkey:  "$PUB"\nPrivkey (wif compressed):  "$WIF_COMP"\n\n---" >> btc-KeyRNG/ele.addr
+            echo "DONE!"
+        else
+            echo -e "\n\nAddress "$ADDR_COUNT": "$ADDR"\nPubkey:  "$PUB"\nPrivkey (wif compressed):  "$WIF_COMP"\n\n---" >> btc-KeyRNG/ele.addr
+            echo "DONE!"
+        fi
+    fi
+fi
+}
+#---------------------------------
+## SHOW ELECTRUM ADDRESSES ONLY ##
+#---------------------------------
+eleshowaddr ()
+{
+echo "Press enter to see addresses."
+echo "Use up/down arrows to navigate. Press "q" when finished."
+read
+cat btc-KeyRNG/ele.addr | grep "Address" | less
+}
+#------------------------------------
+## SHOW ELECTRUM ADDR AND PRIVKEYS ##
+#------------------------------------
+eleshowall ()
+{
+echo "Press enter to see addresses and private keys."
+echo "Use up/down arrows to navigate. Press "q" when finished."
+read
+cat btc-KeyRNG/ele.addr | less
 }
 #########################
 ########## END ##########
