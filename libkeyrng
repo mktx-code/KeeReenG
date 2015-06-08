@@ -557,6 +557,7 @@ echo "Add to backup file: btc-KeyRNG/addr? (y/no)"
 read BACKUPKEY
 if [ "$BACKUPKEY" != "no" ]; then
     echo -e "\n\nAddress: "$ADDRESS"\nPubkey:  "$PUBKEY"\nPrivate Key (wif):  "$WIF"\nPrivate Key (wif compressed):  "$WIF_COMP"\n\n---" >> btc-KeyRNG/addr
+    echo "DONE!"
 fi
 }
 #-----------------------
