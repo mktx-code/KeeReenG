@@ -321,32 +321,57 @@ do
                 DEL=btc-KeyRNG/addr.gpg
                 secdelete
             fi
+            clear
             echo "---------------------------"
             echo "| B I T C O I N   M E N U |"
             echo "---------------------------"
             PS3='Enter option (press enter to see options again): '
-            options=("Create New Address" "List Addresses" "See All Addresses/Keys" "Back To MAIN MENU" "LOCK UP!" "Quit")
+            options=("Standard Addresses" "Electrum Seed Addresses" "BIP32 Seed Addresses" "Back To MAIN MENU" "LOCK UP!" "Quit")
             select opt in "${options[@]}"
             do
                 case "$opt" in
-                    "Create New Address")
-                        getnewaddress
-                        ;;
-                    "List Addresses")
-                        showaddr
-                        ;;
-                    "See All Addresses/Keys")
-                        showalladdr
-                        ;;
+                    "Standard Addresses")
+                    clear
+                    echo "---------------------------------------------"
+                    echo "| S T A N D A R D   A D D R E S S   M E N U |"
+                    echo "---------------------------------------------"
+                    PS3='Enter option (press enter to see options again): '
+                    options=("Create New Address" "List Addresses" "See All Addresses/Keys" "LOCK UP!" "Back To BITCOIN MENU" "Quit")
+                    select opt in "${options[@]}"
+                    do
+                        case "$opt" in
+                            "Create New Address")
+                                getnewaddress
+                                ;;
+                            "List Addresses")
+                                showaddr
+                                ;;
+                            "See All Addresses/Keys")
+                                showalladdr
+                                ;;
+                            "LOCK UP!")
+                                lockup
+                                ;;
+                            "Back To MAIN MENU")
+                                break
+                                ;;
+                            "Quit")
+                                badquit
+                                ;;
+                            *) echo "Invalid Option";;
+                        esac
+                    done
+                    ;;
+                    "Electrum Seed Addresses")
+                    ;;
+                    "BIP32 Seed Addresses")
+                    ;;
+                    "Back To BITCOIN MENU")
+                    ;;
                     "LOCK UP!")
-                        lockup
-                        ;;
-                    "Back To MAIN MENU")
-                        break
-                        ;;
+                    ;;
                     "Quit")
-                        badquit
-                        ;;
+                    ;;
                     *) echo "Invalid Option";;
                  esac
              done
