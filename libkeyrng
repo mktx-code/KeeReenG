@@ -440,7 +440,7 @@ read IS_HIDDEN_UID
             read PRINT_NOW
               if [ "$PRINT_NOW" != "no" ]; then
                   echo "Press enter to see message."
-                  echo "Use up/down arrows to navigate. Press "q" when your finished."
+                  echo "Use up/down arrows to navigate. Press "q" when finished."
                   read
                   cat temp/newmsg | less
                   echo "Destroy message now? (y/no)"
@@ -478,7 +478,7 @@ read IS_HIDDEN_UID
             read PRINT_NOW
               if [ "$PRINT_NOW" != "no" ]; then
                   echo "Press enter to see message."
-                  echo "Use up/down arrows to navigate. Press "q" when your finished."
+                  echo "Use up/down arrows to navigate. Press "q" when finished."
                   read
                   cat temp/newmsg | less
                   echo "Destroy message now? (y/no)"
@@ -498,7 +498,7 @@ read IS_HIDDEN_UID
             read PRINT_NOW
               if [ "$PRINT_NOW" != "no" ]; then
                   echo "Press enter to see message."
-                  echo "Use up/down arrows to navigate. Press "q" when your finished."
+                  echo "Use up/down arrows to navigate. Press "q" when finished."
                   read
                   cat temp/newmsg | less
                   echo "Destroy message now? (y/no)"
@@ -517,7 +517,7 @@ read IS_HIDDEN_UID
             read PRINT_NOW
               if [ "$PRINT_NOW" != "no" ]; then
                   echo "Press enter to see message."
-                  echo "Use up/down arrows to navigate. Press "q" when your finished."
+                  echo "Use up/down arrows to navigate. Press "q" when finished."
                   read
                   cat temp/newmsg | less
                   echo "Destroy message now? (y/no)"
@@ -575,7 +575,7 @@ fi
 showaddr ()
 {
 echo "Press enter to see addresses."
-echo "Use up/down arrows to navigate. Press "q" when your finished."
+echo "Use up/down arrows to navigate. Press "q" when finished."
 read
 cat btc-KeyRNG/addr | grep "Address" | less
 }
@@ -585,7 +585,7 @@ cat btc-KeyRNG/addr | grep "Address" | less
 showalladdr ()
 {
 echo "Press enter to see addresses and private keys."
-echo "Use up/down arrows to navigate. Press "q" when your finished."
+echo "Use up/down arrows to navigate. Press "q" when finished."
 read
 cat btc-KeyRNG/addr | less
 }
@@ -609,7 +609,7 @@ echo "Show list of your addresses? (y/no)"
 read SHOW
 if [ "$SHOW" != "no" ]; then
     echo "Press enter to see addresses."
-    echo "Use up/down arrows to navigate. Press "q" when your finished."
+    echo "Use up/down arrows to navigate. Press "q" when finished."
     read
     cat btc-KeyRNG/addr | grep "Address" | less
 fi
@@ -626,7 +626,7 @@ echo "Show list of your addresses? (y/no)"
 read SHOW
 if [ "$SHOW" != "no" ]; then
     echo "Press enter to see addresses."
-    echo "Use up/down arrows to navigate. Press "q" when your finished."
+    echo "Use up/down arrows to navigate. Press "q" when finished."
     read
     cat btc-KeyRNG/addr | grep "Address" | less
 fi
