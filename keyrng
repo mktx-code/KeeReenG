@@ -9,16 +9,16 @@
 #
 ## IS LOCKED
 IS_LOCKED=$(ls | grep -c ".tar.gz.gpg")
-  if [[ "$IS_LOCKED" -gt "0" ]]; then
-      echo "---------------------------------------"
-      echo "| L O C K E D   K e y R N G   M E N U |"
-      echo "---------------------------------------"
-      PS3='Enter choice (press enter to see options again): '
-      options=("Unlock KeyRNG Files" "Copy Encrypted Files For Backup" "About Locked File" "Quit")
-      select opt in "${options[@]}"
-      do
-          case "$opt" in
-              "Unlock KeyRNG Files")
+if [ "$IS_LOCKED" -gt "0" ]; then
+    echo "---------------------------------------"
+    echo "| L O C K E D   K e y R N G   M E N U |"
+    echo "---------------------------------------"
+    PS3='Enter choice (press enter to see options again): '
+    options=("Unlock KeyRNG Files" "Copy Encrypted Files For Backup" "About Locked File" "Quit")
+    select opt in "${options[@]}"
+    do
+        case "$opt" in
+            "Unlock KeyRNG Files")
 unlock ()
 {
 gpg2 -d *.tar.gz.gpg > lock.KeyRNG.tar.gz
@@ -33,64 +33,60 @@ else
     shred -vuz *.tar.gz*
 fi
 }
-                  unlock
-                  . libkeyrng
-                  break
-                  ;;
-              "Copy Encrypted Files For Backup")
-                  echo "What would you like to name the backup copy?"
-                  read BACKUP
-                  echo "Copying..."
-                  cp *.tar.gz.gpg /tmp/"$BACKUP".tar.gz.gpg
-                  echo "File is at /tmp/"$BACKUP".tar.gz.gpg"
-                  echo "You should move somewhere else if you would like to keep it."
-                  echo "Press enter to exit."
-                  read
-                  exit 0
-                  ;;
-              "About Locked File")
-                  echo "---------------------------------------------------------------------"
-                  echo "| Permissions |    Owner    | Size |   Date   |      Filename       |"
-                  echo "---------------------------------------------------------------------"
-                  ls -lh *.tar.gz.gpg
-                  ;;
-              "Quit")
-                  exit 0
-                  ;;
-          esac
-      done
-## FIRST RUN
-  else
-      . libkeyrng
-      IS_FIRST_RUN=$(ls gpg-KeyRNG | grep -c "secring")
-      if [ "$IS_FIRST_RUN" -lt "1" ]; then
-          echo "---------------------"
-          echo "| F I R S T   R U N |"
-          echo "---------------------"
-          echo "This is your first run."
-          echo "You must create a gpg key to begin with."
-          echo "Press enter to move on."
-          read
-          clear
-          firstrun
-      fi
-  fi
+                unlock
+                . libkeyrng
+                break
+                ;;
+            "Copy Encrypted Files For Backup")
+                echo "What would you like to name the backup copy?"
+                read BACKUP
+                echo "Copying..."
+                cp *.tar.gz.gpg /tmp/"$BACKUP".tar.gz.gpg
+                echo "File is at /tmp/"$BACKUP".tar.gz.gpg"
+                echo "You should move somewhere else if you would like to keep it."
+                echo "Press enter to exit."
+                read
+                exit 0
+                ;;
+            "About Locked File")
+                ls -lh *.tar.gz.gpg
+                ;;
+            "Quit")
+                exit 0
+                ;;
+        esac
+    done
+fi
 ## TEMP FILE
 HAS_TEMP_FILE=$(ls | grep -c "temp")
 if [ "$HAS_TEMP_FILE" -lt "1" ]; then
     mkdir temp/
 fi
+## LOAD LIBRARY
+. libkeyrng
 ## MAIN MENU 
 clear
 echo "---------------------"
 echo "| M A I N   M E N U |"
 echo "---------------------"
 PS3='Enter choice (press enter to see options again): '
-options=("GnuPG Management" "Bitcoin Addresses" "LOCK UP!" "Quit")
+options=("GnuPG Management" "Bitcoin Management" "LOCK UP!" "Quit")
 select opt in "${options[@]}"
 do
     case "$opt" in
         "GnuPG Management")
+        IS_FIRST_RUN=$(ls gpg-KeyRNG | grep -c "secring")
+        if [ "$IS_FIRST_RUN" -lt "1" ]; then
+            echo "---------------------"
+            echo "| F I R S T   R U N |"
+            echo "---------------------"
+            echo "This is your first run."
+            echo "You must create a gpg key to begin with."
+            echo "Press enter to move on."
+            read
+            clear
+            firstrun
+        fi
             clear
             echo "------------"
             echo "| GPG MENU |"
@@ -305,44 +301,138 @@ do
                 esac
             done
             ;;
-        "Bitcoin Addresses")
+        "Bitcoin Management")
             HAS_BTCFILE=$(ls | grep -c "btc-KeyRNG")
             if [ "$HAS_BTCFILE" -lt "1" ]; then
                 mkdir btc-KeyRNG
                 chown "$USER" btc-KeyRNG/
             fi
-            ENC_ADDRFILE=$(ls btc-KeyRNG | grep -c "addr.gpg")
-            if [ "$ENC_ADDRFILE" -gt "0" ]; then
-                echo "Address file is locked."
+            ENC_BTCFILE=$(ls | grep -c "btc.tar.gz.gpg")
+            if [ "$ENC_BTCFILE" -gt "0" ]; then
+                echo "Bitcoin file is locked."
                 echo "Press enter to decrypt."
                 read
-                gpg2 --output btc-KeyRNG/addr --decrypt btc-KeyRNG/addr.gpg
-                echo "Shredding old file."
-                DEL=btc-KeyRNG/addr.gpg
+                gpg2 --output btc.tar.gz --decrypt btc.tar.gz.gpg
+                tar -x btc.tar.gz
+                echo "Shredding old file..."
+                DEL=*tar.gz*
                 secdelete
             fi
+            clear
             echo "---------------------------"
             echo "| B I T C O I N   M E N U |"
             echo "---------------------------"
             PS3='Enter option (press enter to see options again): '
-            options=("Create New Address" "List Addresses" "See All Addresses/Keys" "Back To MAIN MENU" "LOCK UP!" "Quit")
+            options=("Standard Addresses" "Electrum Addresses Menu" "BIP32 Seed Addresses" "Sign Message" "Back To MAIN MENU" "LOCK UP!" "Quit")
             select opt in "${options[@]}"
             do
                 case "$opt" in
-                    "Create New Address")
-                        getnewaddress
+                    "Standard Addresses")
+                    clear
+                    echo "---------------------------------------------"
+                    echo "| S T A N D A R D   A D D R E S S   M E N U |"
+                    echo "---------------------------------------------"
+                    PS3='Enter option (press enter to see options again): '
+                    options=("Create New Address" "Show Addresses Only" "Show Addresses And Private Keys" "LOCK UP!" "Back To BITCOIN MENU" "Quit")
+                    select opt in "${options[@]}"
+                    do
+                        case "$opt" in
+                            "Create New Address")
+                                getnewaddress
+                                ;;
+                            "Show Addresses Only")
+                                showaddr
+                                ;;
+                            "Show Addresses And Private Keys")
+                                showalladdr
+                                ;;
+                            "LOCK UP!")
+                                lockup
+                                ;;
+                            "Back To BITCOIN MENU")
+                                break
+                                ;;
+                            "Quit")
+                                badquit
+                                ;;
+                            *) echo "Invalid Option";;
+                        esac
+                    done
+                    ;;
+                    "Electrum Addresses Menu")
+                        clear
+                        checkeleseed
+                        echo "---------------------------------------------"
+                        echo "| E L E C T R U M   A D D R E S S   M E N U |"
+                        echo "---------------------------------------------"
+                        PS3='Enter choice (press enter to see options again): '
+                        options=("Create New Address" "Show Addresses Only" "Show Addresses And Private Keys" "LOCK UP!" "Back to BITCOIN MENU" "Quit")
+                        select opt in "${options[@]}"
+                        do
+                            case "$opt" in
+                                "Create New Address")
+                                    elecreateaddr
+                                    ;;
+                                "Show Addresses Only")
+                                    eleshowaddr
+                                    ;;
+                                "Show Addresses And Private Keys")
+                                    eleshowall
+                                    ;;
+                                "LOCK UP!")
+                                    lockup
+                                    ;;
+                                "Back to BITCOIN MENU")
+                                    break
+                                    ;;
+                                "Quit")
+                                    badquit
+                                    ;;
+                                *) echo "Invalid Option";;
+                            esac
+                        done                        
                         ;;
-                    "List Addresses")
-                        showaddr
+                    "BIP32 Seed Addresses")
+                        clear
+                        checkbipseed
+                        echo "---------------------------------------"
+                        echo "| B I P 3 2   A D D R E S S   M E N U |"
+                        echo "---------------------------------------"
+                        PS3='Enter choice (press enter to see options again): '
+                        options=("Create New Address" "Show Addresses Only" "Show Addresses And Private Keys" "LOCK UP!" "Back to BITCOIN MENU" "Quit")
+                        select opt in "${options[@]}"
+                        do
+                            case "$opt" in
+                                "Create New Address")
+                                    bipcreateaddr
+                                    ;;
+                                "Show Addresses Only")
+                                    bipshowaddr
+                                    ;;
+                                "Show Addresses And Private Keys")
+                                    bipshowall
+                                    ;;
+                                "LOCK UP!")
+                                    lockup
+                                    ;;
+                                "Back to BITCOIN MENU")
+                                    break
+                                    ;;
+                                "Quit")
+                                    badquit
+                                    ;;
+                                *) echo "Invalid Option";;
+                            esac
+                        done                        
                         ;;
-                    "See All Addresses/Keys")
-                        showalladdr
-                        ;;
-                    "LOCK UP!")
-                        lockup
+                    "Sign Message")
+                        btcsign
                         ;;
                     "Back To MAIN MENU")
                         break
+                        ;;
+                    "LOCK UP!")
+                        lockup
                         ;;
                     "Quit")
                         badquit
