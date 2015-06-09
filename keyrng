@@ -41,9 +41,9 @@ fi
                 echo "What would you like to name the backup copy?"
                 read BACKUP
                 echo "Copying..."
-                cp *.tar.gz.gpg "$BACKUP".tar.gz.gpg
-                echo "File is at KeyRNG/"$BACKUP".tar.gz.gpg"
-                echo "You should move it somewhere else if you would like to keep it."
+                cp *.tar.gz.gpg /tmp/"$BACKUP".tar.gz.gpg
+                echo "File is at /tmp/"$BACKUP".tar.gz.gpg"
+                echo "You should move somewhere else if you would like to keep it."
                 echo "Press enter to exit."
                 read
                 exit 0
@@ -87,111 +87,111 @@ do
             clear
             firstrun
         fi
-            clear
-            echo "------------"
-            echo "| GPG MENU |"
-            echo "------------"
-            PS3='Enter choice (press enter to see options again): '
-            options=("Key Management" "Encryption" "Decryption" "LOCK UP!" "Back To MAIN MENU" "Quit")
-            select opt in "${options[@]}"
-            do
-                case "$opt" in
-                    "Key Management")
-                        clear
-                        echo "-------------------------------"
-                        echo "| K E Y   M A N A G E M E N T |"
-                        echo "-------------------------------"
-                        PS3='Enter choice (press enter to see options again): '
-                        options=("Generate New Keypair" "Public Keys" "Secret Keys" "LOCK UP!" "Back To GPG MENU" "Quit")
-                        select opt in "${options[@]}"
-                        do
-                            case "$opt" in
-                                "Generate New Keypair")
-                                    genkey
-                                    ;;
-                                "Public Keys")
-                                    clear
-                                    echo "-------------------------"
-                                    echo "| P U B L I C   K E Y S |"
-                                    echo "-------------------------"
-                                    PS3='Enter choice (press enter to see options again): '
-                                    options=("List Public Keys By UID" "List Full Public Keys" "Import Keys" "Export A Public Key To Terminal" "Export A Public Key To File" "Send Keys To Keyserver" "Receive Keys From Keyserver" "LOCK UP!" "Back To KEY MANAGEMENT MENU" "Quit")
-                                    select opt in "${options[@]}"
-                                    do
-                                        case "$opt" in
-                                            "List Public Keys By UID")
-                                                listkeyuids
-                                                ;;
-                                            "List Full Public Keys")
-                                                listfullkeydetails
-                                                ;;
-                                            "Import Keys")
-                                                clear
-                                                echo "------------------------"
-                                                echo "| I M P O R T   K E Y S|"
-                                                echo "------------------------"
-                                                PS3='Enter choice (press enter to see options again): '
-                                                options=("Import From File" "Import From Clipboard" "Import From Another GPG" "LOCK UP!" "Back To PUBLIC KEYS MENU" "Quit")
-                                                select opt in "${options[@]}"
-                                                do
-                                                    case "$opt" in
-                                                        "Import From File")
-                                                            importkeyfile
-                                                            ;;
-                                                        "Import From Clipboard")
-                                                            importkeyclip
-                                                            ;;
-                                                        "Import From Another GPG")
-                                                            importkeyfromgpg
-                                                            ;;
-                                                        "LOCK UP!")
-                                                            lockup
-                                                            ;;
-                                                        "Back To PUBLIC KEYS MENU")
-                                                            break
-                                                            ;;
-                                                        "Quit")
-                                                            badquit
-                                                            ;;
-                                                        *) echo "Invalid Option";;
-                                                    esac
-                                                done
-                                                ;;
-                                            "Export A Public Key To Terminal")
-                                                exportpubkey
-                                                ;;
-                                            "Export A Public Key To File")
-                                                exportpubkeyfile
-                                                ;;
-                                            "Send Keys To Keyserver")
-                                                sendkeyserv
-                                                ;;
-                                            "Receive Keys From Keyserver")
-                                                recvkeyserv
-                                                ;;
-                                            "LOCK UP!")
-                                                lockup
-                                                ;;
-                                            "Back To KEY MANAGEMENT MENU")
-                                                break
-                                                ;;
-                                            "Quit")
-                                                badquit
-                                                ;;
-                                            *) echo "Invalid Option";;
-                                        esac
-                                    done
-                                    ;;
-                                "Secret Keys")
-                                    clear
-                                    echo "-------------------------"
-                                    echo "| S E C R E T   K E Y S |"
-                                    echo "-------------------------"
-                                    PS3='Enter choice (press enter to see options again): '
-                                    options=("List Secret Keys By UID" "List Full Secret Key Info" "Export Secret Key To Terminal" "Export Secret Key To File" "LOCK UP!" "Back To KEY MANAGEMENT MENU" "Quit")
-                                    select opt in "${options[@]}"
-                                    do
-                                        case "$opt" in
+        clear
+        echo "------------"
+        echo "| GPG MENU |"
+        echo "------------"
+        PS3='Enter choice (press enter to see options again): '
+        options=("Key Management" "Encryption" "Decryption" "Clear Sign" "LOCK UP!" "Back To MAIN MENU" "Quit")
+        select opt in "${options[@]}"
+        do
+            case "$opt" in
+                "Key Management")
+                    clear
+                    echo "-------------------------------"
+                    echo "| K E Y   M A N A G E M E N T |"
+                    echo "-------------------------------"
+                    PS3='Enter choice (press enter to see options again): '
+                    options=("Generate New Keypair" "Public Keys" "Secret Keys" "LOCK UP!" "Back To GPG MENU" "Quit")
+                    select opt in "${options[@]}"
+                    do
+                        case "$opt" in
+                            "Generate New Keypair")
+                                genkey
+                                ;;
+                            "Public Keys")
+                                clear
+                                echo "-------------------------"
+                                echo "| P U B L I C   K E Y S |"
+                                echo "-------------------------"
+                                PS3='Enter choice (press enter to see options again): '
+                                options=("List Public Keys By UID" "List Full Public Keys" "Import Keys" "Export A Public Key To Terminal" "Export A Public Key To File" "Send Keys To Keyserver" "Receive Keys From Keyserver" "LOCK UP!" "Back To KEY MANAGEMENT MENU" "Quit")
+                                select opt in "${options[@]}"
+                                do
+                                    case "$opt" in
+                                        "List Public Keys By UID")
+                                            listkeyuids
+                                            ;;
+                                        "List Full Public Keys")
+                                            listfullkeydetails
+                                            ;;
+                                        "Import Keys")
+                                            clear
+                                            echo "------------------------"
+                                            echo "| I M P O R T   K E Y S|"
+                                            echo "------------------------"
+                                            PS3='Enter choice (press enter to see options again): '
+                                            options=("Import From File" "Import From Clipboard" "Import From Another GPG" "LOCK UP!" "Back To PUBLIC KEYS MENU" "Quit")
+                                            select opt in "${options[@]}"
+                                            do
+                                                case "$opt" in
+                                                    "Import From File")
+                                                        importkeyfile
+                                                        ;;
+                                                    "Import From Clipboard")
+                                                        importkeyclip
+                                                        ;;
+                                                    "Import From Another GPG")
+                                                        importkeyfromgpg
+                                                        ;;
+                                                    "LOCK UP!")
+                                                        lockup
+                                                        ;;
+                                                    "Back To PUBLIC KEYS MENU")
+                                                        break
+                                                        ;;
+                                                    "Quit")
+                                                        badquit
+                                                        ;;
+                                                    *) echo "Invalid Option";;
+                                                esac
+                                            done
+                                            ;;
+                                        "Export A Public Key To Terminal")
+                                            exportpubkey
+                                            ;;
+                                        "Export A Public Key To File")
+                                            exportpubkeyfile
+                                            ;;
+                                        "Send Keys To Keyserver")
+                                            sendkeyserv
+                                            ;;
+                                        "Receive Keys From Keyserver")
+                                            recvkeyserv
+                                            ;;
+                                        "LOCK UP!")
+                                            lockup
+                                            ;;
+                                        "Back To KEY MANAGEMENT MENU")
+                                            break
+                                            ;;
+                                        "Quit")
+                                            badquit
+                                            ;;
+                                        *) echo "Invalid Option";;
+                                    esac
+                                done
+                                ;;
+                            "Secret Keys")
+                                clear
+                                echo "-------------------------"
+                                echo "| S E C R E T   K E Y S |"
+                                echo "-------------------------"
+                                PS3='Enter choice (press enter to see options again): '
+                                options=("List Secret Keys By UID" "List Full Secret Key Info" "Export Secret Key To Terminal" "Export Secret Key To File" "LOCK UP!" "Back To KEY MANAGEMENT MENU" "Quit")
+                                select opt in "${options[@]}"
+                                do
+                                    case "$opt" in
                                         "List Secret Keys By UID")
                                             listseckeyuid
                                             ;;
@@ -288,6 +288,8 @@ do
                             esac
                         done
                         ;;
+                    "Clear Sign")
+                        ;;
                     "LOCK UP!")
                         lockup
                         ;;
@@ -323,7 +325,7 @@ do
             echo "| B I T C O I N   M E N U |"
             echo "---------------------------"
             PS3='Enter option (press enter to see options again): '
-            options=("Standard Addresses" "Electrum Seed Addresses Menu" "BIP32 Seed Addresses Menu" "Sign Message" "Back To MAIN MENU" "LOCK UP!" "Quit")
+            options=("Standard Addresses" "Electrum Addresses Menu" "BIP32 Seed Addresses" "Sign Message" "Back To MAIN MENU" "LOCK UP!" "Quit")
             select opt in "${options[@]}"
             do
                 case "$opt" in
@@ -359,12 +361,12 @@ do
                         esac
                     done
                     ;;
-                    "Electrum Seed Addresses Menu")
+                    "Electrum Addresses Menu")
                         clear
                         checkeleseed
-                        echo "-------------------------------------------------------"
-                        echo "| E L E C T R U M   S E E D   A D D R E S S   M E N U |"
-                        echo "-------------------------------------------------------"
+                        echo "---------------------------------------------"
+                        echo "| E L E C T R U M   A D D R E S S   M E N U |"
+                        echo "---------------------------------------------"
                         PS3='Enter choice (press enter to see options again): '
                         options=("Create New Address" "Show Addresses Only" "Show Addresses And Private Keys" "LOCK UP!" "Back to BITCOIN MENU" "Quit")
                         select opt in "${options[@]}"
@@ -392,12 +394,12 @@ do
                             esac
                         done                        
                         ;;
-                    "BIP32 Seed Addresses Menu")
+                    "BIP32 Seed Addresses")
                         clear
                         checkbipseed
-                        echo "-------------------------------------------------"
-                        echo "| B I P 3 2   S E E D   A D D R E S S   M E N U |"
-                        echo "-------------------------------------------------"
+                        echo "---------------------------------------"
+                        echo "| B I P 3 2   A D D R E S S   M E N U |"
+                        echo "---------------------------------------"
                         PS3='Enter choice (press enter to see options again): '
                         options=("Create New Address" "Show Addresses Only" "Show Addresses And Private Keys" "LOCK UP!" "Back to BITCOIN MENU" "Quit")
                         select opt in "${options[@]}"
@@ -426,7 +428,6 @@ do
                         done                        
                         ;;
                     "Sign Message")
-                        btcsign
                         ;;
                     "Back To MAIN MENU")
                         break
