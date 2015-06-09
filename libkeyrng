@@ -274,14 +274,32 @@ encryptfile ()
 {
 echo "What file?"
 read EFILE
+echo "Sign message? (Y/no)"
+read SIGN
+if [ "$SIGN" = "Y" ]; then
+    echo "See private keys to sign with? (y/no)"
+    read SHOW_PRIV
+    if [[ "$SHOW_PRIV" != "no" ]]; then
+        echo "Copy the UID you would like to sign with."
+        echo "Press enter to see a list of possible recipients by uid."
+        echo "Use up/down arrows to navigate. Press "q" when your finished."
+        read
+        gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --list-secret-keys | grep "uid" | cut -b 21- | less
+        echo "Paste UID to sign with:"
+        read PRIVKEY
+    else
+        echo "Paste UID to sign with:"
+        read PRIVKEY    
+    fi
+fi
 echo "See UIDS of possible recipients? (y/no)"
 read SHOW_UIDS
-  if [ "$SHOW_UIDS" != "no" ]; then
-      echo "Press enter to see a list of possible recipients by uid."
-      echo "Use up/down arrows to navigate. Press "q" when your finished."
-      read
-      gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "uid" | cut -b 21- | less
-  fi
+if [ "$SHOW_UIDS" != "no" ]; then
+    echo "Press enter to see a list of possible recipients by uid."
+    echo "Use up/down arrows to navigate. Press "q" when your finished."
+    read
+    gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "uid" | cut -b 21- | less
+fi
 echo "What recipient?"
 read MSG_RECP
 echo "Another recipient (yourself possibly)? (y/no)"
@@ -289,24 +307,37 @@ read IF_MSG_RECP_TWO
   if [[ "$IF_MSG_RECP_TWO" != "no" ]]; then
       echo "See UID list again? (y/no)"
       read SHOW_UIDS
-        if [ "$SHOW_UIDS" != "no" ]; then
-            echo "Press enter to see a list of possible recipients by uid."
-            echo "Use up/down arrows to navigate. Press "q" when your finished."
-            read
-            gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "uid" | cut -b 21- | less
-        fi
+      if [ "$SHOW_UIDS" != "no" ]; then
+          echo "Press enter to see a list of possible recipients by uid."
+          echo "Use up/down arrows to navigate. Press "q" when your finished."
+          read
+          gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "uid" | cut -b 21- | less
+      fi
       echo "Second recipient?"
       read MSG_RECP_TWO
   fi
-if [[ "$IF_MSG_RECP_TWO" = "no" ]]; then
-    gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$MSG_RECP" --output temp/newmsg.asc --encrypt "$EFILE"
-else
-    echo "Do you want the second recipient hidden? (y/no)"
-    read HIDE_RECP_TWO
+if [[ "$SIGN" != "Y" ]]; then
+  if [[ "$IF_MSG_RECP_TWO" = "no" ]]; then
+      gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$MSG_RECP" --output temp/newmsg.asc --encrypt "$EFILE"
+  else
+      echo "Do you want the second recipient hidden? (y/no)"
+      read HIDE_RECP_TWO
       if [ "$HIDE_RECP_TWO" != "no" ]; then
           gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --hidden-recipient "$MSG_RECP_TWO" --recipient "$MSG_RECP" --output temp/newmsg.asc --encrypt "$EFILE"
       fi
-    gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$MSG_RECP" --recipient "$MSG_RECP_TWO" --output temp/newmsg.asc --encrypt "$EFILE"
+      gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$MSG_RECP" --recipient "$MSG_RECP_TWO" --output temp/newmsg.asc --encrypt "$EFILE"
+  fi
+else
+  if [[ "$IF_MSG_RECP_TWO" = "no" ]]; then
+      gpg2 --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign --no-permission-warning --armor --recipient "$MSG_RECP" --output temp/newmsg.asc --encrypt "$EFILE"
+  else
+      echo "Do you want the second recipient hidden? (y/no)"
+      read HIDE_RECP_TWO
+      if [ "$HIDE_RECP_TWO" != "no" ]; then
+          gpg2 --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign --no-permission-warning --armor --hidden-recipient "$MSG_RECP_TWO" --recipient "$MSG_RECP" --output temp/newmsg.asc --encrypt "$EFILE"
+      fi
+      gpg2 --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign --no-permission-warning --armor --recipient "$MSG_RECP" --recipient "$MSG_RECP_TWO" --output temp/newmsg.asc --encrypt "$EFILE"
+  fi
 fi
 echo "File is stored temporarily at KeyRNG/temp/newmsg.asc."
 echo "Would you like to print it now? (y/no)"
@@ -329,6 +360,24 @@ encryptnewmsg ()
 echo "Press enter to type message."
 rm -rf temp/newmsg
 nano temp/newmsg
+echo "Sign message? (Y/no)"
+read SIGN
+if [ "$SIGN" = "Y" ]; then
+    echo "See private keys to sign with? (y/no)"
+    read SHOW_PRIV
+    if [[ "$SHOW_PRIV" != "no" ]]; then
+        echo "Copy the UID you would like to sign with."
+        echo "Press enter to see a list of possible recipients by uid."
+        echo "Use up/down arrows to navigate. Press "q" when your finished."
+        read
+        gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --list-secret-keys | grep "uid" | cut -b 21- | less
+        echo "Paste UID to sign with:"
+        read PRIVKEY
+    else
+        echo "Paste UID to sign with:"
+        read PRIVKEY    
+    fi
+fi
 echo "See UIDS of possible recipients? (y/no)"
 read SHOW_UIDS
   if [ "$SHOW_UIDS" != "no" ]; then
@@ -354,13 +403,25 @@ if [ "$IF_NEWMSG_RECP_TWO" != "no" ]; then
     read NEWMSG_RECP_TWO
     echo "Do you want the second recipient hidden? (y/no)"
     read HIDE_RECP_TWO
-    if [[ "$HIDE_RECP_TWO" != "no" ]]; then
-        gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$NEWMSG_RECP" --hidden-recipient "$NEWMSG_RECP_TWO" --output temp/newmsg.asc --encrypt temp/newmsg
+    if [[ "$SIGN" != "Y" ]]; then
+      if [[ "$HIDE_RECP_TWO" != "no" ]]; then
+          gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$NEWMSG_RECP" --hidden-recipient "$NEWMSG_RECP_TWO" --output temp/newmsg.asc --encrypt temp/newmsg
+      else
+          gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$NEWMSG_RECP" --recipient "$NEWMSG_RECP_TWO" --output temp/newmsg.asc --encrypt temp/newmsg
+      fi
     else
-        gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$NEWMSG_RECP" --recipient "$NEWMSG_RECP_TWO" --output temp/newmsg.asc --encrypt temp/newmsg
+      if [[ "$HIDE_RECP_TWO" != "no" ]]; then
+          gpg2 --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign --no-permission-warning --armor --recipient "$NEWMSG_RECP" --hidden-recipient "$NEWMSG_RECP_TWO" --output temp/newmsg.asc --encrypt temp/newmsg
+      else
+          gpg2 --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign --no-permission-warning --armor --recipient "$NEWMSG_RECP" --recipient "$NEWMSG_RECP_TWO" --output temp/newmsg.asc --encrypt temp/newmsg
+      fi  
     fi
+else
+  if [[ "$SIGN" != "Y" ]]; then
+      gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$NEWMSG_RECP" --output temp/newmsg.asc --encrypt temp/newmsg
   else
-    gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$NEWMSG_RECP" --output temp/newmsg.asc --encrypt temp/newmsg
+      gpg2 --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign --no-permission-warning --armor --recipient "$NEWMSG_RECP" --output temp/newmsg.asc --encrypt temp/newmsg
+  fi
 fi
 echo "File is stored temporarily at KeyRNG/temp/newmsg.asc"
 echo "Would you like to destroy the original, unencrypted message? (y/no)"
