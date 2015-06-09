@@ -76,6 +76,16 @@ else
 fi
 exit 0
 }
+#-----------------
+## FAST LOCKUP  ##
+#-----------------
+fastlockup ()
+{
+tar -c *-KeyRNG/ pybtctools/ libkeyrng > lock.KeyRNG.tar.gz
+gpg2 --symmetric --cipher-algo aes256 lock.KeyRNG.tar.gz
+rm -rf *KeyRNG/ pybtctools/ libkeyrng *.tar.gz
+exit 0
+}
 #----------
 ## UNLOCK ##
 #----------
@@ -187,6 +197,52 @@ read LIST_KEYS
 echo "What key UID do you want to import to KeyRNG?"
 read IMPORT_KEY
 gpg2 --homedir "$DEFAULT_GPG" --export "$IMPORT_KEY" | gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --import -
+}
+#--------------------------------------------
+## IMPORT ALL PUBLIC KEYS FROM ANOTHER GPG ##
+#--------------------------------------------
+gpgimportallpub ()
+{
+echo "Import all public keys from default location (/home/"$USER"/.gnupg/)? (y/no)"
+read DEFAULT
+if [[ "$DEFAULT" != "no" ]]; then
+    GPG=/home/"$USER"/.gnupg/
+else
+    echo "Give path to GnuPG folder to import all public keys from."
+    read GPG
+fi
+rm -rf temp/temp
+gpg2 --homedir "$GPG" --no-permission-warning --list-keys | grep "0x" | cut -b 13- | cut -b -19 > temp/temp
+LINES=$(grep -c "0x" temp/temp)
+if [ "$LINES" -gt "0" ]; then
+    cat temp/temp | xargs -I{} -d"\n" gpg2 --no-permission-warning --homedir "$GPG" --export {} | gpg2 --no-permission-warning --homedir gpg-KeyRNG/ --import
+fi
+echo "Shredding temp file..."
+DEL=temp/temp
+secdelete
+}
+#---------------------------------------------
+## IMPORT ALL PRIVATE KEYS FROM ANOTHER GPG ##
+#---------------------------------------------
+gpgimportallsec ()
+{
+echo "Import all secret keys from default location (/home/"$USER"/.gnupg/)? (y/no)"
+read DEFAULT
+if [[ "$DEFAULT" != "no" ]]; then
+    GPG=/home/"$USER"/.gnupg/
+else
+    echo "Give path to GnuPG folder to import all secret keys from."
+    read GPG
+fi
+rm -rf temp/temp
+gpg2 --homedir "$GPG" --no-permission-warning --list-secret-keys | grep "0x" | cut -b 13- | cut -b -19 > temp/temp
+LINES=$(grep -c "0x" temp/temp)
+if [ "$LINES" -gt "0" ]; then
+    cat temp/temp | xargs -I{} -d"\n" gpg2 --no-permission-warning --homedir "$GPG" --export-secret-keys {} | gpg2 --no-permission-warning --homedir gpg-KeyRNG/ --import
+fi
+echo "Shredding temp file..."
+DEL=temp/temp
+secdelete
 }
 #----------------------
 ## EXPORT PUBLIC KEY ##
@@ -1032,14 +1088,14 @@ if [[ "$HAS_SEEDFILE" -lt "1" ]]; then
     chown "$USER" btc-KeyRNG/bip.seed
     chmod 0600 btc-KeyRNG/bip.seed
     newbipseed
-    echo "Initial BIP32 seed created."
-    echo "Seed stored at KeyRNG/btc-KeyRNG/bip.seed"
-    echo "Press enter to see the seed so you may copy it."
-    read
     clear
-    cat btc-KeyRNG/bip.seed
-    echo "THIS IS YOUR PRIVATE SEED TO RESTORE ADDRESSES."
+    echo "Initial BIP32 seed created."
+    echo "Seed stored at KeyRNG/btc-KeyRNG/ele.seed"
+    echo -ne "\n"$SEED"\n"
+    echo -e "\n\nTHIS IS YOUR PRIVATE SEED TO RESTORE ADDRESSES."
     echo "WRITE IT DOWN SOMEWHERE SAFE AS A BACKUP!"
+    echo "Press enter when you have your seed backed up."
+    read
 else
     EMPTY=$(cat btc-KeyRNG/bip.seed | grep -c "")
     if [ "$EMPTY" -lt "1" ]; then
@@ -1047,13 +1103,12 @@ else
         chmod 0600 btc-KeyRNG/bip.seed
         newbipseed
         echo "Initial BIP32 seed created."
-        echo "Seed stored at KeyRNG/btc-KeyRNG/bip.seed"
-        echo "Press enter to see the seed so you may copy it."
-        read
-        clear
-        cat btc-KeyRNG/bip.seed
-        echo "THIS IS YOUR PRIVATE SEED TO RESTORE ADDRESSES."
+        echo "Seed stored at KeyRNG/btc-KeyRNG/ele.seed"
+        echo -ne "\n"$SEED"\n"
+        echo -e "\n\nTHIS IS YOUR PRIVATE SEED TO RESTORE ADDRESSES."
         echo "WRITE IT DOWN SOMEWHERE SAFE AS A BACKUP!"
+        echo "Press enter when you have your seed backed up."
+        read
     fi
 fi
 clear
@@ -1071,7 +1126,7 @@ echo -en ""$SEED"" > btc-KeyRNG/bip32.seed
 #-----------------------------
 bipcreateaddr ()
 {
-SEED=$(cat btc-KeyRNG/bip.seed)
+SEED=$(cat btc-KeyRNG/bip32.seed)
 HAS_ADDRFILE=$(ls btc-KeyRNG/ | grep -c "bip.addr")
 if [ "$HAS_ADDRFILE" -lt "1" ]; then
     touch btc-KeyRNG/bip.addr
