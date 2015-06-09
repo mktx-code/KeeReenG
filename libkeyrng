@@ -594,12 +594,82 @@ read IS_HIDDEN_UID
               fi 
   fi
 }
+#-----------------------------
+## GPG CLEARSIGN FROM FILE ##
+#-----------------------------
+csignfile ()
+{
+echo "File to sign:"
+read FILE
+echo "See private keys to sign with? (y/no)"
+read SEE
+  if [ "$SEE" != "no" ]; then
+      echo "Copy the UID you would like to sign with."
+      echo "Press enter to see a list of possible recipients by uid."
+      echo "Use up/down arrows to navigate. Press "q" when finished."
+      read
+      gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --list-secret-keys | grep "uid" | cut -b 21- | less
+  fi
+echo "Give UID to sign with:"
+read PRIVKEY
+gpg2 --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --no-permission-warning --armor --output "$FILE".asc --clearsign "$FILE"
+echo "Signed file is stored at "$FILE".asc."
+echo "Do you want to copy the file to another location? (Y/no)"
+read COPY
+if [ "$COPY" = "Y" ]; then
+  echo "Path to copy to:"
+  read CPATH
+  cp "$FILE".asc "$CPATH"
+fi
+echo "Show the signed document here? (Y/no)"
+read SHOW
+  if [ "$SHOW" = "Y" ]; then
+      cat "$FILE".asc
+  fi
+}
+#------------------------------
+## GPG CLEARSIGN NEW MESSAGE ##
+#------------------------------
+csignnew ()
+{
+echo "Press enter to type new message to clearsign."
+read
+rm -rf temp/newmsg
+nano temp/newmsg
+FILE=temp/newmsg
+echo "See private keys to sign with? (y/no)"
+read SEE
+  if [ "$SEE" != "no" ]; then
+      echo "Copy the UID you would like to sign with."
+      echo "Press enter to see a list of possible recipients by uid."
+      echo "Use up/down arrows to navigate. Press "q" when finished."
+      read
+      gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --list-secret-keys | grep "uid" | cut -b 21- | less
+  fi
+echo "Give UID to sign with:"
+read PRIVKEY
+gpg2 --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --no-permission-warning --armor --output "$FILE".asc --clearsign "$FILE"
+echo "Signed file is stored at "$FILE".asc."
+echo "This file will be deleted when you do the LOCK UP! option."
+echo "Do you want to copy the file to another location? (Y/no)"
+read COPY
+if [ "$COPY" = "Y" ]; then
+  echo "Path to copy to:"
+  read CPATH
+  cp "$FILE".asc "$CPATH"
+fi
+echo "Show the signed document here? (Y/no)"
+read SHOW
+  if [ "$SHOW" = "Y" ]; then
+      cat "$FILE".asc
+  fi
+}
 #################################
 ##### GENERAL BTC FUNCTIONS #####
 #################################
-#-----------------
-## SIGN MESSAGE ## ONLY WORKS FOR SIGNING ONE LINE MESSAGES CURRENTLY. BEGINNING IF/ELSE HELL SECTION BROKEN SOMEWHERE. ##
-#-----------------
+#--------------------------------------------------------------------------------------------------------------------------------
+## BITCOIN SIGN MESSAGE ## ONLY WORKS FOR SIGNING ONE LINE MESSAGES CURRENTLY. THE BEGINNING IF/ELSE HELL IS BROKEN SOMEWHERE. ##
+#--------------------------------------------------------------------------------------------------------------------------------
 #btcsign ()
 #{
 #HAS_ADDRFILES=$(ls btc-KeyRNG/ | grep -c "addr")
@@ -762,9 +832,9 @@ echo "Use up/down arrows to navigate. Press "q" when finished."
 read
 cat btc-KeyRNG/standard.addr | less
 }
-#------------------------
+#-----------------------------------------------------------------------------------------------------------------------------------------
 ## GET ADDRESS BALANCE ## WORKS, BUT RELIES ON THIRD PARTIES. NORMAL TORIFICATIONS DON'T WORK, AND I CAN'T GUARANTEE PRIVOXY IS PRESENT ##
-#------------------------
+#-----------------------------------------------------------------------------------------------------------------------------------------
 #addrbalance ()
 #{
 #echo "Show list of your addresses? (y/no)"
@@ -779,9 +849,9 @@ cat btc-KeyRNG/standard.addr | less
 #read ADDR
 #pybtctools/pybtctool unspent "$ADDR"
 #}
-#------------------------
+#-----------------------------------------------------------------------------------------------------------------------------------------
 ## GET ADDRESS HISTORY ## WORKS, BUT RELIES ON THIRD PARTIES. NORMAL TORIFICATIONS DON'T WORK, AND I CAN'T GUARANTEE PRIVOXY IS PRESENT ##
-#------------------------
+#-----------------------------------------------------------------------------------------------------------------------------------------
 #addrhistory ()
 #{
 #echo "Show list of your addresses? (y/no)"
