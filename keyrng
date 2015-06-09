@@ -41,9 +41,9 @@ fi
                 echo "What would you like to name the backup copy?"
                 read BACKUP
                 echo "Copying..."
-                cp *.tar.gz.gpg /tmp/"$BACKUP".tar.gz.gpg
-                echo "File is at /tmp/"$BACKUP".tar.gz.gpg"
-                echo "You should move somewhere else if you would like to keep it."
+                cp *.tar.gz.gpg "$BACKUP".tar.gz.gpg
+                echo "File is at KeyRNG/"$BACKUP".tar.gz.gpg"
+                echo "You should move it somewhere else if you would like to keep it."
                 echo "Press enter to exit."
                 read
                 exit 0
