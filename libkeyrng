@@ -901,15 +901,15 @@ if [[ "$HAS_SEEDFILE" -lt "1" ]]; then
     chown "$USER" btc-KeyRNG/ele.seed
     chmod 0600 btc-KeyRNG/ele.seed
     newelectrumseed
+    clear
     echo "Initial electrum seed created."
     echo "Seed stored at KeyRNG/btc-KeyRNG/ele.seed"
-    echo "Would you like to see the seed? (y/no)"
-    echo "Press enter to see the seed so you may copy it."
-    read
-    clear
-    cat btc-KeyRNG/ele.seed
+    echo -ne "\n"$SEED"\n"
+    echo -e "--------------------------------\n"
     echo "THIS IS YOUR PRIVATE SEED TO RESTORE ADDRESSES."
     echo "WRITE IT DOWN SOMEWHERE SAFE AS A BACKUP!"
+    echo "Press enter when you have your seed backed up."
+    read
 else
     EMPTY=$(cat btc-KeyRNG/ele.seed | grep -c "")
     if [ "$EMPTY" -lt "1" ]; then
@@ -918,13 +918,12 @@ else
         newelectrumseed
         echo "Initial electrum seed created."
         echo "Seed stored at KeyRNG/btc-KeyRNG/ele.seed"
-        echo "Would you like to see the seed? (y/no)"
-        echo "Press enter to see the seed so you may copy it."
-        read
-        clear
-        cat btc-KeyRNG/ele.seed
+        echo -ne "\n"$SEED"\n"
+        echo -e "--------------------------------\n"
         echo "THIS IS YOUR PRIVATE SEED TO RESTORE ADDRESSES."
         echo "WRITE IT DOWN SOMEWHERE SAFE AS A BACKUP!"
+        echo "Press enter when you have your seed backed up."
+        read
     fi
 fi
 clear
@@ -952,6 +951,8 @@ if [ "$HAS_ADDRFILE" -lt "1" ]; then
     echo "| E L E C T R U M    A D D R E S S E S |" >> btc-KeyRNG/ele.addr
     echo "----------------------------------------" >> btc-KeyRNG/ele.addr
     echo -e "\n\n-----------------------------------------\n|Seed| "$SEED" |\n-----------------------------------------" >> btc-KeyRNG/ele.addr
+    MPK=$(pybtctools/pybtctool electrum_mpk $(echo -n "$SEED"))
+    echo -e "\n\nMaster Public Key:  "$MPK"" >> btc-KeyRNG/ele.addr
 fi
 ADDR_COUNT=$(cat btc-KeyRNG/ele.addr | grep -c "Pubkey")
 if [[ "$ADDR_COUNT" = "0" ]]; then
@@ -1062,7 +1063,7 @@ clear
 #----------------------
 newbipseed ()
 {
-SEED=$(pybtctools/pybtctool bip32_master_key private)
+SEED=$(pybtctools/pybtctool random_electrum_seed | pybtctools/pybtctool -s sha256 | pybtctools/pybtctool -s changebase 16 256 | pybtctools/pybtctool -b changebase 256 16 | pybtctools/pybtctool -s bip32_master_key)
 echo -en ""$SEED"" > btc-KeyRNG/bip32.seed
 }
 #-----------------------------
