@@ -92,7 +92,7 @@ do
         echo "| GPG MENU |"
         echo "------------"
         PS3='Enter choice (press enter to see options again): '
-        options=("Key Management" "Encryption" "Decryption" "Clear Sign" "LOCK UP!" "Back To MAIN MENU" "Quit")
+        options=("Key Management" "Encryption" "Decryption" "Clearsign" "LOCK UP!" "Back To MAIN MENU" "Quit")
         select opt in "${options[@]}"
         do
             case "$opt" in
@@ -288,7 +288,34 @@ do
                             esac
                         done
                         ;;
-                    "Clear Sign")
+                    "Clearsign")
+                        clear
+                        echo "-------------------------------"
+                        echo "| C L E A R S I G N   M E N U |"
+                        echo "-------------------------------"
+                        PS3='Enter option (press enter to show options again): '
+                        options=("Clearsign From File" "Clearsign New Message" "Back To GPG MENU" "Quit" "LOCK UP!")
+                        select opt in "${options[@]}"
+                        do
+                            case "$opt" in
+                                "Clearsign From File")
+                                    csignfile
+                                    ;;
+                                "Clearsign New Message")
+                                    csignnew
+                                    ;;
+                                "Back To GPG MENU")
+                                    break
+                                    ;;
+                                "Quit")
+                                    badquit
+                                    ;;
+                                "LOCK UP!")
+                                    lockup
+                                    ;;
+                                *) echo "Invalid Option";;
+                            esac
+                        done
                         ;;
                     "LOCK UP!")
                         lockup
