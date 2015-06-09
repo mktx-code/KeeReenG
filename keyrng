@@ -323,7 +323,7 @@ do
             echo "| B I T C O I N   M E N U |"
             echo "---------------------------"
             PS3='Enter option (press enter to see options again): '
-            options=("Standard Addresses" "Electrum Addresses Menu" "BIP32 Seed Addresses" "Sign Message" "Back To MAIN MENU" "LOCK UP!" "Quit")
+            options=("Standard Addresses" "Electrum Seed Addresses Menu" "BIP32 Seed Addresses Menu" "Sign Message" "Back To MAIN MENU" "LOCK UP!" "Quit")
             select opt in "${options[@]}"
             do
                 case "$opt" in
@@ -359,12 +359,12 @@ do
                         esac
                     done
                     ;;
-                    "Electrum Addresses Menu")
+                    "Electrum Seed Addresses Menu")
                         clear
                         checkeleseed
-                        echo "---------------------------------------------"
-                        echo "| E L E C T R U M   A D D R E S S   M E N U |"
-                        echo "---------------------------------------------"
+                        echo "-------------------------------------------------------"
+                        echo "| E L E C T R U M   S E E D   A D D R E S S   M E N U |"
+                        echo "-------------------------------------------------------"
                         PS3='Enter choice (press enter to see options again): '
                         options=("Create New Address" "Show Addresses Only" "Show Addresses And Private Keys" "LOCK UP!" "Back to BITCOIN MENU" "Quit")
                         select opt in "${options[@]}"
@@ -392,12 +392,12 @@ do
                             esac
                         done                        
                         ;;
-                    "BIP32 Seed Addresses")
+                    "BIP32 Seed Addresses Menu")
                         clear
                         checkbipseed
-                        echo "---------------------------------------"
-                        echo "| B I P 3 2   A D D R E S S   M E N U |"
-                        echo "---------------------------------------"
+                        echo "-------------------------------------------------"
+                        echo "| B I P 3 2   S E E D   A D D R E S S   M E N U |"
+                        echo "-------------------------------------------------"
                         PS3='Enter choice (press enter to see options again): '
                         options=("Create New Address" "Show Addresses Only" "Show Addresses And Private Keys" "LOCK UP!" "Back to BITCOIN MENU" "Quit")
                         select opt in "${options[@]}"
