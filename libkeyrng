@@ -1208,7 +1208,6 @@ cat btc-KeyRNG/bip.addr | less
 #----------------
 ## TOR/BCI API ##
 #----------------
-#BCI_API=75693266-c192-4970-ae72-c17445a17984
 torbciapi ()
 {
 echo "KeyRNG is using the Blockchain.info API."
