@@ -8,8 +8,9 @@
 #
 #
 ## IS LOCKED
-IS_LOCKED=$(ls | grep -c ".tar.gz.gpg")
+IS_LOCKED=$(ls | grep -c "KeyRNG.gpg")
 if [ "$IS_LOCKED" -gt "0" ]; then
+    clear
     echo "---------------------------------------"
     echo "| L O C K E D   K e y R N G   M E N U |"
     echo "---------------------------------------"
@@ -21,35 +22,53 @@ if [ "$IS_LOCKED" -gt "0" ]; then
             "Unlock KeyRNG Files")
 unlock ()
 {
-gpg2 -d *.tar.gz.gpg > lock.KeyRNG.tar.gz
-tar -xf lock.KeyRNG.tar.gz
+read -s -p "Enter Password: " PW
+PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
+gpg --quiet --no-use-agent --output checksum --passphrase "$PW" -d checksum.gpg
+rm -rf checksum.gpg
+SUM=$(cat checksum)
+CHK=$(cat keyrng | shasum -t -a 512 | cut -b -128)
+if [ "$SUM" != "$CHK" ]; then
+    echo -e "\nCHECKSUM OF keyrng DOES NOT MATCH FROM BEFORE LOCKING."
+    echo "Do you still want to unlock your files? (Y/no)"
+    read UNLOCK
+    if [ "$UNLOCK" != "Y" ]; then
+        gpg --passphrase "$PW" --no-use-agent --cipher-algo aes256 --symmetric checksum
+        rm -rf checksum
+        exit 0
+    fi
+fi
+gpg --quiet --no-use-agent --output KeyRNG.tar.gz --password "$PW" -d KeyRNG.gpg
+tar -xf KeyRNG.tar.gz
 chown -R "$USER" * */ */*
 chmod 0600 gpg-KeyRNG/gpg.conf
+chmod 0600 btc-KeyRNG/*
 echo "Shredding temp files..."
-HAS_SRM=$(ls /usr/bin/ /usr/sbin/ /usr/local/bin/ /home/"$USER"/bin/ | grep -c srm)
+HAS_SRM=$(ls /usr/bin/ /usr/sbin/ /usr/local/bin/ | grep -c srm)
 if [[ "$HAS_SRM" -gt "0" ]]; then
-    srm -drv *.tar.gz*
+    srm -drlv checksum* KeyRNG.tar.gz KeyRNG.gpg
 else
-    shred -vuz *.tar.gz*
+    shred -vuzn 3 checksum* KeyRNG.tar.gz KeyRNG.gpg
 fi
 }
                 unlock
-                . libkeyrng
                 break
                 ;;
             "Copy Encrypted Files For Backup")
-                echo "What would you like to name the backup copy?"
+                clear
+                echo "What would you like to path and/or name to be?"
                 read BACKUP
                 echo "Copying..."
-                cp *.tar.gz.gpg /tmp/"$BACKUP".tar.gz.gpg
-                echo "File is at /tmp/"$BACKUP".tar.gz.gpg"
-                echo "You should move somewhere else if you would like to keep it."
+                cp locked.KeyRNG "$BACKUP"
+                echo "File is at "$BACKUP""
+                echo "You should move it somewhere else if you would like to keep it."
                 echo "Press enter to exit."
                 read
                 exit 0
                 ;;
             "About Locked File")
-                ls -lh *.tar.gz.gpg
+                clear
+                echo -e "\n\n$(ls -lh KeyRNG.locked)\n\n"
                 ;;
             "Quit")
                 exit 0
@@ -70,13 +89,14 @@ echo "---------------------"
 echo "| M A I N   M E N U |"
 echo "---------------------"
 PS3='Enter choice (press enter to see options again): '
-options=("GnuPG Management" "Bitcoin Management" "LOCK UP!" "Quit")
+options=("GnuPG Management" "Bitcoin Management" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
 select opt in "${options[@]}"
 do
     case "$opt" in
         "GnuPG Management")
         IS_FIRST_RUN=$(ls gpg-KeyRNG | grep -c "secring")
         if [ "$IS_FIRST_RUN" -lt "1" ]; then
+            clear
             echo "---------------------"
             echo "| F I R S T   R U N |"
             echo "---------------------"
@@ -92,7 +112,7 @@ do
         echo "| GPG MENU |"
         echo "------------"
         PS3='Enter choice (press enter to see options again): '
-        options=("Key Management" "Encryption" "Decryption" "Clearsign" "LOCK UP!" "Back To MAIN MENU" "Quit")
+        options=("Key Management" "Encryption" "Decryption" "Clearsign" "Back To MAIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
         select opt in "${options[@]}"
         do
             case "$opt" in
@@ -102,7 +122,7 @@ do
                     echo "| K E Y   M A N A G E M E N T |"
                     echo "-------------------------------"
                     PS3='Enter choice (press enter to see options again): '
-                    options=("Generate New Keypair" "Public Keys" "Secret Keys" "LOCK UP!" "Back To GPG MENU" "Quit")
+                    options=("Generate New Keypair" "Public Keys" "Secret Keys" "Back To GPG MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                     select opt in "${options[@]}"
                     do
                         case "$opt" in
@@ -115,14 +135,14 @@ do
                                 echo "| P U B L I C   K E Y S |"
                                 echo "-------------------------"
                                 PS3='Enter choice (press enter to see options again): '
-                                options=("List Public Keys By UID" "List Full Public Keys" "Import Keys" "Export A Public Key To Terminal" "Export A Public Key To File" "Send Keys To Keyserver" "Receive Keys From Keyserver" "LOCK UP!" "Back To KEY MANAGEMENT MENU" "Quit")
+                                options=("List Pubkeys By UID" "List All Public Key Data" "Import Keys" "Export/Send Keys" "Back To KEY MANAGEMENT MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                                 select opt in "${options[@]}"
                                 do
                                     case "$opt" in
-                                        "List Public Keys By UID")
+                                        "List Pubkeys By UID")
                                             listkeyuids
                                             ;;
-                                        "List Full Public Keys")
+                                        "List All Public Key Data")
                                             listfullkeydetails
                                             ;;
                                         "Import Keys")
@@ -131,21 +151,24 @@ do
                                             echo "| I M P O R T   K E Y S|"
                                             echo "------------------------"
                                             PS3='Enter choice (press enter to see options again): '
-                                            options=("Import From File" "Import From Clipboard" "Import From Another GPG" "LOCK UP!" "Back To PUBLIC KEYS MENU" "Quit")
+                                            options=("Receive From Keyserver" "Import Public Key From File" "Import Public Key From Clipboard" "Import Single Key From Another GPG" "Import All Public Keys From Another GPG" "Back To PUBLIC KEYS MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                                             select opt in "${options[@]}"
                                             do
                                                 case "$opt" in
-                                                    "Import From File")
+                                                    "Receive From Keyserver")
+                                                        recvkeyserv
+                                                        ;;
+                                                    "Import Public Key From File")
                                                         importkeyfile
                                                         ;;
-                                                    "Import From Clipboard")
+                                                    "Import Public Key From Clipboard")
                                                         importkeyclip
                                                         ;;
-                                                    "Import From Another GPG")
+                                                    "Import Single Key From Another GPG")
                                                         importkeyfromgpg
                                                         ;;
-                                                    "LOCK UP!")
-                                                        lockup
+                                                    "Import All Public Keys From Another GPG")
+                                                        gpgimportallpub
                                                         ;;
                                                     "Back To PUBLIC KEYS MENU")
                                                         break
@@ -153,30 +176,58 @@ do
                                                     "Quit")
                                                         badquit
                                                         ;;
+                                                    "FAST LOCK UP")
+                                                        fastlockup
+                                                        ;;
+                                                    "SECURE LOCK UP")
+                                                        lockup
+                                                        ;;
                                                     *) echo "Invalid Option";;
                                                 esac
                                             done
                                             ;;
-                                        "Export A Public Key To Terminal")
-                                            exportpubkey
-                                            ;;
-                                        "Export A Public Key To File")
-                                            exportpubkeyfile
-                                            ;;
-                                        "Send Keys To Keyserver")
-                                            sendkeyserv
-                                            ;;
-                                        "Receive Keys From Keyserver")
-                                            recvkeyserv
-                                            ;;
-                                        "LOCK UP!")
-                                            lockup
+                                        "Export/Send Keys")
+                                        PS3='Enter choice (press enter to see options again): '
+                                        options=("Send To Keyserver" "Print Pubkey Here" "Export Pubkey To File" "Back to PUBLIC KEYS MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+                                        select opt in "${options[@]}"
+                                        do
+                                            case "$opt" in
+                                                "Send To Keyserver")
+                                                    sendkeyserv
+                                                    ;;
+                                                "Print Pubkey Here")
+                                                    exportpubkey
+                                                    ;;
+                                                "Export Pubkey To File")
+                                                    exportpubkeyfile
+                                                    ;;
+                                                "Back to PUBLIC KEYS MENU")
+                                                    break
+                                                    ;;
+                                                "Quit")
+                                                    badquit
+                                                    ;;
+                                                "FAST LOCK UP")
+                                                    fastlockup
+                                                    ;;
+                                                "SECURE LOCK UP")
+                                                    lockup
+                                                    ;;
+                                                *) echo "Invalid Option";;
+                                            esac
+                                        done
                                             ;;
                                         "Back To KEY MANAGEMENT MENU")
                                             break
                                             ;;
                                         "Quit")
                                             badquit
+                                            ;;
+                                        "FAST LOCK UP")
+                                            fastlockup
+                                            ;;
+                                        "SECURE LOCK UP")
+                                            lockup
                                             ;;
                                         *) echo "Invalid Option";;
                                     esac
@@ -188,10 +239,44 @@ do
                                 echo "| S E C R E T   K E Y S |"
                                 echo "-------------------------"
                                 PS3='Enter choice (press enter to see options again): '
-                                options=("List Secret Keys By UID" "List Full Secret Key Info" "Export Secret Key To Terminal" "Export Secret Key To File" "LOCK UP!" "Back To KEY MANAGEMENT MENU" "Quit")
+                                options=("Import Secret Keys" "List Secret Keys By UID" "List Full Secret Key Info" "Export Secret Key To Terminal" "Export Secret Key To File" "Back To KEY MANAGEMENT MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                                 select opt in "${options[@]}"
                                 do
                                     case "$opt" in
+                                        "Import Secret Keys")
+                                        PS3='Enter choice (press enter to see options again): '
+                                        options=("Import A Secret Key From Another GPG" "Import All Secret Keys From Another GPG" "Import From File" "Import From Clipboard" "Back To SECRET KEYS MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+                                        select opt in "${options[@]}"
+                                        do
+                                            case "$opt" in
+                                                "Import A Secret Key From Another GPG")
+                                                    importseckeyfromgpg
+                                                    ;;
+                                                "Import All Secret Keys From Another GPG")
+                                                    gpgimportallsec
+                                                    ;;
+                                                "Import From File")
+                                                    importkeyfile
+                                                    ;;
+                                                "Import From Clipboard")
+                                                    importkeyclip
+                                                    ;;
+                                                "Back To SECRET KEYS MENU")
+                                                    break
+                                                    ;;
+                                                "Quit")
+                                                    badquit
+                                                    ;;
+                                                "FAST LOCK UP")
+                                                    fastlockup
+                                                    ;;
+                                                "SECURE LOCK UP")
+                                                    lockup
+                                                    ;;
+                                                *) echo "Invalid Option";;
+                                            esac
+                                        done
+                                            ;;
                                         "List Secret Keys By UID")
                                             listseckeyuid
                                             ;;
@@ -204,27 +289,33 @@ do
                                         "Export Secret Key To File")
                                             exportseckeyfile
                                             ;;
-                                        "LOCK UP!")
-                                            lockup
-                                            ;;
                                         "Back To KEY MANAGEMENT MENU")
                                             break
                                             ;;
                                         "Quit")
                                             badquit
                                             ;;
+                                        "FAST LOCK UP")
+                                            fastlockup
+                                            ;;
+                                        "SECURE LOCK UP")
+                                            lockup
+                                            ;;
                                         *) echo "Invalid Option";;
                                         esac
                                     done
-                                    ;;
-                                "LOCK UP!")
-                                    lockup
                                     ;;
                                 "Back To GPG MENU")
                                     break
                                     ;;
                                 "Quit")
                                     badquit
+                                    ;;
+                                "FAST LOCK UP")
+                                    fastlockup
+                                    ;;
+                                "SECURE LOCK UP")
+                                    lockup
                                     ;;
                                 *) echo "Invalid Option";;
                             esac
@@ -236,7 +327,7 @@ do
                         echo "| E N C R Y P T I O N   M E N U |"
                         echo "---------------------------------"
                         PS3='Enter choice (press enter to see options again): '
-                        options=("Encrypt A File" "Encrypt A New Message" "LOCK UP!" "Back To GPG MENU" "Quit")
+                        options=("Encrypt A File" "Encrypt A New Message" "Back To GPG MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                         select opt in "${options[@]}"
                         do
                             case "$opt" in
@@ -246,14 +337,17 @@ do
                                 "Encrypt A New Message")
                                     encryptnewmsg
                                     ;;
-                                "LOCK UP!")
-                                    lockup
-                                    ;;
                                 "Back To GPG MENU")
                                     break
                                     ;;
                                 "Quit")
                                     badquit
+                                    ;;
+                                "FAST LOCK UP")
+                                    fastlockup
+                                    ;;
+                                "SECURE LOCK UP")
+                                    lockup
                                     ;;
                                 *) echo "Invalid Option";;
                             esac
@@ -265,7 +359,7 @@ do
                         echo "| D E C R Y P T I O N   M E N U |"
                         echo "---------------------------------"
                         PS3='Enter choice (press enter to see options again): '
-                        options=("Decrypt From A File" "Decrypt From Clipboard" "LOCK UP!" "Back To GPG MENU" "Quit")
+                        options=("Decrypt From A File" "Decrypt From Clipboard" "Back To GPG MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                         select opt in "${options[@]}"
                         do
                             case "$opt" in
@@ -275,14 +369,17 @@ do
                                 "Decrypt From Clipboard")
                                     decryptclip
                                     ;;
-                                "LOCK UP!")
-                                    lockup
-                                    ;;
                                 "Back To GPG MENU")
                                     break
                                     ;;
                                 "Quit")
                                     badquit
+                                    ;;
+                                "FAST LOCK UP")
+                                    fastlockup
+                                    ;;
+                                "SECURE LOCK UP")
+                                    lockup
                                     ;;
                                 *) echo "Invalid Option";;
                             esac
@@ -294,7 +391,7 @@ do
                         echo "| C L E A R S I G N   M E N U |"
                         echo "-------------------------------"
                         PS3='Enter option (press enter to show options again): '
-                        options=("Clearsign From File" "Clearsign New Message" "Back To GPG MENU" "Quit" "LOCK UP!")
+                        options=("Clearsign From File" "Clearsign New Message" "Verify Clearsigned File" "Verify Clearsigned Message From Clipboard" "Back To GPG MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                         select opt in "${options[@]}"
                         do
                             case "$opt" in
@@ -304,27 +401,39 @@ do
                                 "Clearsign New Message")
                                     csignnew
                                     ;;
+                                "Verify Clearsigned File")
+                                    gpgfileverify
+                                    ;;
+                                "Verify Clearsigned Message From Clipboard")
+                                    gpgclipverify
+                                    ;;
                                 "Back To GPG MENU")
                                     break
                                     ;;
                                 "Quit")
                                     badquit
                                     ;;
-                                "LOCK UP!")
+                                "FAST LOCK UP")
+                                    fastlockup
+                                    ;;
+                                "SECURE LOCK UP")
                                     lockup
                                     ;;
                                 *) echo "Invalid Option";;
                             esac
                         done
                         ;;
-                    "LOCK UP!")
-                        lockup
-                        ;;
                     "Back To MAIN MENU")
                         break
                         ;;
                     "Quit")
                         badquit
+                        ;;
+                    "FAST LOCK UP")
+                        fastlockup
+                        ;;
+                    "SECURE LOCK UP")
+                        lockup
                         ;;
                     *) echo "Invalid option";;
                 esac
@@ -352,7 +461,7 @@ do
             echo "| B I T C O I N   M E N U |"
             echo "---------------------------"
             PS3='Enter option (press enter to see options again): '
-            options=("Standard Addresses" "Electrum Addresses Menu" "BIP32 Seed Addresses" "Sign Message" "Back To MAIN MENU" "LOCK UP!" "Quit")
+            options=("Standard Addresses" "Electrum Addresses Menu" "BIP32 Seed Addresses" "Blockchain Interaction" "Sign Message" "Back To MAIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
             select opt in "${options[@]}"
             do
                 case "$opt" in
@@ -362,7 +471,7 @@ do
                     echo "| S T A N D A R D   A D D R E S S   M E N U |"
                     echo "---------------------------------------------"
                     PS3='Enter option (press enter to see options again): '
-                    options=("Create New Address" "Show Addresses Only" "Show Addresses And Private Keys" "LOCK UP!" "Back To BITCOIN MENU" "Quit")
+                    options=("Create New Address" "Show Addresses Only" "Show Addresses And Private Keys" "Back To BITCOIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                     select opt in "${options[@]}"
                     do
                         case "$opt" in
@@ -375,14 +484,17 @@ do
                             "Show Addresses And Private Keys")
                                 showalladdr
                                 ;;
-                            "LOCK UP!")
-                                lockup
-                                ;;
                             "Back To BITCOIN MENU")
                                 break
                                 ;;
                             "Quit")
                                 badquit
+                                ;;
+                            "FAST LOCK UP")
+                                fastlockup
+                                ;;
+                            "SECURE LOCK UP")
+                                lockup
                                 ;;
                             *) echo "Invalid Option";;
                         esac
@@ -395,7 +507,7 @@ do
                         echo "| E L E C T R U M   A D D R E S S   M E N U |"
                         echo "---------------------------------------------"
                         PS3='Enter choice (press enter to see options again): '
-                        options=("Create New Address" "Show Addresses Only" "Show Addresses And Private Keys" "LOCK UP!" "Back to BITCOIN MENU" "Quit")
+                        options=("Create New Address" "Show Addresses Only" "Show Addresses And Private Keys" "Back to BITCOIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                         select opt in "${options[@]}"
                         do
                             case "$opt" in
@@ -408,14 +520,17 @@ do
                                 "Show Addresses And Private Keys")
                                     eleshowall
                                     ;;
-                                "LOCK UP!")
-                                    lockup
-                                    ;;
                                 "Back to BITCOIN MENU")
                                     break
                                     ;;
                                 "Quit")
                                     badquit
+                                    ;;
+                                "FAST LOCK UP")
+                                    fastlockup
+                                    ;;
+                                "SECURE LOCK UP")
+                                    lockup
                                     ;;
                                 *) echo "Invalid Option";;
                             esac
@@ -428,7 +543,7 @@ do
                         echo "| B I P 3 2   A D D R E S S   M E N U |"
                         echo "---------------------------------------"
                         PS3='Enter choice (press enter to see options again): '
-                        options=("Create New Address" "Show Addresses Only" "Show Addresses And Private Keys" "LOCK UP!" "Back to BITCOIN MENU" "Quit")
+                        options=("Create New Address" "Show Addresses Only" "Show Addresses, Privkeys, And Seed" "Back to BITCOIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                         select opt in "${options[@]}"
                         do
                             case "$opt" in
@@ -438,11 +553,8 @@ do
                                 "Show Addresses Only")
                                     bipshowaddr
                                     ;;
-                                "Show Addresses And Private Keys")
+                                "Show Addresses, Privkeys, And Seed")
                                     bipshowall
-                                    ;;
-                                "LOCK UP!")
-                                    lockup
                                     ;;
                                 "Back to BITCOIN MENU")
                                     break
@@ -450,30 +562,86 @@ do
                                 "Quit")
                                     badquit
                                     ;;
+                                "FAST LOCK UP")
+                                    fastlockup
+                                    ;;
+                                "SECURE LOCK UP")
+                                    lockup
+                                    ;;
                                 *) echo "Invalid Option";;
                             esac
                         done                        
                         ;;
+                    "Blockchain Interaction")
+                    RAN=$(echo -n "$USE_TOR" | grep -c "")
+                    if [ "$RAN" = "0" ]; then
+                        echo -e "\nKeyRNG is using the Blockchain.info API for blockchain interaction."
+                        echo "Tor users go through BCIs hidden service."
+                        echo -e "\nRoute your requests through tor? (y/no)"
+                        read USE_TOR
+                        echo -e "\nWithout an API key you may get rate limiting errors."
+                        echo "Do you have a BCI API key? (y/no)"
+                        read HAVE_API
+                        if [ "$HAVE_API" = "y" ]; then
+                            echo "Paste key."
+                            read BCI_API
+                        fi
+                    fi
+                    clear
+                    echo "-------------------------------"
+		    echo "| BLOCKCHAIN INTERACTION MENU |"
+		    echo "-------------------------------"
+                    PS3='Enter option (press enter to see options again): '
+                    options=("Check Unspent Balance" "Raw Transaction Details" "Back to BITCOIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+                    select opt in "${options[@]}"
+                    do
+                        case "$opt" in
+                            "Check Unspent Balance")
+                                checkunspent
+                                ;;
+                            "Raw Transaction Details")
+                                getrawtx
+                                ;;
+                            "Quit")
+                                badquit
+                                ;;
+                            "FAST LOCK UP")
+                                fastlockup
+                                ;;
+                            "SECURE LOCK UP")
+                                lockup
+                                ;;
+                            *) echo "Invalid Option";;
+                        esac
+                    done
+                        ;;
                     "Sign Message")
+                        btcsign
                         ;;
                     "Back To MAIN MENU")
                         break
                         ;;
-                    "LOCK UP!")
-                        lockup
-                        ;;
                     "Quit")
                         badquit
                         ;;
+                    "FAST LOCK UP")
+                        fastlockup
+                        ;;
+                    "SECURE LOCK UP")
+                        lockup
+                        ;;
                     *) echo "Invalid Option";;
-                 esac
-             done
+                esac
+            done
              ;;
-        "LOCK UP!")
-            lockup
-            ;;    
         "Quit")
             badquit
+            ;;
+        "FAST LOCK UP")
+            fastlockup
+            ;;  
+        "SECURE LOCK UP")
+            lockup
             ;;
         *) echo "Invalid Option";;
     esac
