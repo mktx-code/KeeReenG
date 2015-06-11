@@ -18,8 +18,9 @@ badquit ()
 BAD_BTC=$(ls btc-KeyRNG/ | grep -c "addr")
 BAD_SEED=$(ls btc-KeyRNG/ | grep -c "seed")
 if [[ "$BAD_BTC" -gt "0" || "$BAD_SEED" -gt "0" ]]; then
-    echo "If you quit like this you are leaving sensitive data unencrypted (bitcoin private keys)."
-    echo "I suggest quitting by using the "LOCK UP!" option on any menu."
+    clear
+    echo -e "\nIF YOU QUIT LIKE THIS YOU ARE LEAVING BITCOIN SEEDS/PRIVATE KEYS UNENCRYPTED!"
+    echo -e "\nI suggest quitting by using the "LOCK UP!" option on any menu."
     echo "Do you still want to quit now? (Y/no)"
     read RLYQUIT
     if [ "$RLYQUIT" = "Y" ]; then
@@ -27,7 +28,7 @@ if [[ "$BAD_BTC" -gt "0" || "$BAD_SEED" -gt "0" ]]; then
         read ENC
         if [[ "$ENC" != "no" ]]; then
             tar -c btc-KeyRNG/ > btc.tar.gz
-            gpg --ouput btc.tar.gz.gpg --symmetric --cipher-algo aes256 btc.tar.gz
+            gpg --quiet --ouput btc.tar.gz.gpg --symmetric --cipher-algo aes256 btc.tar.gz
             rm -rf btc-KeyRNG/
             exit 0
         else
@@ -61,44 +62,60 @@ fi
 #-----------
 lockup ()
 {
-tar -c *-KeyRNG/ pybtctools/ libkeyrng > lock.KeyRNG.tar.gz
-gpg --symmetric --cipher-algo aes256 lock.KeyRNG.tar.gz
-echo "Shredding temp files..."
-HAS_SRM=$(ls /usr/bin/ /usr/sbin/ /usr/local/bin/ /home/"$USER"/bin/ | grep -c srm)
-if [[ "$HAS_SRM" -gt "0" ]]; then
-    srm -drv *-KeyRNG/ temp/ *.tar.gz
-    rm -rf libkeyrng pybtctools
+read -s -p "Enter Password: " PW
+PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
+echo ""
+read -s -p "Once more:" CHKPW
+CHKPW=$(echo -n "$CHKPW" | shasum -t -a 512 | cut -b -128)
+if [[ "$PW" = "$CHKPW" ]]; then
+    rm -rf checksum; touch checksum
+    cat keyrng | shasum -t -a 512 | cut -b 128 > checksum
+    tar -cf KeyRNG.tar.gz *-KeyRNG/ pybtctools/ libkeyrng
+    gpg --quiet --output KeyRNG.gpg --passphrase "$PW" --no-use-agent --cipher-algo aes256 --symmetric KeyRNG.tar.gz
+    gpg --quiet --passphrase "$PW" --no-use-agent --cipher-algo aes256 --symmetric checksum
+    unset PW; unset CHKPW;
+    echo "Cleaning temp files..."
+    HAS_SRM=$(ls /usr/bin/ /usr/sbin/ /usr/local/bin/ /home/"$USER"/bin/ | grep -c srm)
+    if [[ "$HAS_SRM" -gt "0" ]]; then
+        srm -drv btc-KeyRNG/*.seed btc-KeyRNG/*.addr temp/ checksum *-KeyRNG/ *.tar.gz
+        rm -rf libkeyrng pybtctools
+    else
+        find btc-KeyRNG/ -depth -type f -exec shred -u -z {}
+        find *-KeyRNG -depth -type f -exec shred -u -z {}
+        find temp/ -depth -type f -exec shred -u -z {}
+        shred -vuz *.tar.gz checksum
+        rm -rf temp/ *-KeyRNG/ libkeyrng pybtctools/
+    fi
+    exit 0
 else
-    find *-KeyRNG -depth -type f -exec shred -u -z {} \;
-    find temp/ -depth -type f -exec shred -u -z {} \;
-    shred -vuz *.tar.gz
-    rm -rf temp/ *-KeyRNG/ libkeyrng pybtctools/
+    echo -e "\nPASSWORDS DIDN'T MATCH! NOT ENCRYPTING!"
+    break
 fi
-exit 0
 }
 #-----------------
 ## FAST LOCKUP  ##
 #-----------------
 fastlockup ()
 {
-tar -c *-KeyRNG/ pybtctools/ libkeyrng > lock.KeyRNG.tar.gz
-gpg2 --symmetric --cipher-algo aes256 lock.KeyRNG.tar.gz
-rm -rf *KeyRNG/ pybtctools/ libkeyrng *.tar.gz temp/
-exit 0
-}
-#----------
-## UNLOCK ##
-#----------
-unlock ()
-{
-gpg2 -d lock.KeyRNG.tar.gz.gpg > lock.KeyRNG.tar.gz
-tar -xf lock.KeyRNG.tar.gz
-echo "Shredding temp files..."
-HAS_SRM=$(ls /usr/bin/ /usr/sbin/ /usr/local/bin/ /home/"$USER"/bin/ | grep -c srm)
-if [[ "$HAS_SRM" -gt "0" ]]; then
-    srm -drv *-KeyRNG libkeyrng
+read -s -p "Enter Password: " PW
+PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
+echo ""
+read -s -p "Once more:" CHKPW
+CHKPW=$(echo -n "$CHKPW" | shasum -t -a 512 | cut -b -128)
+if [[ "$PW" = "$CHKPW" ]]; then
+    rm -rf checksum
+    touch checksum
+    chmod 0600 checksum
+    cat keyrng | shasum -t -a 512 | cut -b -128 > checksum
+    tar -cf KeyRNG.tar.gz btc-KeyRNG/ gpg-KeyRNG/ pybtctools/ libkeyrng
+    gpg --output KeyRNG.gpg --quiet --passphrase "$PW" --no-use-agent --cipher-algo aes256 --symmetric KeyRNG.tar.gz
+    gpg --quiet --passphrase "$PW" --no-use-agent --cipher-algo aes256 --symmetric checksum
+    unset PW; unset CHKPW
+    rm -rf *-KeyRNG/ pybtctools/ libkeyrng *.tar.gz temp/ checksum
+    exit 0
 else
-    shred -vuz *.tar.gz.gpg
+    echo -e "\nPASSWORDS DIDN'T MATCH! NOT ENCRYPTING!"
+    break
 fi
 }
 #
@@ -951,9 +968,10 @@ if [[ "$HAS_SEEDFILE" -lt "1" ]]; then
     clear
     echo "THIS IS YOUR PRIVATE SEED TO RESTORE PRIVATE KEYS."
     echo "WRITE IT DOWN SOMEWHERE SAFE AS A BACKUP!"
+    echo "WHILE KeyRNG IS UNLOCKED THE SEED IS STORED DECRYPTED AT KeyRNG/btc-KeyRNG/bip.seed"
     echo -ne "\n"$SEED"\n"
     echo -e "--------------------------------\n"
-    echo "Press enter when you have your seed backed up."
+    echo -e "\nPress enter when you have your seed backed up."
     read
 else
     EMPTY=$(cat btc-KeyRNG/ele.seed | grep -c "")
@@ -963,9 +981,10 @@ else
         newelectrumseed
         echo "THIS IS YOUR PRIVATE SEED TO RESTORE PRIVATE KEYS."
         echo "WRITE IT DOWN SOMEWHERE SAFE AS A BACKUP!"
+        echo "WHILE KeyRNG IS UNLOCKED THE SEED IS STORED DECRYPTED AT KeyRNG/btc-KeyRNG/bip.seed"
         echo -ne "\n"$SEED"\n"
         echo -e "--------------------------------\n"
-        echo "Press enter when you have your seed backed up."
+        echo -e "\nPress enter when you have your seed backed up."
         read
     fi
 fi
@@ -1187,6 +1206,7 @@ fi
 #------------------------------
 bipshowaddr ()
 {
+clear
 echo "Press enter to see addresses."
 echo "Use up/down arrows to navigate. Press "q" when finished."
 read
@@ -1197,6 +1217,7 @@ cat btc-KeyRNG/bip.addr | grep "Address" | less
 #---------------------------------
 bipshowall ()
 {
+clear
 echo "Press enter to see addresses and private keys."
 echo "Use up/down arrows to navigate. Press "q" when finished."
 read
@@ -1205,46 +1226,125 @@ cat btc-KeyRNG/bip.addr | less
 #####################################
 ##### BLOCKCHAIN.INFO API CALLS #####
 #####################################
-#----------------
-## TOR/BCI API ##
-#----------------
-torbciapi ()
-{
-echo "KeyRNG is using the Blockchain.info API."
-echo "Tor users go through BCIs hidden service."
-echo "Route your requests through tor? (y/no)"
-read USE_TOR
-echo "Without an API key you may get rate limiting errors."
-echo "Do you have a BCI API key? (y/no)"
-read HAVE_API
-if [ "$HAVE_API" = "y" ]; then
-    echo "Paste key."
-    read BCI_API
-fi
-}
 #------------------
 ## CHECK UNSPENT ##
 #------------------
 checkunspent ()
 {
-echo "Paste address to check unspent output with 0 confirmations."
+clear
+echo "See a list of the addresses in KeyRNG? (y/no)"
+read LIST
+if [ "$LIST" != "no" ]; then
+    echo -e "\nPress enter to see addresses."
+    echo "Use up/down arrows to navigate. Press "q" when finished."
+    read
+    cat btc-KeyRNG/*.addr | grep Address | less
+fi
+echo -e "\nPaste address to check unspent outputs with 0 confirmations."
 read ADDR
+echo "Getting unspent outputs..."
 if  [[ "$USE_TOR" = "y" && "$HAVE_API" = "y" ]]; then
-    value=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/q/addressbalance/"$ADDR"?api_code="$BCI_API"?confirmations=0)
-    echo -e "\nAmount is in Satoshis. Press enter to return to BLOCKCHAIN.INFO MENU."
+    UNSPENT=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/q/addressbalance/"$ADDR"?api_code="$BCI_API")
+    echo -e "\nAmount is in Satoshis: "$UNSPENT""
+    echo -e "\nPress enter to return to BLOCKCHAIN MENU."
     read
 
 elif [[ "$USE_TOR" = "y" && "$HAVE_API" != "y" ]]; then
-    curl -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/q/addressbalance/"$ADDR"?confirmations=0
-    echo -e "\nAmount is in Satoshis. Press enter to return to BLOCKCHAIN.INFO MENU."
+    UNSPENT=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/q/addressbalance/"$ADDR")
+    echo -e "\nAmount is in Satoshis: "$UNSPENT""
+    echo -e "\nPress enter to return to BLOCKCHAIN MENU."
     read
 elif [[ "$USE_TOR" != "y" && "$HAVE_API" = "y" ]]; then
-    curl --get https://blockchain.info/q/addressbalance/"$ADDR"?api_code="$BCI_API"?confirmations=0
-    echo -e "\nAmount is in Satoshis. Press enter to return to BLOCKCHAIN.INFO MENU."
+    UNSPENT=$(curl --silent --get https://blockchain.info/q/addressbalance/"$ADDR"?api_code="$BCI_API")
+    echo -e "\nAmount is in Satoshis: "$UNSPENT""
+    echo -e "\nPress enter to return to BLOCKCHAIN MENU."
     read
 else
-    curl --get https://blockchain.info/q/addressbalance/"$ADDR"?confirmations=0
-    echo -e "\nAmount is in Satoshis. Press enter to return to BLOCKCHAIN.INFO MENU."
+    UNSPENT=$(curl --silent --get https://blockchain.info/q/addressbalance/"$ADDR")
+    echo -e "\nAmount is in Satoshis: "$UNSPENT""
+    echo -e "\nPress enter to return to BLOCKCHAIN MENU."
+    read
+fi
+}
+#-------------------
+## RAW TX DETAILS ##
+#-------------------
+getrawtx ()
+{
+clear
+echo -e "\nPaste the transaction hash."
+read TXID
+echo "Getting raw transaction details..."
+if  [[ "$USE_TOR" = "y" && "$HAVE_API" = "y" ]]; then
+    RAWTX=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/rawtx/"$TXID"?api_code="$BCI_API")
+    echo -e "\nPress enter to see transaction details."
+    echo "Use up/down arrows to navigate. Press "q" when finished."
+    read
+    echo "$RAWTX" | less
+elif [[ "$USE_TOR" = "y" && "$HAVE_API" != "y" ]]; then
+    UNSPENT=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/rawtx/"$TXID")
+    echo -e "\nPress enter to see transaction details."
+    echo "Use up/down arrows to navigate. Press "q" when finished."
+    read
+    echo "$RAWTX" | less
+elif [[ "$USE_TOR" != "y" && "$HAVE_API" = "y" ]]; then
+    UNSPENT=$(curl --silent --get https://blockchain.info/rawtx/"$TXID"?api_code="$BCI_API")
+    echo -e "\nPress enter to see transaction details."
+    echo "Use up/down arrows to navigate. Press "q" when finished."
+    read
+    echo "$RAWTX" | less
+else
+    UNSPENT=$(curl --silent --get https://blockchain.info/rawtx/"$TXID")
+    echo -e "\nPress enter to see transaction details."
+    echo "Use up/down arrows to navigate. Press "q" when finished."
+    read
+    echo "$RAWTX" | less
+fi
+}
+#------------------------
+## RAW ADDRESS HISTORY ##
+#------------------------
+rawaddrhist ()
+{
+clear
+echo "See a list of the addresses in KeyRNG? (y/no)"
+read LIST
+if [ "$LIST" != "no" ]; then
+    echo -e "\nPress enter to see addresses."
+    echo "Use up/down arrows to navigate. Press "q" when finished."
+    read
+    cat btc-KeyRNG/*.addr | grep Address | less
+fi
+echo -e "\nPaste address to check raw history."
+read ADDR
+echo "Getting history..."
+if  [[ "$USE_TOR" = "y" && "$HAVE_API" = "y" ]]; then
+    HIST=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/rawaddr/"$ADDR"?api_code="$BCI_API")
+    echo -e "\nPress enter to see history."
+    echo "Use up/down arrows to navigate. Press "q" when finished."
+    echo -e " "$HIST""
+    echo -e "\nPress enter to return to BLOCKCHAIN MENU."
+    read
+elif [[ "$USE_TOR" = "y" && "$HAVE_API" != "y" ]]; then
+    HIST=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/rawaddr/"$ADDR")
+    echo -e "\nPress enter to see history."
+    echo "Use up/down arrows to navigate. Press "q" when finished."
+    echo -e " "$HIST""
+    echo -e "\nPress enter to return to BLOCKCHAIN MENU."
+    read
+elif [[ "$USE_TOR" != "y" && "$HAVE_API" = "y" ]]; then
+    HIST=$(curl --silent --get https://blockchain.info/rawaddr/"$ADDR"?api_code="$BCI_API")
+    echo -e "\nPress enter to see history."
+    echo "Use up/down arrows to navigate. Press "q" when finished."
+    echo -e " "$HIST""
+    echo -e "\nPress enter to return to BLOCKCHAIN MENU."
+    read
+else
+    HIST=$(curl --silent --get https://blockchain.info/rawaddr/"$ADDR")
+    echo -e "\nPress enter to see history."
+    echo "Use up/down arrows to navigate. Press "q" when finished."
+    echo -e " "$HIST""
+    echo -e "\nPress enter to return to BLOCKCHAIN MENU."
     read
 fi
 }
