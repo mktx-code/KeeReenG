@@ -1,5 +1,10 @@
 #!/bin/bash
-#
+set +o history
+unset "$HISTFILE"
+# Uncomment to save yourself from questions.
+#BCI_API=
+# Answer appropriately (y/n) or leave commented and answer later.
+USE_TOR=y
 #
 #
 #
@@ -8,7 +13,7 @@
 #
 #
 ## IS LOCKED
-IS_LOCKED=$(ls | grep -c ".tar.gz.gpg")
+IS_LOCKED=$(ls | grep -c "KeyRNG.gpg")
 if [ "$IS_LOCKED" -gt "0" ]; then
     clear
     echo "---------------------------------------"
@@ -22,29 +27,46 @@ if [ "$IS_LOCKED" -gt "0" ]; then
             "Unlock KeyRNG Files")
 unlock ()
 {
-gpg2 -d *.tar.gz.gpg > lock.KeyRNG.tar.gz
-tar -xf lock.KeyRNG.tar.gz
+read -s -p "Enter Password: " PW
+PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
+gpg --quiet --no-use-agent --output checksum --passphrase "$PW" -d checksum.gpg
+rm -rf checksum.gpg
+SUM=$(cat checksum)
+CHK=$(cat keyrng | shasum -t -a 512 | cut -b -128)
+if [ "$SUM" != "$CHK" ]; then
+    echo -e "\nCHECKSUM OF keyrng DOES NOT MATCH FROM BEFORE LOCKING."
+    echo "Do you still want to unlock your files? (Y/no)"
+    read UNLOCK
+    if [ "$UNLOCK" != "Y" ]; then
+        gpg --passphrase "$PW" --no-use-agent --cipher-algo aes256 --symmetric checksum
+        rm -rf checksum
+        exit 0
+    fi
+fi
+gpg --quiet --no-use-agent --output KeyRNG.tar.gz --passphrase "$PW" -d KeyRNG.gpg
+unset PW; unset CHKPW; unset SUM; unset CHKSUM
+tar -xf KeyRNG.tar.gz
 chown -R "$USER" * */ */*
 chmod 0600 gpg-KeyRNG/gpg.conf
+chmod 0600 btc-KeyRNG/*
 echo "Shredding temp files..."
-HAS_SRM=$(ls /usr/bin/ /usr/sbin/ /usr/local/bin/ /home/"$USER"/bin/ | grep -c srm)
+HAS_SRM=$(ls /usr/bin/ /usr/sbin/ /usr/local/bin/ | grep -c srm)
 if [[ "$HAS_SRM" -gt "0" ]]; then
-    srm -drlv *.tar.gz*
+    srm -drlv checksum* KeyRNG.*
 else
-    shred -vuzn 3 *.tar.gz*
+    shred -vuzn 3 checksum* KeyRNG.*
 fi
 }
                 unlock
-                . libkeyrng
                 break
                 ;;
             "Copy Encrypted Files For Backup")
                 clear
-                echo "What would you like to name the backup copy?"
+                echo "What would you like to path and/or name to be?"
                 read BACKUP
                 echo "Copying..."
-                cp *.tar.gz.gpg "$BACKUP".tar.gz.gpg
-                echo "File is at "$BACKUP".tar.gz.gpg"
+                cp locked.KeyRNG "$BACKUP"
+                echo "File is at "$BACKUP""
                 echo "You should move it somewhere else if you would like to keep it."
                 echo "Press enter to exit."
                 read
@@ -52,7 +74,7 @@ fi
                 ;;
             "About Locked File")
                 clear
-                echo -e "\n\n$(ls -lh *.tar.gz.gpg)\n\n"
+                echo -e "\n\n$(ls -lh KeyRNG.locked)\n\n"
                 ;;
             "Quit")
                 exit 0
@@ -445,7 +467,7 @@ do
             echo "| B I T C O I N   M E N U |"
             echo "---------------------------"
             PS3='Enter option (press enter to see options again): '
-            options=("Standard Addresses" "Electrum Addresses Menu" "BIP32 Seed Addresses" "Sign Message" "Back To MAIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+            options=("Standard Addresses" "Electrum Addresses Menu" "BIP32 Seed Addresses" "Blockchain Interaction" "Sign Message" "Back To MAIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
             select opt in "${options[@]}"
             do
                 case "$opt" in
@@ -556,6 +578,49 @@ do
                             esac
                         done                        
                         ;;
+                    "Blockchain Interaction")
+                    RAN=$(echo -n "$USE_TOR" | grep -c "")
+                    if [ "$RAN" = "0" ]; then
+                        echo -e "\nKeyRNG is using the Blockchain.info API for blockchain interaction."
+                        echo "Tor users go through BCIs hidden service."
+                        echo -e "\nRoute your requests through tor? (y/no)"
+                        read USE_TOR
+                        echo -e "\nWithout an API key you may get rate limiting errors."
+                        echo "Do you have a BCI API key? (y/no)"
+                        read HAVE_API
+                        if [ "$HAVE_API" = "y" ]; then
+                            echo "Paste key."
+                            read BCI_API
+                        fi
+                    fi
+                    clear
+                    echo "-------------------------------"
+		    echo "| BLOCKCHAIN INTERACTION MENU |"
+		    echo "-------------------------------"
+                    PS3='Enter option (press enter to see options again): '
+                    options=("Check Unspent Balance" "Raw Transaction Details" "Back to BITCOIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+                    select opt in "${options[@]}"
+                    do
+                        case "$opt" in
+                            "Check Unspent Balance")
+                                checkunspent
+                                ;;
+                            "Raw Transaction Details")
+                                getrawtx
+                                ;;
+                            "Quit")
+                                badquit
+                                ;;
+                            "FAST LOCK UP")
+                                fastlockup
+                                ;;
+                            "SECURE LOCK UP")
+                                lockup
+                                ;;
+                            *) echo "Invalid Option";;
+                        esac
+                    done
+                        ;;
                     "Sign Message")
                         btcsign
                         ;;
@@ -587,4 +652,3 @@ do
         *) echo "Invalid Option";;
     esac
 done
-
