@@ -44,7 +44,7 @@ fi
 #
 secdelete ()
 {
-HAS_SRM=$(ls /usr/bin/ /usr/sbin/ /usr/local/bin/ /home/"$USER"/bin/ | grep -c srm)
+HAS_SRM=$(ls /usr/bin/ /usr/sbin/ /usr/local/bin/ | grep -c srm)
 if [[ "$HAS_SRM" -gt "0" ]]; then
     srm -d -r -v "$DEL"
 else
@@ -61,7 +61,7 @@ fi
 #-----------
 lockup ()
 {
-tar -c *-KeyRNG libkeyrng > lock.KeyRNG.tar.gz
+tar -c *-KeyRNG/ pybtctools/ libkeyrng > lock.KeyRNG.tar.gz
 gpg --symmetric --cipher-algo aes256 lock.KeyRNG.tar.gz
 echo "Shredding temp files..."
 HAS_SRM=$(ls /usr/bin/ /usr/sbin/ /usr/local/bin/ /home/"$USER"/bin/ | grep -c srm)
@@ -72,7 +72,7 @@ else
     find *-KeyRNG -depth -type f -exec shred -u -z {} \;
     find temp/ -depth -type f -exec shred -u -z {} \;
     shred -vuz *.tar.gz
-    rm -rf temp/ *-KeyRNG/ libkeyrng pybtctools
+    rm -rf temp/ *-KeyRNG/ libkeyrng pybtctools/
 fi
 exit 0
 }
@@ -83,7 +83,7 @@ fastlockup ()
 {
 tar -c *-KeyRNG/ pybtctools/ libkeyrng > lock.KeyRNG.tar.gz
 gpg2 --symmetric --cipher-algo aes256 lock.KeyRNG.tar.gz
-rm -rf *KeyRNG/ pybtctools/ libkeyrng *.tar.gz
+rm -rf *KeyRNG/ pybtctools/ libkeyrng *.tar.gz temp/
 exit 0
 }
 #----------
@@ -166,11 +166,11 @@ importkeyclip ()
 {
 echo "Press enter when you are ready to paste key to import."
 read
-rm -rf temp/import.file
-nano temp/import.file
-gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --import temp/import.file
+rm -rf temp/temp
+nano temp/temp
+gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --import temp/temp
 echo "Shredding temp file..."
-DEL=temp/import.file
+DEL=temp/temp
 secdelete
 }
 #--------------------------------
@@ -192,7 +192,7 @@ read LIST_KEYS
       echo "Press enter to see a list of possible recipients by UID."
       echo "Use up/down arrows to navigate. Press "q" when finished."
       read
-      gpg2 --homedir "$DEFAULT_GPG" --list-keys | less
+      gpg2 --homedir "$DEFAULT_GPG" --list-keys --keyid-format 0xlong | less
   fi
 echo "What key UID do you want to import to KeyRNG?"
 read IMPORT_KEY
@@ -207,19 +207,45 @@ echo "Import all public keys from default location (/home/"$USER"/.gnupg/)? (y/n
 read DEFAULT
 if [[ "$DEFAULT" != "no" ]]; then
     GPG=/home/"$USER"/.gnupg/
+    
 else
-    echo "Give path to GnuPG folder to import all public keys from."
+    echo "Give the path and folder name."
     read GPG
 fi
 rm -rf temp/temp
-gpg2 --homedir "$GPG" --no-permission-warning --list-keys | grep "0x" | cut -b 13- | cut -b -19 > temp/temp
+gpg2 --homedir $(echo "$GPG") --no-permission-warning --list-keys --keyid-format 0xlong | grep "0x" | cut -b 13- | cut -b -19 > temp/temp
 LINES=$(grep -c "0x" temp/temp)
 if [ "$LINES" -gt "0" ]; then
-    cat temp/temp | xargs -I{} -d"\n" gpg2 --no-permission-warning --homedir "$GPG" --export {} | gpg2 --no-permission-warning --homedir gpg-KeyRNG/ --import
+    cat temp/temp | xargs -I{} -d"\n" gpg2 --no-permission-warning --homedir $(echo "$GPG") --export {} | gpg2 --no-permission-warning --homedir gpg-KeyRNG/ --import
 fi
 echo "Shredding temp file..."
 DEL=temp/temp
 secdelete
+}
+#---------------------------------------
+## IMPORT SECRET KEY FROM ANOTHER GPG ##
+#---------------------------------------
+importseckeyfromgpg ()
+{
+echo "From defualt /home/"$USER"/.gnupg file? (y/no)"
+read IS_DEFAULT_GPG
+  if [[ "$DEFAULT_GPG" = "no" ]]; then
+      echo "Please give the full path to the gnupg file:"
+      read DEFAULT_GPG
+  else
+      DEFAULT_GPG=/home/"$USER"/.gnupg/
+  fi
+echo "List keys from "$DEFAULT_GPG"? (y/no)"
+read LIST_KEYS
+  if [ "$LIST_KEYS" != "no" ]; then
+      echo "Press enter to see a list of possible recipients by UID."
+      echo "Use up/down arrows to navigate. Press "q" when finished."
+      read
+      gpg2 --homedir "$DEFAULT_GPG" --list-secret-keys --keyid-format 0xlong | less
+  fi
+echo "What key UID do you want to import to KeyRNG?"
+read IMPORT_KEY
+gpg2 --homedir "$DEFAULT_GPG" --export "$IMPORT_KEY" | gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --import
 }
 #---------------------------------------------
 ## IMPORT ALL PRIVATE KEYS FROM ANOTHER GPG ##
@@ -235,7 +261,7 @@ else
     read GPG
 fi
 rm -rf temp/temp
-gpg2 --homedir "$GPG" --no-permission-warning --list-secret-keys | grep "0x" | cut -b 13- | cut -b -19 > temp/temp
+gpg2 --homedir "$GPG" --no-permission-warning --list-secret-keys --keyid-format 0xlong | grep "0x" | cut -b 13- | cut -b -19 > temp/temp
 LINES=$(grep -c "0x" temp/temp)
 if [ "$LINES" -gt "0" ]; then
     cat temp/temp | xargs -I{} -d"\n" gpg2 --no-permission-warning --homedir "$GPG" --export-secret-keys {} | gpg2 --no-permission-warning --homedir gpg-KeyRNG/ --import
@@ -296,6 +322,10 @@ echo "What file to write to?"
 read SECKEY_FILE
 gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --armor --output "$SECKEY_FILE" --export "$EXPORT_SECRET_UID"
 }
+#
+## WRITE FUNC TO CHECK FOR TAILS/TOR ##
+#
+
 #---------------------------
 ## SEND KEYS TO KEYSERVER ##
 #---------------------------
@@ -744,112 +774,78 @@ gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --verify "$FILE"
 #################################
 ##### GENERAL BTC FUNCTIONS #####
 #################################
-#--------------------------------------------------------------------------------------------------------------------------------
-## BITCOIN SIGN MESSAGE ## ONLY WORKS FOR SIGNING ONE LINE MESSAGES CURRENTLY. THE BEGINNING IF/ELSE HELL IS BROKEN SOMEWHERE. ##
-#--------------------------------------------------------------------------------------------------------------------------------
-#btcsign ()
+#--------------------------------------------------------------------------------
+## BITCOIN SIGN MESSAGE ## ONLY WORKS FOR SIGNING ONE LINE MESSAGES CURRENTLY. ##
+#--------------------------------------------------------------------------------
+btcsign ()
+{
+echo "Type the message you would like to sign."
+echo "Press enter when finished."
+read MSG
+echo "See a list of your addresses and private keys to sign with? (y/no)"
+read SEE
+if [ "$SEE" != "no" ]; then
+    echo "Press enter to see addresses and private keys."
+    echo "Please copy the private key you would like to sign with."
+    echo "Use up/down arrows to navigate. Press "q" when finished."
+    read
+    cat btc-KeyRNG/*.addr | grep ":" | less
+fi
+echo "Paste privkey"
+read PRIVKEY
+SIG=$(pybtctools/pybtctool ecdsa_sign "$MSG" "$PRIVKEY")
+echo -e "-----BEGIN BITCOIN SIGNED MESSAGE-----\n" > temp/btcmsg
+echo -n ""$MSG"\n" >> temp/btcmsg
+echo -e "\n-----BEGIN BITCOIN SIGNATURE-----\n" >> temp/btcmsg
+echo -n "$SIG" >> temp/btcmsg
+echo -e "\n\n-----END BITCOIN SIGNATURE-----" >> temp/btcmsg
+echo "\nMessage and signature are temporarily save at KeyRNG/temp/btcmsg."
+echo "Press enter to see signed message."
+read
+cat temp/btcmsg
+echo "Destroy message now? (Y/no)"
+read DESTROY
+if [ "$DESTROY" = "Y" ]; then
+    DEL=temp/btcmsg
+    secdelete
+fi
+clear
+echo "Press enter to go back to BITCOIN MENU."
+read
+}
+#-----------------------------------------------------------------------------------------------------------------------------------------
+## GET ADDRESS BALANCE ## WORKS, BUT RELIES ON THIRD PARTIES. NORMAL TORIFICATIONS DON'T WORK, AND I CAN'T GUARANTEE PRIVOXY IS PRESENT ##
+#-----------------------------------------------------------------------------------------------------------------------------------------
+#addrbalance ()
 #{
-#HAS_ADDRFILES=$(ls btc-KeyRNG/ | grep -c "addr")
-#if [[ "$HAS_ADDRFILES" -gt "0" ]]; then
-#    HAS_PRIV=$(cat btc-KeyRNG/* | grep -c "Privkey")
-#    if [[ "$HAS_PRIV" = "0" ]]; then
-#        echo "There are no private keys here."
-#        echo "Do you have your own? (y/no)"
-#        read HAVE
-#        if [[ "$HAVE" = "no" ]]; then
-#            echo "You can make an address in the previous menu."
-#            echo "Press enter to return."
-#            read
-#        else
-#            echo "Paste your private key."
-#            read PRIVKEY
-#        fi
-#    else
-#        echo "Use a private key from KeyRNG? (y/no)"
-#        echo "Answer "no" if you have a private key to paste."
-#        read PRIV_HERE
-#        if [[ "$PRIV_HERE" = "no" ]]; then
-#            echo "Paste your private key."
-#            read PRIVKEY
-#        else
-#            PS3='Enter selection: '
-#            options=("Standard Addresses" "Electrum Seed Addresses" "Bip32 Seed Addresses")
-#            select opt in "${options[@]}"
-#            do
-#                case "$opt" in
-#                    "Standard Addresses")
-#                        HAS_STAND=$(ls btc-KeyRNG/ | grep -c "standard")
-#                        if [[ "$HAS_STAND" -gt "0" ]]; then
-#                            echo "Copy the private key you would like to sign with."
-#                            echo "Press enter to see a list of your Standard Addresses."
-#                            echo "Use up/down arrows to navigate. Press "q" when finished."
-#                            read
-#                            cat btc-KeyRNG/standard.addr | less
-#                            echo "Paste the private key you would like to sign with."
-#                            read PRIVKEY
-#                        else
-#                            echo "You don't have any Standard Addresses yet."
-#                            echo "Press enter to return."
-#                            read
-#                        fi
-#                        ;;
-#                    "Electrum Seed Addresses")
-#                   HAS_ELE=$(ls btc-KeyRNG/ | grep -c "ele.addr")
-#                        if [[ "$HAS_ELE" -gt "0" ]]; then
-#                            echo "Copy the private key you would like to sign with."
-#                            echo "Press enter to see a list of your Electrum Addresses."
-#                            echo "Use up/down arrows to navigate. Press "q" when finished."
-#                            read
-#                           cat btc-KeyRNG/ele.addr | less
-#                            echo "Paste the private key you would like to sign with."
-#                         else
-#                            echo "You don't have any Electrum Addresses yet."
-#                            echo "Press enter to return."
-#                            read
-#                        fi
-#                        ;;
-#                    "Bip32 Seed Addresses")
-#                        ;;
-#                    *) echo "Invalid Option";;
-#                esac
-#            done
-#    fi
-#else
-#    echo "There are no addresses here."
-#    echo "Do you have your own?"
-#    read HAVE
-#       if [[ "$HAVE" = "no" ]]; then
-#           echo "You can make an address in the previous menu."
-#           echo "Press enter to return."
-#           read
-#       else
-#           echo "Paste your private key."
-#           read PRIVKEY
-#       fi
+#echo "Show list of your addresses? (y/no)"
+#read SHOW
+#if [ "$SHOW" != "no" ]; then
+#    echo "Press enter to see addresses."
+#    echo "Use up/down arrows to navigate. Press "q" when finished."
+#    read
+#    cat btc-KeyRNG/standard.addr | grep "Address" | less
 #fi
-#HAS_PRIVKEY=$(echo -n "$PRIVKEY" | grep -c "")
-#if [ "$HAS_PRIVKEY" = "0" ]; then
-#    echo "Can't sign a message without a private key."
-#    break
+#echo "Put address to check the balance of:"
+#read ADDR
+#pybtctools/pybtctool bci_unspent "$ADDR"
+#}
+#-----------------------------------------------------------------------------------------------------------------------------------------
+## GET ADDRESS HISTORY ## WORKS, BUT RELIES ON THIRD PARTIES. NORMAL TORIFICATIONS DON'T WORK, AND I CAN'T GUARANTEE PRIVOXY IS PRESENT ##
+#-----------------------------------------------------------------------------------------------------------------------------------------
+#addrhistory ()
+#{
+#echo "Show list of your addresses? (y/no)"
+#read SHOW
+#if [ "$SHOW" != "no" ]; then
+#    echo "Press enter to see addresses."
+#    echo "Use up/down arrows to navigate. Press "q" when finished."
+#    read
+#    cat btc-KeyRNG/standard.addr | grep "Address" | less
 #fi
-#echo "Paste privkey"
-#read
-#echo "Press enter to write message to be signed."
-#read PRIVKEY
-#rm -rf temp/newmsg
-#nano temp/newmsg
-#SIG=$(pybtctools/pybtctool ecdsa_sign $(cat temp/newmsg) "$PRIVKEY")
-#echo -e "-----BEGIN BITCOIN SIGNED MESSAGE-----\n" > temp/btcmsg
-#echo -n "$MSG" >> temp/btcmsg
-#echo -e "\n\n-----BEGIN BITCOIN SIGNATURE-----\n" >> temp/btcmsg
-#echo -n "$SIG" >> temp/btcmsg
-#echo -e "\n-----END BITCOIN SIGNATURE-----" >> temp/btcmsg
-#echo "Message and signature are temporarily save at KeyRNG/temp/btcmsg."
-#echo "Press enter to see signed message."
-#read
-#cat temp/btcmsg
-#echo "Press enter to go back to BITCOIN MENU."
-#read
+#echo "Put address to check the history of:"
+#read ADDR
+#pybtctools/pybtctool history "$ADDR"
 #}
 ###########################################
 ##### STANDARD BTC ADDRESS MANAGEMENT #####
@@ -872,21 +868,50 @@ PRIVKEY=$(pybtctools/pybtctool random_key)
 WIF_COMP=$(pybtctools/pybtctool encode_privkey $(echo -n "$PRIVKEY") wif_compressed)
 PUBKEY=$(pybtctools/pybtctool privtopub $(echo -n "$WIF_COMP"))
 ADDRESS=$(pybtctools/pybtctool pubkey_to_address $(echo -n "$PUBKEY"))
-echo -e "\n\nAddress: "$ADDRESS"\nPubkey:  "$PUBKEY"\nPrivkey (wif compressed):  "$WIF_COMP"\n\n---"
-echo "Add to backup file: btc-KeyRNG/standard.addr? (y/no)"
-read BACKUPKEY
-if [ "$BACKUPKEY" != "no" ]; then
-    echo "Add a note to address? (y/no)"
-    read IS_NOTE
-    if [[ "$IS_NOTE" = "y" ]]; then
-        echo "Type the note and press enter:"
-        read NOTE 
-        echo -e "\n\nAddress: "$ADDRESS"     Note: "$NOTE"\nPubkey:  "$PUBKEY"\nPrivkey (wif compressed):  "$WIF_COMP"\n\n---" >> btc-KeyRNG/standard.addr
-        echo "DONE!"
-    else
-        echo -e "\n\nAddress: "$ADDRESS"\nPubkey:  "$PUBKEY"\nPrivkey (wif compressed):  "$WIF_COMP"\n\n---" >> btc-KeyRNG/standard.addr
-        echo "DONE!"
+NUM_PRIV=$(grep -c "Privkey" btc-KeyRNG/standard.addr)
+if [[ "$NUM_PRIV" = "0" ]]; then
+    echo -e "\n\nStnadard Address 1: "$ADDRESS"\nStnadard Pubkey 1:  "$PUBKEY"\nStnadard Privkey 1 (wif compressed):  "$WIF_COMP"\n\n---"
+    echo "Add to backup file: btc-KeyRNG/standard.addr? (y/no)"
+    read BACKUPKEY
+    if [ "$BACKUPKEY" != "no" ]; then
+        echo "Add a note to address? (y/no)"
+        read IS_NOTE
+        if [[ "$IS_NOTE" = "y" ]]; then
+            echo "Type the note and press enter:"
+            read NOTE 
+            echo -e "\n\nStandard Address 1: "$ADDRESS"     Note: "$NOTE"\nStandard Pubkey 1:  "$PUBKEY"\nStandard Privkey 1 (wif compressed):  "$WIF_COMP"\n\n---" >> btc-KeyRNG/standard.addr
+            echo "DONE!"
+            sleep 1
+            clear
+        else
+            echo -e "\n\nStandard Address 1: "$ADDRESS"\nStandard Pubkey 1:  "$PUBKEY"\nStandard Privkey 1 (wif compressed):  "$WIF_COMP"\n\n---" >> btc-KeyRNG/standard.addr
+            echo "DONE!"
+            sleep 1
+            clear
+        fi
     fi
+else
+    NUM_PRIV=$(expr "$NUM_PRIV" + 1)
+    echo -e "\n\nStnadard Address "$NUM_PRIV": "$ADDRESS"\nStnadard Pubkey "$NUM_PRIV":  "$PUBKEY"\nStnadard Privkey "$NUM_PRIV" (wif compressed):  "$WIF_COMP"\n\n---"
+    echo "Add to backup file: btc-KeyRNG/standard.addr? (y/no)"
+    read BACKUPKEY
+    if [ "$BACKUPKEY" != "no" ]; then
+        echo "Add a note to address? (y/no)"
+        read IS_NOTE
+        if [[ "$IS_NOTE" = "y" ]]; then
+            echo "Type the note and press enter:"
+            read NOTE 
+            echo -e "\n\nStandard Address "$NUM_PRIV": "$ADDRESS"     Note: "$NOTE"\nStandard Pubkey "$NUM_PRIV":  "$PUBKEY"\nStandard Privkey "$NUM_PRIV" (wif compressed):  "$WIF_COMP"\n\n---" >> btc-KeyRNG/standard.addr
+            echo "DONE!"
+            sleep 1
+            clear
+        else
+            echo -e "\n\nStandard Address "$NUM_PRIV": "$ADDRESS"\nStandard Pubkey "$NUM_PRIV":  "$PUBKEY"\nStandard Privkey "$NUM_PRIV" (wif compressed):  "$WIF_COMP"\n\n---" >> btc-KeyRNG/standard.addr
+            echo "DONE!"
+            sleep 1
+            clear
+        fi
+    fi 
 fi
 }
 #--------------------------------
@@ -909,40 +934,6 @@ echo "Use up/down arrows to navigate. Press "q" when finished."
 read
 cat btc-KeyRNG/standard.addr | less
 }
-#-----------------------------------------------------------------------------------------------------------------------------------------
-## GET ADDRESS BALANCE ## WORKS, BUT RELIES ON THIRD PARTIES. NORMAL TORIFICATIONS DON'T WORK, AND I CAN'T GUARANTEE PRIVOXY IS PRESENT ##
-#-----------------------------------------------------------------------------------------------------------------------------------------
-#addrbalance ()
-#{
-#echo "Show list of your addresses? (y/no)"
-#read SHOW
-#if [ "$SHOW" != "no" ]; then
-#    echo "Press enter to see addresses."
-#    echo "Use up/down arrows to navigate. Press "q" when finished."
-#    read
-#    cat btc-KeyRNG/standard.addr | grep "Address" | less
-#fi
-#echo "Put address to check the balance of:"
-#read ADDR
-#pybtctools/pybtctool unspent "$ADDR"
-#}
-#-----------------------------------------------------------------------------------------------------------------------------------------
-## GET ADDRESS HISTORY ## WORKS, BUT RELIES ON THIRD PARTIES. NORMAL TORIFICATIONS DON'T WORK, AND I CAN'T GUARANTEE PRIVOXY IS PRESENT ##
-#-----------------------------------------------------------------------------------------------------------------------------------------
-#addrhistory ()
-#{
-#echo "Show list of your addresses? (y/no)"
-#read SHOW
-#if [ "$SHOW" != "no" ]; then
-#    echo "Press enter to see addresses."
-#    echo "Use up/down arrows to navigate. Press "q" when finished."
-#    read
-#    cat btc-KeyRNG/standard.addr | grep "Address" | less
-#fi
-#echo "Put address to check the history of:"
-#read ADDR
-#pybtctools/pybtctool history "$ADDR"
-#}
 ############################################
 ##### ELECTRUM SEED ADDRESS MANAGEMENT #####
 ############################################
@@ -958,12 +949,10 @@ if [[ "$HAS_SEEDFILE" -lt "1" ]]; then
     chmod 0600 btc-KeyRNG/ele.seed
     newelectrumseed
     clear
-    echo "Initial electrum seed created."
-    echo "Seed stored at KeyRNG/btc-KeyRNG/ele.seed"
+    echo "THIS IS YOUR PRIVATE SEED TO RESTORE PRIVATE KEYS."
+    echo "WRITE IT DOWN SOMEWHERE SAFE AS A BACKUP!"
     echo -ne "\n"$SEED"\n"
     echo -e "--------------------------------\n"
-    echo "THIS IS YOUR PRIVATE SEED TO RESTORE ADDRESSES."
-    echo "WRITE IT DOWN SOMEWHERE SAFE AS A BACKUP!"
     echo "Press enter when you have your seed backed up."
     read
 else
@@ -972,12 +961,10 @@ else
         chown "$USER" btc-KeyRNG/ele.seed
         chmod 0600 btc-KeyRNG/ele.seed
         newelectrumseed
-        echo "Initial electrum seed created."
-        echo "Seed stored at KeyRNG/btc-KeyRNG/ele.seed"
+        echo "THIS IS YOUR PRIVATE SEED TO RESTORE PRIVATE KEYS."
+        echo "WRITE IT DOWN SOMEWHERE SAFE AS A BACKUP!"
         echo -ne "\n"$SEED"\n"
         echo -e "--------------------------------\n"
-        echo "THIS IS YOUR PRIVATE SEED TO RESTORE ADDRESSES."
-        echo "WRITE IT DOWN SOMEWHERE SAFE AS A BACKUP!"
         echo "Press enter when you have your seed backed up."
         read
     fi
@@ -1015,7 +1002,7 @@ if [[ "$ADDR_COUNT" = "0" ]]; then
     WIF_COMP=$(pybtctools/pybtctool electrum_privkey $(echo -n "$SEED") 0 wif_compressed)
     PUB=$(pybtctools/pybtctool privtopub $(echo -n "$WIF_COMP"))
     ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$PUB"))
-    echo -e "\n\nAddress 1: "$ADDR"\nPubkey:  "$PUB"\nPrivkey (wif compressed):  "$WIF_COMP"\n\n---"
+    echo -e "\n\nEle Address 1: "$ADDR"\nEle Pubkey 1:  "$PUB"\nEle Privkey 1 (wif compressed):  "$WIF_COMP"\n\n---"
     echo "Add to backup file: btc-KeyRNG/ele.addr? (y/no)"
     read BACKUPKEY
     if [ "$BACKUPKEY" != "no" ]; then
@@ -1024,11 +1011,15 @@ if [[ "$ADDR_COUNT" = "0" ]]; then
         if [[ "$IS_NOTE" = "y" ]]; then
             echo "Type the note and press enter:"
             read NOTE 
-            echo -e "\nAddress 1: "$ADDR"     Note: "$NOTE"\nPubkey:  "$PUB"\nPrivkey (wif compressed):  "$WIF_COMP"\n\n---" >> btc-KeyRNG/ele.addr
+            echo -e "\nEle Address 1: "$ADDR"     Note: "$NOTE"\nEle Pubkey 1:  "$PUB"\nEle Privkey 1 (wif compressed):  "$WIF_COMP"\n\n---" >> btc-KeyRNG/ele.addr
             echo "DONE!"
+            sleep 1
+            clear
         else
-            echo -e "\n\nAddress 1: "$ADDR"\nPubkey:  "$PUB"\nPrivkey (wif compressed):  "$WIF_COMP"\n\n---" >> btc-KeyRNG/ele.addr
+            echo -e "\n\nEle Address 1: "$ADDR"\nEle Pubkey 1:  "$PUB"\nEle Privkey 1 (wif compressed):  "$WIF_COMP"\n\n---" >> btc-KeyRNG/ele.addr
             echo "DONE!"
+            sleep 1
+            clear
         fi
     fi
 else
@@ -1036,7 +1027,7 @@ else
     WIF_COMP=$(pybtctools/pybtctool electrum_privkey $(echo -n "$SEED") $(echo -n "$ADDR_COUNT") wif_compressed)
     PUB=$(pybtctools/pybtctool privtopub $(echo -n "$WIF_COMP"))
     ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$PUB"))
-    echo -e "\n\nAddress "$ADDR_COUNT": "$ADDR"\nPubkey:  "$PUB"\nPrivkey (wif compressed):  "$WIF_COMP"\n\n---"
+    echo -e "\n\nEle Address "$ADDR_COUNT": "$ADDR"\nEle Pubkey "$ADDR_COUNT":  "$PUB"\nEle Privkey "$ADDR_COUNT" (wif compressed):  "$WIF_COMP"\n\n---"
     echo "Add to backup file: btc-KeyRNG/ele.addr? (y/no)"
     read BACKUPKEY
     if [ "$BACKUPKEY" != "no" ]; then
@@ -1045,11 +1036,15 @@ else
         if [[ "$IS_NOTE" = "y" ]]; then
             echo "Type the note and press enter:"
             read NOTE 
-            echo -e "\n\nAddress "$ADDR_COUNT": "$ADDR"     Note: "$NOTE"\nPubkey:  "$PUB"\nPrivkey (wif compressed):  "$WIF_COMP"\n\n---" >> btc-KeyRNG/ele.addr
+            echo -e "\n\nEle Address "$ADDR_COUNT": "$ADDR"     Note: "$NOTE"\nEle Pubkey "$ADDR_COUNT":  "$PUB"\nEle Privkey "$ADDR_COUNT" (wif compressed):  "$WIF_COMP"\n\n---" >> btc-KeyRNG/ele.addr
             echo "DONE!"
+            sleep 1
+            clear
         else
-            echo -e "\n\nAddress "$ADDR_COUNT": "$ADDR"\nPubkey:  "$PUB"\nPrivkey (wif compressed):  "$WIF_COMP"\n\n---" >> btc-KeyRNG/ele.addr
+            echo -e "\n\nEle Address "$ADDR_COUNT": "$ADDR"\nEle Pubkey "$ADDR_COUNT":  "$PUB"\nEle Privkey "$ADDR_COUNT" (wif compressed):  "$WIF_COMP"\n\n---" >> btc-KeyRNG/ele.addr
             echo "DONE!"
+            sleep 1
+            clear
         fi
     fi
 fi
@@ -1089,12 +1084,11 @@ if [[ "$HAS_SEEDFILE" -lt "1" ]]; then
     chmod 0600 btc-KeyRNG/bip.seed
     newbipseed
     clear
-    echo "Initial BIP32 seed created."
-    echo "Seed stored at KeyRNG/btc-KeyRNG/ele.seed"
-    echo -ne "\n"$SEED"\n"
-    echo -e "\n\nTHIS IS YOUR PRIVATE SEED TO RESTORE ADDRESSES."
+    echo "THIS IS YOUR PRIVATE BIP32 SEED TO RESTORE PRIVATE KEYS."
     echo "WRITE IT DOWN SOMEWHERE SAFE AS A BACKUP!"
-    echo "Press enter when you have your seed backed up."
+    echo "WHILE KeyRNG IS UNLOCKED THE SEED IS STORED DECRYPTED AT KeyRNG/btc-KeyRNG/bip.seed"
+    echo -ne "\n"$SEED"\n"
+    echo -e "\nPress enter when you have your seed backed up."
     read
 else
     EMPTY=$(cat btc-KeyRNG/bip.seed | grep -c "")
@@ -1102,12 +1096,11 @@ else
         chown "$USER" btc-KeyRNG/bip.seed
         chmod 0600 btc-KeyRNG/bip.seed
         newbipseed
-        echo "Initial BIP32 seed created."
-        echo "Seed stored at KeyRNG/btc-KeyRNG/ele.seed"
-        echo -ne "\n"$SEED"\n"
-        echo -e "\n\nTHIS IS YOUR PRIVATE SEED TO RESTORE ADDRESSES."
+        echo "THIS IS YOUR PRIVATE BIP32 SEED TO RESTORE PRIVATE KEYS."
         echo "WRITE IT DOWN SOMEWHERE SAFE AS A BACKUP!"
-        echo "Press enter when you have your seed backed up."
+        echo "WHILE KeyRNG IS UNLOCKED THE SEED IS STORED DECRYPTED AT KeyRNG/btc-KeyRNG/bip.seed"
+        echo -ne "\n"$SEED"\n"
+        echo -e "\nPress enter when you have your seed backed up."
         read
     fi
 fi
@@ -1118,15 +1111,15 @@ clear
 #----------------------
 newbipseed ()
 {
-SEED=$(pybtctools/pybtctool random_electrum_seed | pybtctools/pybtctool -s sha256 | pybtctools/pybtctool -s changebase 16 256 | pybtctools/pybtctool -b changebase 256 16 | pybtctools/pybtctool -s bip32_master_key)
-echo -en ""$SEED"" > btc-KeyRNG/bip32.seed
+SEED=$(pybtctools/pybtctool random_electrum_seed | pybtctools/pybtctool -s slowsha | pybtctools/pybtctool -s changebase 16 256 | pybtctools/pybtctool -b changebase 256 16 | pybtctools/pybtctool -s bip32_master_key)
+echo -en ""$SEED"" > btc-KeyRNG/bip.seed
 }
 #-----------------------------
 ## BIP32 CREATE NEW ADDRESS ##
 #-----------------------------
 bipcreateaddr ()
 {
-SEED=$(cat btc-KeyRNG/bip32.seed)
+SEED=$(cat btc-KeyRNG/bip.seed)
 HAS_ADDRFILE=$(ls btc-KeyRNG/ | grep -c "bip.addr")
 if [ "$HAS_ADDRFILE" -lt "1" ]; then
     touch btc-KeyRNG/bip.addr
@@ -1142,7 +1135,7 @@ if [[ "$ADDR_COUNT" = "0" ]]; then
     XPRIV=$(pybtctools/pybtctool bip32_ckd $(echo -n "$SEED") 0)
     XPUB=$(pybtctools/pybtctool bip32_privtopub $(echo -n "$XPRIV"))
     ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$XPUB"))
-    echo -e "\n\nAddress 1: "$ADDR"\nBIP32 Pubkey:  "$XPUB"\nBIP32 Privkey:  "$XPRIV"\n\n---"
+    echo -e "\n\nBIP32 Address 1: "$ADDR"\nBIP32 Pubkey 1:  "$XPUB"\nBIP32 Privkey 1:  "$XPRIV"\n\n---"
     echo "Add to backup file: btc-KeyRNG/bip.addr? (y/no)"
     read BACKUPKEY
     if [ "$BACKUPKEY" != "no" ]; then
@@ -1151,11 +1144,15 @@ if [[ "$ADDR_COUNT" = "0" ]]; then
         if [[ "$IS_NOTE" = "y" ]]; then
             echo "Type the note and press enter:"
             read NOTE 
-            echo -e "\nAddress 1: "$ADDR"     Note: "$NOTE"\nBIP32 Pubkey:  "$XPUB"\nBIP32 Privkey:  "$XPRIV"\n\n---" >> btc-KeyRNG/bip.addr
+            echo -e "\nBIP32 Address 1: "$ADDR"     Note: "$NOTE"\nBIP32 Pubkey 1:  "$XPUB"\nBIP32 Privkey 1:  "$XPRIV"\n\n---" >> btc-KeyRNG/bip.addr
             echo "DONE!"
+            sleep 1
+            clear
         else
-            echo -e "\n\nAddress 1: "$ADDR"\nBIP32 Pubkey:  "$XPUB"\nBIP32 Privkey:  "$XPRIV"\n\n---" >> btc-KeyRNG/bip.addr
+            echo -e "\n\nBIP32 Address 1: "$ADDR"\nBIP32 Pubkey 1:  "$XPUB"\nBIP32 Privkey 1:  "$XPRIV"\n\n---" >> btc-KeyRNG/bip.addr
             echo "DONE!"
+            sleep 1
+            clear
         fi
     fi
 else
@@ -1163,7 +1160,7 @@ else
     XPRIV=$(pybtctools/pybtctool bip32_ckd $(echo -n "$SEED") $(echo -n "$ADDR_COUNT"))
     XPUB=$(pybtctools/pybtctool bip32_privtopub $(echo -n "$XPRIV"))
     ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$XPUB"))
-    echo -e "\n\nAddress "$ADDR_COUNT": "$ADDR"\nBIP32 Pubkey:  "$XPUB"\nBIP32 Privkey:  "$XPRIV"\n\n---"
+    echo -e "\n\nBIP32 Address "$ADDR_COUNT": "$ADDR"\nBIP32 Pubkey "$ADDR_COUNT":  "$XPUB"\nBIP32 Privkey "$ADDR_COUNT":  "$XPRIV"\n\n---"
     echo "Add to backup file: btc-KeyRNG/bip.addr? (y/no)"
     read BACKUPKEY
     if [ "$BACKUPKEY" != "no" ]; then
@@ -1172,11 +1169,15 @@ else
         if [[ "$IS_NOTE" = "y" ]]; then
             echo "Type the note and press enter:"
             read NOTE 
-            echo -e "\n\nAddress "$ADDR_COUNT": "$ADDR"     Note: "$NOTE"\nBIP32 Pubkey:  "$XPUB"\nBIP32 Privkey:  "$XPRIV"\n\n---" >> btc-KeyRNG/bip.addr
+            echo -e "\n\nBIP32 Address "$ADDR_COUNT": "$ADDR"     Note: "$NOTE"\nBIP32 Pubkey "$ADDR_COUNT":  "$XPUB"\nBIP32 Privkey "$ADDR_COUNT":  "$XPRIV"\n\n---" >> btc-KeyRNG/bip.addr
             echo "DONE!"
+            sleep 1
+            clear
         else
-            echo -e "\n\nAddress "$ADDR_COUNT": "$ADDR"\nBIP32 Pubkey:  "$XPUB"\nBIP32 Privkey:  "$XPRIV"\n\n---" >> btc-KeyRNG/bip.addr
+            echo -e "\n\nBIP32 Address "$ADDR_COUNT": "$ADDR"\nBIP32 Pubkey "$ADDR_COUNT":  "$XPUB"\nBIP32 Privkey "$ADDR_COUNT":  "$XPRIV"\n\n---" >> btc-KeyRNG/bip.addr
             echo "DONE!"
+            sleep 1
+            clear
         fi
     fi
 fi
@@ -1200,6 +1201,53 @@ echo "Press enter to see addresses and private keys."
 echo "Use up/down arrows to navigate. Press "q" when finished."
 read
 cat btc-KeyRNG/bip.addr | less
+}
+#####################################
+##### BLOCKCHAIN.INFO API CALLS #####
+#####################################
+#----------------
+## TOR/BCI API ##
+#----------------
+#BCI_API=75693266-c192-4970-ae72-c17445a17984
+torbciapi ()
+{
+echo "KeyRNG is using the Blockchain.info API."
+echo "Tor users go through BCIs hidden service."
+echo "Route your requests through tor? (y/no)"
+read USE_TOR
+echo "Without an API key you may get rate limiting errors."
+echo "Do you have a BCI API key? (y/no)"
+read HAVE_API
+if [ "$HAVE_API" = "y" ]; then
+    echo "Paste key."
+    read BCI_API
+fi
+}
+#------------------
+## CHECK UNSPENT ##
+#------------------
+checkunspent ()
+{
+echo "Paste address to check unspent output with 0 confirmations."
+read ADDR
+if  [[ "$USE_TOR" = "y" && "$HAVE_API" = "y" ]]; then
+    value=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/q/addressbalance/"$ADDR"?api_code="$BCI_API"?confirmations=0)
+    echo -e "\nAmount is in Satoshis. Press enter to return to BLOCKCHAIN.INFO MENU."
+    read
+
+elif [[ "$USE_TOR" = "y" && "$HAVE_API" != "y" ]]; then
+    curl -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/q/addressbalance/"$ADDR"?confirmations=0
+    echo -e "\nAmount is in Satoshis. Press enter to return to BLOCKCHAIN.INFO MENU."
+    read
+elif [[ "$USE_TOR" != "y" && "$HAVE_API" = "y" ]]; then
+    curl --get https://blockchain.info/q/addressbalance/"$ADDR"?api_code="$BCI_API"?confirmations=0
+    echo -e "\nAmount is in Satoshis. Press enter to return to BLOCKCHAIN.INFO MENU."
+    read
+else
+    curl --get https://blockchain.info/q/addressbalance/"$ADDR"?confirmations=0
+    echo -e "\nAmount is in Satoshis. Press enter to return to BLOCKCHAIN.INFO MENU."
+    read
+fi
 }
 #########################
 ########## END ##########
