@@ -21,11 +21,9 @@ if [[ "$BAD_BTC" -gt "0" || "$BAD_SEED" -gt "0" ]]; then
     clear
     echo -e "\nIF YOU QUIT LIKE THIS YOU ARE LEAVING BITCOIN SEEDS/PRIVATE KEYS UNENCRYPTED!"
     echo -e "\nI suggest quitting by using the "LOCK UP!" option on any menu."
-    echo "Do you still want to quit now? (Y/no)"
-    read RLYQUIT
+    read -p "Do you still want to quit now? (Y/no) " RLYQUIT
     if [ "$RLYQUIT" = "Y" ]; then
-        echo "Will you at least encrypt the btc address and seed files with a password? (y/no)"
-        read ENC
+        read -p "Will you at least encrypt the btc address and seed files with a password? (y/no) " ENC
         if [[ "$ENC" != "no" ]]; then
             tar -c btc-KeyRNG/ > btc.tar.gz
             gpg --quiet --ouput btc.tar.gz.gpg --symmetric --cipher-algo aes256 btc.tar.gz
@@ -796,6 +794,8 @@ gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --verify "$FILE"
 #--------------------------------------------------------------------------------
 btcsign ()
 {
+echo "This isn't working too well yet."
+echo "Once you hit enter your message is finished. So, yeah..."
 echo "Type the message you would like to sign."
 echo "Press enter when finished."
 read MSG
@@ -930,6 +930,44 @@ else
         fi
     fi 
 fi
+}
+#---------------------------------------
+## CREATE STANDARD MULTIPLE ADDRESSES ##
+#---------------------------------------
+multiplestandaddr ()
+{
+HAS_ADDRFILE=$(ls btc-KeyRNG/ | grep -c "standard")
+if [ "$HAS_ADDRFILE" = "0" ]; then
+    touch btc-KeyRNG/standard.addr
+    chown -R "$USER" btc-KeyRNG/standard.addr
+    chmod 0600 btc-KeyRNG/standard.addr
+    echo "---------------------------------------" > btc-KeyRNG/standard.addr
+    echo "| S T A N D A R D   A D D R E S S E S |" >> btc-KeyRNG/standard.addr
+    echo "---------------------------------------" >> btc-KeyRNG/standard.addr
+fi
+echo -e "\nHow may standard addresses to create?"
+read NUM
+echo "Creating "$NUM" standard addresses..."
+for i in $(seq 1 "$NUM")
+do
+    PRIVKEY=$(pybtctools/pybtctool random_key)
+    WIF_COMP=$(pybtctools/pybtctool encode_privkey $(echo -n "$PRIVKEY") wif_compressed)
+    PUBKEY=$(pybtctools/pybtctool privtopub $(echo -n "$WIF_COMP"))
+    ADDRESS=$(pybtctools/pybtctool pubkey_to_address $(echo -n "$PUBKEY"))
+    NUM_PRIV=$(grep -c "Privkey" btc-KeyRNG/standard.addr)
+    if [[ "$NUM_PRIV" = "0" ]]; then
+        echo -e "\n\nStnadard Address 1: "$ADDRESS"\nStnadard Pubkey 1:  "$PUBKEY"\nStnadard Privkey 1 (wif compressed):  "$WIF_COMP"\n\n---"
+        echo -e "\n\nStandard Address 1: "$ADDRESS"\nStandard Pubkey 1:  "$PUBKEY"\nStandard Privkey 1 (wif compressed):  "$WIF_COMP"\n\n---" >> btc-KeyRNG/standard.addr
+    else
+        NUM_PRIV=$(expr "$NUM_PRIV" + 1)
+        echo -e "\n\nStnadard Address "$NUM_PRIV": "$ADDRESS"\nStnadard Pubkey "$NUM_PRIV":  "$PUBKEY"\nStnadard Privkey "$NUM_PRIV" (wif compressed):  "$WIF_COMP"\n\n---"
+        echo -e "\n\nStandard Address "$NUM_PRIV": "$ADDRESS"\nStandard Pubkey "$NUM_PRIV":  "$PUBKEY"\nStandard Privkey "$NUM_PRIV" (wif compressed):  "$WIF_COMP"\n\n---" >> btc-KeyRNG/standard.addr
+    fi
+done
+echo -e "\nDONE CREATING "$NUM" STANDARD ADDRESSES."
+echo -e "ADDRESSES AND PRIVKEYS STORED IN KeyRNG/btc-KeyRNG/standard.addr\n"
+echo "Press enter to return to STANDARD ADDRESS MENU."
+read
 }
 #--------------------------------
 ## SHOW ALL STANDARD ADDRESSES ##
@@ -1068,6 +1106,50 @@ else
     fi
 fi
 }
+#--------------------------------------------
+## CREATE MULTIPLE ELECTRUM SEED ADDRESSES ##
+#--------------------------------------------
+multipleeleaddr ()
+{
+SEED=$(cat btc-KeyRNG/ele.seed)
+HAS_ADDRFILE=$(ls btc-KeyRNG/ | grep -c "ele.addr")
+if [ "$HAS_ADDRFILE" -lt "1" ]; then
+    touch btc-KeyRNG/ele.addr
+    chown -R "$USER" btc-KeyRNG/
+    chmod 0600 btc-KeyRNG/ele.addr
+    echo "----------------------------------------" > btc-KeyRNG/ele.addr
+    echo "| E L E C T R U M    A D D R E S S E S |" >> btc-KeyRNG/ele.addr
+    echo "----------------------------------------" >> btc-KeyRNG/ele.addr
+    echo -e "\n\n-----------------------------------------\n|Seed| "$SEED" |\n-----------------------------------------" >> btc-KeyRNG/ele.addr
+    MPK=$(pybtctools/pybtctool electrum_mpk $(echo -n "$SEED"))
+    echo -e "\n\nMaster Public Key:  "$MPK"" >> btc-KeyRNG/ele.addr
+fi
+echo -e "\nHow may Electrum seed addresses to create?"
+read NUM
+echo "Creating "$NUM" Electrum addresses..."
+for i in $(seq 1 "$NUM")
+do
+    ADDR_COUNT=$(cat btc-KeyRNG/ele.addr | grep -c "Pubkey")
+    if [[ "$ADDR_COUNT" = "0" ]]; then
+        WIF_COMP=$(pybtctools/pybtctool electrum_privkey $(echo -n "$SEED") 0 wif_compressed)
+        PUB=$(pybtctools/pybtctool privtopub $(echo -n "$WIF_COMP"))
+        ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$PUB"))
+        echo -e "\n\nEle Address 1: "$ADDR"\nEle Pubkey 1:  "$PUB"\nEle Privkey 1 (wif compressed):  "$WIF_COMP"\n\n---"
+        echo -e "\n\nEle Address 1: "$ADDR"\nEle Pubkey 1:  "$PUB"\nEle Privkey 1 (wif compressed):  "$WIF_COMP"\n\n---" >> btc-KeyRNG/ele.addr
+    else
+        ADDR_COUNT=$(expr "$ADDR_COUNT" + 1)
+        WIF_COMP=$(pybtctools/pybtctool electrum_privkey $(echo -n "$SEED") $(echo -n "$ADDR_COUNT") wif_compressed)
+        PUB=$(pybtctools/pybtctool privtopub $(echo -n "$WIF_COMP"))
+        ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$PUB"))
+        echo -e "\n\nEle Address "$ADDR_COUNT": "$ADDR"\nEle Pubkey "$ADDR_COUNT":  "$PUB"\nEle Privkey "$ADDR_COUNT" (wif compressed):  "$WIF_COMP"\n\n---"
+        echo -e "\n\nEle Address "$ADDR_COUNT": "$ADDR"\nEle Pubkey "$ADDR_COUNT":  "$PUB"\nEle Privkey "$ADDR_COUNT" (wif compressed):  "$WIF_COMP"\n\n---" >> btc-KeyRNG/ele.addr
+    fi
+done
+echo -e "\nDONE CREATING "$NUM" ELECTRUM ADDRESSES."
+echo -e "ADDRESSES AND PRIVKEYS STORED IN KeyRNG/btc-KeyRNG/ele.addr\n"
+echo "Press enter to return to ELECTRUM ADDRESS MENU."
+read
+}
 #---------------------------------
 ## SHOW ELECTRUM ADDRESSES ONLY ##
 #---------------------------------
@@ -1201,6 +1283,48 @@ else
     fi
 fi
 }
+#------------------------------------
+## CREATE MULTIPLE BIP32 ADDRESSES ##
+#------------------------------------
+multiplebipaddr ()
+{
+SEED=$(cat btc-KeyRNG/bip.seed)
+HAS_ADDRFILE=$(ls btc-KeyRNG/ | grep -c "bip.addr")
+if [ "$HAS_ADDRFILE" -lt "1" ]; then
+    touch btc-KeyRNG/bip.addr
+    chown -R "$USER" btc-KeyRNG/
+    chmod 0600 btc-KeyRNG/bip.addr
+    echo "----------------------------------" > btc-KeyRNG/bip.addr
+    echo "| B I P 3 2    A D D R E S S E S |" >> btc-KeyRNG/bip.addr
+    echo "----------------------------------" >> btc-KeyRNG/bip.addr
+    echo -e "\n\n------------------------------------------------------------------------------------------------------------------------\n|Seed| "$SEED" |\n------------------------------------------------------------------------------------------------------------------------" >> btc-KeyRNG/bip.addr
+fi
+echo -e "\nHow may BIP32 seed addresses to create?"
+read NUM
+echo "Creating "$NUM" BIP32 addresses..."
+for i in $(seq 1 "$NUM")
+do
+    ADDR_COUNT=$(cat btc-KeyRNG/bip.addr | grep -c "Pubkey")
+    if [[ "$ADDR_COUNT" = "0" ]]; then
+        XPRIV=$(pybtctools/pybtctool bip32_ckd $(echo -n "$SEED") 0)
+        XPUB=$(pybtctools/pybtctool bip32_privtopub $(echo -n "$XPRIV"))
+        ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$XPUB"))
+        echo -e "\n\nBIP32 Address 1: "$ADDR"\nBIP32 Pubkey 1:  "$XPUB"\nBIP32 Privkey 1:  "$XPRIV"\n\n---"
+        echo -e "\n\nBIP32 Address 1: "$ADDR"\nBIP32 Pubkey 1:  "$XPUB"\nBIP32 Privkey 1:  "$XPRIV"\n\n---" >> btc-KeyRNG/bip.addr
+    else
+        ADDR_COUNT=$(expr "$ADDR_COUNT" + 1)
+        XPRIV=$(pybtctools/pybtctool bip32_ckd $(echo -n "$SEED") $(echo -n "$ADDR_COUNT"))
+        XPUB=$(pybtctools/pybtctool bip32_privtopub $(echo -n "$XPRIV"))
+        ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$XPUB"))
+        echo -e "\n\nBIP32 Address "$ADDR_COUNT": "$ADDR"\nBIP32 Pubkey "$ADDR_COUNT":  "$XPUB"\nBIP32 Privkey "$ADDR_COUNT":  "$XPRIV"\n\n---"
+        echo -e "\n\nBIP32 Address "$ADDR_COUNT": "$ADDR"\nBIP32 Pubkey "$ADDR_COUNT":  "$XPUB"\nBIP32 Privkey "$ADDR_COUNT":  "$XPRIV"\n\n---" >> btc-KeyRNG/bip.addr
+    fi
+done
+echo -e "\nDONE CREATING "$NUM" BIP32 ADDRESSES."
+echo -e "ADDRESSES AND PRIVKEYS STORED IN KeyRNG/btc-KeyRNG/bip.addr\n"
+echo "Press enter to return to BIP32 ADDRESS MENU."
+read
+}
 #------------------------------
 ## BIP32 SHOW ADDRESSES ONLY ##
 #------------------------------
@@ -1210,7 +1334,7 @@ clear
 echo "Press enter to see addresses."
 echo "Use up/down arrows to navigate. Press "q" when finished."
 read
-cat btc-KeyRNG/bip.addr | grep "Address" | less
+cat btc-KeyRNG/bip.addr | grep -e "Address" | less
 }
 #---------------------------------
 ## BIP32 SHOW ADDR AND PRIVKEYS ##
@@ -1232,8 +1356,8 @@ cat btc-KeyRNG/bip.addr | less
 checkunspent ()
 {
 clear
-echo "See a list of the addresses in KeyRNG? (y/no)"
-read LIST
+
+read -p "See a list of the addresses in KeyRNG? (y/no) " LIST
 if [ "$LIST" != "no" ]; then
     echo -e "\nPress enter to see addresses."
     echo "Use up/down arrows to navigate. Press "q" when finished."
@@ -1347,6 +1471,16 @@ else
     echo -e "\nPress enter to return to BLOCKCHAIN MENU."
     read
 fi
+}
+#-----------------------------------
+## SHOW ALL ADDRESSES AND PUBKEYS ##
+#-----------------------------------
+showalladdr ()
+{
+echo -e "\nPress enter to see all addresses and pubkeys."
+echo "Use up/down arrows to navigate. Press "q" when finished."
+read
+cat btc-KeyRNG/*.addr | grep -e "Address" -e "Pubkey" | less
 }
 #########################
 ########## END ##########
