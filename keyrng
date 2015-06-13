@@ -1,5 +1,8 @@
 #!/bin/bash
-#
+set +o history
+unset "$HISTFILE"
+BCI_API=
+USE_TOR=y
 #
 #
 #
@@ -38,7 +41,8 @@ if [ "$SUM" != "$CHK" ]; then
         exit 0
     fi
 fi
-gpg --quiet --no-use-agent --output KeyRNG.tar.gz --password "$PW" -d KeyRNG.gpg
+gpg --quiet --no-use-agent --output KeyRNG.tar.gz --passphrase "$PW" -d KeyRNG.gpg
+unset PW; unset CHKPW; unset SUM; unset CHKSUM
 tar -xf KeyRNG.tar.gz
 chown -R "$USER" * */ */*
 chmod 0600 gpg-KeyRNG/gpg.conf
@@ -46,9 +50,9 @@ chmod 0600 btc-KeyRNG/*
 echo "Shredding temp files..."
 HAS_SRM=$(ls /usr/bin/ /usr/sbin/ /usr/local/bin/ | grep -c srm)
 if [[ "$HAS_SRM" -gt "0" ]]; then
-    srm -drlv checksum* KeyRNG.tar.gz KeyRNG.gpg
+    srm -drlv checksum* KeyRNG.*
 else
-    shred -vuzn 3 checksum* KeyRNG.tar.gz KeyRNG.gpg
+    shred -vuzn 3 checksum* KeyRNG.*
 fi
 }
                 unlock
@@ -461,7 +465,7 @@ do
             echo "| B I T C O I N   M E N U |"
             echo "---------------------------"
             PS3='Enter option (press enter to see options again): '
-            options=("Standard Addresses" "Electrum Addresses Menu" "BIP32 Seed Addresses" "Blockchain Interaction" "Sign Message" "Back To MAIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+            options=("Standard Addresses" "Electrum Addresses Menu" "BIP32 Seed Addresses" "Show All Addresses" "Blockchain Interaction" "Sign Message" "Back To MAIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
             select opt in "${options[@]}"
             do
                 case "$opt" in
@@ -471,18 +475,24 @@ do
                     echo "| S T A N D A R D   A D D R E S S   M E N U |"
                     echo "---------------------------------------------"
                     PS3='Enter option (press enter to see options again): '
-                    options=("Create New Address" "Show Addresses Only" "Show Addresses And Private Keys" "Back To BITCOIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+                    options=("Create New Address" "Create Multiple New Addresses" "Show Addresses Only" "Show Addresses And Public Keys" "Show Private Keys" "Back To BITCOIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                     select opt in "${options[@]}"
                     do
                         case "$opt" in
                             "Create New Address")
                                 getnewaddress
                                 ;;
+                            "Create Multiple New Addresses")
+                                multiplestandaddr
+                                ;;
                             "Show Addresses Only")
                                 showaddr
                                 ;;
-                            "Show Addresses And Private Keys")
+                            "Show Addresses And Public Keys")
                                 showalladdr
+                                ;;
+                            "Show Private Keys")
+                                showstandardpriv
                                 ;;
                             "Back To BITCOIN MENU")
                                 break
@@ -507,18 +517,24 @@ do
                         echo "| E L E C T R U M   A D D R E S S   M E N U |"
                         echo "---------------------------------------------"
                         PS3='Enter choice (press enter to see options again): '
-                        options=("Create New Address" "Show Addresses Only" "Show Addresses And Private Keys" "Back to BITCOIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+                        options=("Create New Address" "Create Multiple Addresses" "Show Addresses Only" "Show Addresses And Public Keys" "Show Private Keys" "Back to BITCOIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                         select opt in "${options[@]}"
                         do
                             case "$opt" in
                                 "Create New Address")
                                     elecreateaddr
                                     ;;
+                                "Create Multiple Addresses")
+                                    multipleeleaddr
+                                    ;;
                                 "Show Addresses Only")
                                     eleshowaddr
                                     ;;
-                                "Show Addresses And Private Keys")
+                                "Show Addresses And Public Keys")
                                     eleshowall
+                                    ;;
+                                "Show Private Keys")
+                                    showelepriv
                                     ;;
                                 "Back to BITCOIN MENU")
                                     break
@@ -543,12 +559,15 @@ do
                         echo "| B I P 3 2   A D D R E S S   M E N U |"
                         echo "---------------------------------------"
                         PS3='Enter choice (press enter to see options again): '
-                        options=("Create New Address" "Show Addresses Only" "Show Addresses, Privkeys, And Seed" "Back to BITCOIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+                        options=("Create New Address" "Create Multiple Addresses" "Show Addresses Only" "Show Addresses, Privkeys, And Seed" "Back to BITCOIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                         select opt in "${options[@]}"
                         do
                             case "$opt" in
                                 "Create New Address")
                                     bipcreateaddr
+                                    ;;
+                                "Create Multiple Addresses")
+                                    multiplebipaddr
                                     ;;
                                 "Show Addresses Only")
                                     bipshowaddr
@@ -572,6 +591,9 @@ do
                             esac
                         done                        
                         ;;
+                    "Show All Addresses")
+                        showalladdr
+                        ;;
                     "Blockchain Interaction")
                     RAN=$(echo -n "$USE_TOR" | grep -c "")
                     if [ "$RAN" = "0" ]; then
@@ -592,7 +614,7 @@ do
 		    echo "| BLOCKCHAIN INTERACTION MENU |"
 		    echo "-------------------------------"
                     PS3='Enter option (press enter to see options again): '
-                    options=("Check Unspent Balance" "Raw Transaction Details" "Back to BITCOIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+                    options=("Check Unspent Balance" "Raw Transaction Details" "Raw Address History" "Back to BITCOIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                     select opt in "${options[@]}"
                     do
                         case "$opt" in
@@ -601,6 +623,9 @@ do
                                 ;;
                             "Raw Transaction Details")
                                 getrawtx
+                                ;;
+                            "Raw Address History")
+                                rawaddrhist
                                 ;;
                             "Quit")
                                 badquit
@@ -646,3 +671,4 @@ do
         *) echo "Invalid Option";;
     esac
 done
+
