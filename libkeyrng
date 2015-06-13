@@ -19,9 +19,9 @@ clear
 echo -e "\nI suggest quitting by using the "FAST LOCK UP" or "SECURE LOCK UP" option on any menu."
 read -p "Do you still want to quit now? (Y/no) " RLYQUIT
 if [[ "$RLYQUIT" = "Y" ]]; then
-    exit 0
+exit 0
 else
-    break
+break
 fi
 }
 #########################
@@ -32,9 +32,9 @@ secdelete ()
 {
 HAS_SRM=$(ls /usr/bin/ /usr/sbin/ /usr/local/bin/ | grep -c srm)
 if [[ "$HAS_SRM" -gt "0" ]]; then
-    srm -d -r -v "$DEL"
+srm -d -r -v "$DEL"
 else
-    shred -v -u -z "$DEL"
+shred -v -u -z "$DEL"
 fi
 }
 #
@@ -53,32 +53,32 @@ echo ""
 read -s -p "Once more:" CHKPW
 CHKPW=$(echo -n "$CHKPW" | shasum -t -a 512 | cut -b -128)
 if [[ "$PW" = "$CHKPW" ]]; then
-    rm -rf checksum; touch checksum
-    cat keyrng | shasum -t -a 512 | cut -b 128 > checksum
-    tar -cf KeyRNG.tar.gz *-KeyRNG/ pybtctools/ libkeyrng
-    gpg --quiet --output KeyRNG.gpg --passphrase "$PW"  --cipher-algo aes256 --symmetric KeyRNG.tar.gz
-    gpg --quiet --passphrase "$PW"  --cipher-algo aes256 --symmetric checksum
-    unset PW; unset CHKPW;
-    echo "Cleaning temp files..."
-    HAS_SRM=$(ls /usr/bin/ /usr/sbin/ /usr/local/bin/ /home/"$USER"/bin/ | grep -c srm)
-    if [[ "$HAS_SRM" -gt "0" ]]; then
-        srm -drv btc-KeyRNG/*.seed btc-KeyRNG/*.addr temp/ checksum *-KeyRNG/ *.tar.gz
-        rm -rf libkeyrng pybtctools
-    else
-        find btc-KeyRNG/ -depth -type f -exec shred -u -z {}
-        find *-KeyRNG -depth -type f -exec shred -u -z {}
-        find temp/ -depth -type f -exec shred -u -z {}
-        shred -vuz *.tar.gz checksum
-        rm -rf temp/ *-KeyRNG/ libkeyrng pybtctools/
-    fi
-    exit 0
+rm -rf checksum; touch checksum
+cat keyrng | shasum -t -a 512 | cut -b 128 > checksum
+tar -cf KeyRNG.tar.gz *-KeyRNG/ pybtctools/ libkeyrng
+gpg --quiet --output KeyRNG.gpg --passphrase "$PW" --cipher-algo aes256 --symmetric KeyRNG.tar.gz
+gpg --quiet --passphrase "$PW" --cipher-algo aes256 --symmetric checksum
+unset PW; unset CHKPW;
+echo "Cleaning temp files..."
+HAS_SRM=$(ls /usr/bin/ /usr/sbin/ /usr/local/bin/ /home/"$USER"/bin/ | grep -c srm)
+if [[ "$HAS_SRM" -gt "0" ]]; then
+srm -drv btc-KeyRNG/*.seed btc-KeyRNG/*.addr temp/ checksum *-KeyRNG/ *.tar.gz
+rm -rf libkeyrng pybtctools
 else
-    echo -e "\nPASSWORDS DIDN'T MATCH! NOT ENCRYPTING!"
-    break
+find btc-KeyRNG/ -depth -type f -exec shred -u -z {}
+find *-KeyRNG -depth -type f -exec shred -u -z {}
+find temp/ -depth -type f -exec shred -u -z {}
+shred -vuz *.tar.gz checksum
+rm -rf temp/ *-KeyRNG/ libkeyrng pybtctools/
+fi
+exit 0
+else
+echo -e "\nPASSWORDS DIDN'T MATCH! NOT ENCRYPTING!"
+break
 fi
 }
 #-----------------
-## FAST LOCKUP  ##
+## FAST LOCKUP ##
 #-----------------
 fastlockup ()
 {
@@ -88,20 +88,20 @@ echo ""
 read -s -p "Once more:" CHKPW
 CHKPW=$(echo -n "$CHKPW" | shasum -t -a 512 | cut -b -128)
 if [[ "$PW" = "$CHKPW" ]]; then
-    rm -rf checksum
-    touch checksum
-    chmod 0600 checksum
-    cat keyrng | shasum -t -a 512 | cut -b -128 > checksum
-    tar -cf KeyRNG.tar.gz btc-KeyRNG/ gpg-KeyRNG/ pybtctools/ libkeyrng
-    gpg --output KeyRNG.gpg --quiet --passphrase "$PW"  --cipher-algo aes256 --symmetric KeyRNG.tar.gz
-    gpg --quiet --passphrase "$PW"  --cipher-algo aes256 --symmetric checksum
-    unset PW; unset CHKPW
-    rm -rf *-KeyRNG/ pybtctools/ libkeyrng *.tar.gz temp/ checksum
-    exit 0
+rm -rf checksum
+touch checksum
+chmod 0600 checksum
+cat keyrng | shasum -t -a 512 | cut -b -128 > checksum
+tar -cf KeyRNG.tar.gz btc-KeyRNG/ gpg-KeyRNG/ pybtctools/ libkeyrng
+gpg --output KeyRNG.gpg --quiet --passphrase "$PW" --cipher-algo aes256 --symmetric KeyRNG.tar.gz
+gpg --quiet --passphrase "$PW" --cipher-algo aes256 --symmetric checksum
+unset PW; unset CHKPW
+rm -rf *-KeyRNG/ pybtctools/ libkeyrng *.tar.gz temp/ checksum
+exit 0
 else
-    unset PW; unset CHKPW
-    echo -e "\nPASSWORDS DIDN'T MATCH! NOT ENCRYPTING!"
-    break
+unset PW; unset CHKPW
+echo -e "\nPASSWORDS DIDN'T MATCH! NOT ENCRYPTING!"
+break
 fi
 }
 #
@@ -183,20 +183,20 @@ importkeyfromgpg ()
 {
 echo "From defualt /home/"$USER"/.gnupg file? (y/no)"
 read IS_DEFAULT_GPG
-  if [[ "$DEFAULT_GPG" = "no" ]]; then
-      echo "Please give the full path to the gnupg file:"
-      read DEFAULT_GPG
-  else
-      DEFAULT_GPG=/home/"$USER"/.gnupg/
-  fi
+if [[ "$DEFAULT_GPG" = "no" ]]; then
+echo "Please give the full path to the gnupg file:"
+read DEFAULT_GPG
+else
+DEFAULT_GPG=/home/"$USER"/.gnupg/
+fi
 echo "List keys from "$DEFAULT_GPG"? (y/no)"
 read LIST_KEYS
-  if [ "$LIST_KEYS" != "no" ]; then
-      echo "Press enter to see a list of possible recipients by UID."
-      echo "Use up/down arrows to navigate. Press "q" when finished."
-      read
-      gpg --homedir "$DEFAULT_GPG" --list-keys --keyid-format 0xlong | less
-  fi
+if [ "$LIST_KEYS" != "no" ]; then
+echo "Press enter to see a list of possible recipients by UID."
+echo "Use up/down arrows to navigate. Press "q" when finished."
+read
+gpg --homedir "$DEFAULT_GPG" --list-keys --keyid-format 0xlong | less
+fi
 echo "What key UID do you want to import to KeyRNG?"
 read IMPORT_KEY
 gpg --homedir "$DEFAULT_GPG" --export "$IMPORT_KEY" | gpg --homedir gpg-KeyRNG/ --no-permission-warning --import -
@@ -209,17 +209,16 @@ gpgimportallpub ()
 echo "Import all public keys from default location (/home/"$USER"/.gnupg/)? (y/no)"
 read DEFAULT
 if [[ "$DEFAULT" != "no" ]]; then
-    GPG=/home/"$USER"/.gnupg/
-    
+GPG=/home/"$USER"/.gnupg/
 else
-    echo "Give the path and folder name."
-    read GPG
+echo "Give the path and folder name."
+read GPG
 fi
 rm -rf temp/temp
 gpg --homedir $(echo "$GPG") --no-permission-warning --list-keys --keyid-format 0xlong | grep "0x" | cut -b 13- | cut -b -19 > temp/temp
 LINES=$(grep -c "0x" temp/temp)
 if [ "$LINES" -gt "0" ]; then
-    cat temp/temp | xargs -I{} -d"\n" gpg --no-permission-warning --homedir $(echo "$GPG") --export {} | gpg --no-permission-warning --homedir gpg-KeyRNG/ --import
+cat temp/temp | xargs -I{} -d"\n" gpg --no-permission-warning --homedir $(echo "$GPG") --export {} | gpg --no-permission-warning --homedir gpg-KeyRNG/ --import
 fi
 echo "Shredding temp file..."
 DEL=temp/temp
@@ -232,23 +231,23 @@ importseckeyfromgpg ()
 {
 echo "From defualt /home/"$USER"/.gnupg file? (y/no)"
 read IS_DEFAULT_GPG
-  if [[ "$DEFAULT_GPG" = "no" ]]; then
-      echo "Please give the full path to the gnupg file:"
-      read DEFAULT_GPG
-  else
-      DEFAULT_GPG=/home/"$USER"/.gnupg/
-  fi
+if [[ "$DEFAULT_GPG" = "no" ]]; then
+echo "Please give the full path to the gnupg file:"
+read DEFAULT_GPG
+else
+DEFAULT_GPG=/home/"$USER"/.gnupg/
+fi
 echo "List keys from "$DEFAULT_GPG"? (y/no)"
 read LIST_KEYS
-  if [ "$LIST_KEYS" != "no" ]; then
-      echo "Press enter to see a list of possible recipients by UID."
-      echo "Use up/down arrows to navigate. Press "q" when finished."
-      read
-      gpg --homedir "$DEFAULT_GPG" --list-secret-keys --keyid-format 0xlong | less
-  fi
+if [ "$LIST_KEYS" != "no" ]; then
+echo "Press enter to see a list of possible recipients by UID."
+echo "Use up/down arrows to navigate. Press "q" when finished."
+read
+gpg --homedir "$DEFAULT_GPG" --list-secret-keys --keyid-format 0xlong | less
+fi
 echo "What key UID do you want to import to KeyRNG?"
 read IMPORT_KEY
-gpg --homedir "$DEFAULT_GPG" --export "$IMPORT_KEY" | gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --import
+gpg --homedir "$DEFAULT_GPG" --export "$IMPORT_KEY" | gpg --homedir gpg-KeyRNG/ --no-permission-warning --import
 }
 #---------------------------------------------
 ## IMPORT ALL PRIVATE KEYS FROM ANOTHER GPG ##
@@ -258,16 +257,16 @@ gpgimportallsec ()
 echo "Import all secret keys from default location (/home/"$USER"/.gnupg/)? (y/no)"
 read DEFAULT
 if [[ "$DEFAULT" != "no" ]]; then
-    GPG=/home/"$USER"/.gnupg/
+GPG=/home/"$USER"/.gnupg/
 else
-    echo "Give path to GnuPG folder to import all secret keys from."
-    read GPG
+echo "Give path to GnuPG folder to import all secret keys from."
+read GPG
 fi
 rm -rf temp/temp
 gpg --homedir "$GPG" --no-permission-warning --list-secret-keys --keyid-format 0xlong | grep "0x" | cut -b 13- | cut -b -19 > temp/temp
 LINES=$(grep -c "0x" temp/temp)
 if [ "$LINES" -gt "0" ]; then
-    cat temp/temp | xargs -I{} -d"\n" gpg --no-permission-warning --homedir "$GPG" --export-secret-keys {} | gpg2 --no-permission-warning --homedir gpg-KeyRNG/ --import
+cat temp/temp | xargs -I{} -d"\n" gpg --no-permission-warning --homedir "$GPG" --export-secret-keys {} | gpg --no-permission-warning --homedir gpg-KeyRNG/ --import
 fi
 echo "Shredding temp file..."
 DEL=temp/temp
@@ -328,7 +327,6 @@ gpg --homedir gpg-KeyRNG/ --no-permission-warning --armor --output "$SECKEY_FILE
 #
 ## WRITE FUNC TO CHECK FOR TAILS/TOR ##
 #
-
 #---------------------------
 ## SEND KEYS TO KEYSERVER ##
 #---------------------------
@@ -366,80 +364,80 @@ read EFILE
 echo "Sign message? (Y/no)"
 read SIGN
 if [ "$SIGN" = "Y" ]; then
-    echo "See private keys to sign with? (y/no)"
-    read SHOW_PRIV
-    if [[ "$SHOW_PRIV" != "no" ]]; then
-        echo "Copy the UID you would like to sign with."
-        echo "Press enter to see a list of signing keys."
-        echo "Use up/down arrows to navigate. Press "q" when your finished."
-        read
-        gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "sig"
-        echo "Paste UID to sign with:"
-        read PRIVKEY
-    else
-        echo "Paste UID to sign with:"
-        read PRIVKEY    
-    fi
+echo "See private keys to sign with? (y/no)"
+read SHOW_PRIV
+if [[ "$SHOW_PRIV" != "no" ]]; then
+echo "Copy the UID you would like to sign with."
+echo "Press enter to see a list of signing keys."
+echo "Use up/down arrows to navigate. Press "q" when your finished."
+read
+gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "sig"
+echo "Paste UID to sign with:"
+read PRIVKEY
+else
+echo "Paste UID to sign with:"
+read PRIVKEY
+fi
 fi
 echo "See UIDS of possible recipients? (y/no)"
 read SHOW_UIDS
 if [ "$SHOW_UIDS" != "no" ]; then
-    echo "Press enter to see a list of possible recipients by uid."
-    echo "Use up/down arrows to navigate. Press "q" when your finished."
-    read
-    gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "uid" | cut -b 21- | less
+echo "Press enter to see a list of possible recipients by uid."
+echo "Use up/down arrows to navigate. Press "q" when your finished."
+read
+gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "uid" | cut -b 21- | less
 fi
 echo "What recipient?"
 read MSG_RECP
 echo "Another recipient (yourself possibly)? (y/no)"
 read IF_MSG_RECP_TWO
-  if [[ "$IF_MSG_RECP_TWO" != "no" ]]; then
-      echo "See UID list again? (y/no)"
-      read SHOW_UIDS
-      if [ "$SHOW_UIDS" != "no" ]; then
-          echo "Press enter to see a list of possible recipients by uid."
-          echo "Use up/down arrows to navigate. Press "q" when your finished."
-          read
-          gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "uid" | cut -b 21- | less
-      fi
-      echo "Second recipient?"
-      read MSG_RECP_TWO
-  fi
+if [[ "$IF_MSG_RECP_TWO" != "no" ]]; then
+echo "See UID list again? (y/no)"
+read SHOW_UIDS
+if [ "$SHOW_UIDS" != "no" ]; then
+echo "Press enter to see a list of possible recipients by uid."
+echo "Use up/down arrows to navigate. Press "q" when your finished."
+read
+gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "uid" | cut -b 21- | less
+fi
+echo "Second recipient?"
+read MSG_RECP_TWO
+fi
 if [[ "$SIGN" != "Y" ]]; then
-  if [[ "$IF_MSG_RECP_TWO" = "no" ]]; then
-      gpg --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$MSG_RECP" --output temp/newmsg.asc --encrypt "$EFILE"
-  else
-      echo "Do you want the second recipient hidden? (y/no)"
-      read HIDE_RECP_TWO
-      if [ "$HIDE_RECP_TWO" != "no" ]; then
-          gpg --homedir gpg-KeyRNG/ --no-permission-warning --armor --hidden-recipient "$MSG_RECP_TWO" --recipient "$MSG_RECP" --output temp/newmsg.asc --encrypt "$EFILE"
-      fi
-      gpg --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$MSG_RECP" --recipient "$MSG_RECP_TWO" --output temp/newmsg.asc --encrypt "$EFILE"
-  fi
+if [[ "$IF_MSG_RECP_TWO" = "no" ]]; then
+gpg --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$MSG_RECP" --output temp/newmsg.asc --encrypt "$EFILE"
 else
-  if [[ "$IF_MSG_RECP_TWO" = "no" ]]; then
-      gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign --no-permission-warning --armor --recipient "$MSG_RECP" --output temp/newmsg.asc --encrypt "$EFILE"
-  else
-      echo "Do you want the second recipient hidden? (y/no)"
-      read HIDE_RECP_TWO
-      if [ "$HIDE_RECP_TWO" != "no" ]; then
-          gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign --no-permission-warning --armor --hidden-recipient "$MSG_RECP_TWO" --recipient "$MSG_RECP" --output temp/newmsg.asc --encrypt "$EFILE"
-      fi
-      gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign --no-permission-warning --armor --recipient "$MSG_RECP" --recipient "$MSG_RECP_TWO" --output temp/newmsg.asc --encrypt "$EFILE"
-  fi
+echo "Do you want the second recipient hidden? (y/no)"
+read HIDE_RECP_TWO
+if [ "$HIDE_RECP_TWO" != "no" ]; then
+gpg --homedir gpg-KeyRNG/ --no-permission-warning --armor --hidden-recipient "$MSG_RECP_TWO" --recipient "$MSG_RECP" --output temp/newmsg.asc --encrypt "$EFILE"
+fi
+gpg --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$MSG_RECP" --recipient "$MSG_RECP_TWO" --output temp/newmsg.asc --encrypt "$EFILE"
+fi
+else
+if [[ "$IF_MSG_RECP_TWO" = "no" ]]; then
+gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign --no-permission-warning --armor --recipient "$MSG_RECP" --output temp/newmsg.asc --encrypt "$EFILE"
+else
+echo "Do you want the second recipient hidden? (y/no)"
+read HIDE_RECP_TWO
+if [ "$HIDE_RECP_TWO" != "no" ]; then
+gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign --no-permission-warning --armor --hidden-recipient "$MSG_RECP_TWO" --recipient "$MSG_RECP" --output temp/newmsg.asc --encrypt "$EFILE"
+fi
+gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign --no-permission-warning --armor --recipient "$MSG_RECP" --recipient "$MSG_RECP_TWO" --output temp/newmsg.asc --encrypt "$EFILE"
+fi
 fi
 echo "File is stored temporarily at KeyRNG/temp/newmsg.asc."
 echo "Would you like to print it now? (y/no)"
 read CAT_EFILE
-  if [ "$CAT_EFILE" != "no" ]; then
-      cat temp/newmsg.asc
-      echo "Destroy now? (y/no)"
-      read DESTROY
-      if [ "$DESTROY" != "no" ]; then
-          DEL=temp/newmsg.asc
-          secdelete
-      fi
-  fi
+if [ "$CAT_EFILE" != "no" ]; then
+cat temp/newmsg.asc
+echo "Destroy now? (y/no)"
+read DESTROY
+if [ "$DESTROY" != "no" ]; then
+DEL=temp/newmsg.asc
+secdelete
+fi
+fi
 }
 #--------------------------
 ## ENCRYPT A NEW MESSAGE ##
@@ -452,85 +450,85 @@ nano temp/newmsg
 echo "Sign message? (Y/no)"
 read SIGN
 if [ "$SIGN" = "Y" ]; then
-    echo "See private keys to sign with? (y/no)"
-    read SHOW_PRIV
-    if [[ "$SHOW_PRIV" != "no" ]]; then
-        echo "Copy the UID you would like to sign with."
-        echo "Press enter to see a list of signing keys."
-        echo "Use up/down arrows to navigate. Press "q" when your finished."
-        read
-        gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "sig"
-        echo "Give UID to sign with:"
-        read PRIVKEY
-    else
-        echo "Give UID to sign with:"
-        read PRIVKEY    
-    fi
+echo "See private keys to sign with? (y/no)"
+read SHOW_PRIV
+if [[ "$SHOW_PRIV" != "no" ]]; then
+echo "Copy the UID you would like to sign with."
+echo "Press enter to see a list of signing keys."
+echo "Use up/down arrows to navigate. Press "q" when your finished."
+read
+gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "sig"
+echo "Give UID to sign with:"
+read PRIVKEY
+else
+echo "Give UID to sign with:"
+read PRIVKEY
+fi
 fi
 echo "See UIDS of possible recipients? (y/no)"
 read SHOW_UIDS
-  if [ "$SHOW_UIDS" != "no" ]; then
-      echo "Press enter to see a list of possible recipients by UID."
-      echo "Use up/down arrows to navigate. Press "q" when your finished."
-      read
-      gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "uid" | cut -b 21- | less
-  fi
+if [ "$SHOW_UIDS" != "no" ]; then
+echo "Press enter to see a list of possible recipients by UID."
+echo "Use up/down arrows to navigate. Press "q" when your finished."
+read
+gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "uid" | cut -b 21- | less
+fi
 echo "What recipient?"
 read NEWMSG_RECP
 echo "Another recipient (yourself possibly)? (y/no)"
 read IF_NEWMSG_RECP_TWO
 if [ "$IF_NEWMSG_RECP_TWO" != "no" ]; then
-    echo "See UID list again? (y/no)"
-    read SHOW_UIDS
-    if [ "$SHOW_UIDS" != "no" ]; then
-        echo "Press enter to see a list of possible recipients by UID."
-        echo "Use up/down arrows to navigate. Press "q" when your finished."
-        read
-        gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "uid" | cut -b 21- | less
-    fi
-    echo "Second recipient UID?"
-    read NEWMSG_RECP_TWO
-    echo "Do you want the second recipient hidden? (y/no)"
-    read HIDE_RECP_TWO
-    if [[ "$SIGN" != "Y" ]]; then
-      if [[ "$HIDE_RECP_TWO" != "no" ]]; then
-          gpg --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$NEWMSG_RECP" --hidden-recipient "$NEWMSG_RECP_TWO" --output temp/newmsg.asc --encrypt temp/newmsg
-      else
-          gpg --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$NEWMSG_RECP" --recipient "$NEWMSG_RECP_TWO" --output temp/newmsg.asc --encrypt temp/newmsg
-      fi
-    else
-      if [[ "$HIDE_RECP_TWO" != "no" ]]; then
-          gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign --no-permission-warning --armor --recipient "$NEWMSG_RECP" --hidden-recipient "$NEWMSG_RECP_TWO" --output temp/newmsg.asc --encrypt temp/newmsg
-      else
-          gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign --no-permission-warning --armor --recipient "$NEWMSG_RECP" --recipient "$NEWMSG_RECP_TWO" --output temp/newmsg.asc --encrypt temp/newmsg
-      fi  
-    fi
+echo "See UID list again? (y/no)"
+read SHOW_UIDS
+if [ "$SHOW_UIDS" != "no" ]; then
+echo "Press enter to see a list of possible recipients by UID."
+echo "Use up/down arrows to navigate. Press "q" when your finished."
+read
+gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "uid" | cut -b 21- | less
+fi
+echo "Second recipient UID?"
+read NEWMSG_RECP_TWO
+echo "Do you want the second recipient hidden? (y/no)"
+read HIDE_RECP_TWO
+if [[ "$SIGN" != "Y" ]]; then
+if [[ "$HIDE_RECP_TWO" != "no" ]]; then
+gpg --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$NEWMSG_RECP" --hidden-recipient "$NEWMSG_RECP_TWO" --output temp/newmsg.asc --encrypt temp/newmsg
 else
-  if [[ "$SIGN" != "Y" ]]; then
-      gpg --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$NEWMSG_RECP" --output temp/newmsg.asc --encrypt temp/newmsg
-  else
-      gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign --no-permission-warning --armor --recipient "$NEWMSG_RECP" --output temp/newmsg.asc --encrypt temp/newmsg
-  fi
+gpg --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$NEWMSG_RECP" --recipient "$NEWMSG_RECP_TWO" --output temp/newmsg.asc --encrypt temp/newmsg
+fi
+else
+if [[ "$HIDE_RECP_TWO" != "no" ]]; then
+gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign --no-permission-warning --armor --recipient "$NEWMSG_RECP" --hidden-recipient "$NEWMSG_RECP_TWO" --output temp/newmsg.asc --encrypt temp/newmsg
+else
+gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign --no-permission-warning --armor --recipient "$NEWMSG_RECP" --recipient "$NEWMSG_RECP_TWO" --output temp/newmsg.asc --encrypt temp/newmsg
+fi
+fi
+else
+if [[ "$SIGN" != "Y" ]]; then
+gpg --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$NEWMSG_RECP" --output temp/newmsg.asc --encrypt temp/newmsg
+else
+gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign --no-permission-warning --armor --recipient "$NEWMSG_RECP" --output temp/newmsg.asc --encrypt temp/newmsg
+fi
 fi
 echo "File is stored temporarily at KeyRNG/temp/newmsg.asc"
 echo "Would you like to destroy the original, unencrypted message? (y/no)"
 read DESTROY
-  if [ "$DESTROY" != "no" ]; then
-      echo "Shredding temp file..."
-      DEL=temp/newmsg
-      secdelete
-  fi
+if [ "$DESTROY" != "no" ]; then
+echo "Shredding temp file..."
+DEL=temp/newmsg
+secdelete
+fi
 echo "Would you like to print it now? (y/no)"
 read CAT_EFILE
-  if [ "$CAT_EFILE" != "no" ]; then
-      cat temp/newmsg.asc
-      echo "Destroy now? (y/no)"
-      read DESTROY
-      if [ "$DESTROY" != "no" ]; then
-          DEL=temp/newmsg.asc
-          secdelete
-      fi
-  fi
+if [ "$CAT_EFILE" != "no" ]; then
+cat temp/newmsg.asc
+echo "Destroy now? (y/no)"
+read DESTROY
+if [ "$DESTROY" != "no" ]; then
+DEL=temp/newmsg.asc
+secdelete
+fi
+fi
 }
 #-----------------
 ## DECRYPT FILE ##
@@ -541,70 +539,70 @@ echo "Which file?"
 read DFILE
 echo "Is this encrypted to a hidden UID? (y/no)"
 read IS_HIDDEN_UID
-  if [[ "$IS_HIDDEN_UID" != "no" ]]; then
-      echo "Do you know the UID it is encrypted to? (y/no)"
-      read KNOW_UID
-        if [[ "$KNOW_UID" = "no" ]]; then
-            echo "Press enter to try all secret keys."
-            read
-            rm -rf temp/newmsg
-            gpg --homedir gpg-KeyRNG/ --no-permission-warning --try-all-secrets --output temp/newmsg --decrypt "$DFILE"
-            echo "File is stored temporarily at KeyRNG/temp/newmsg."
-            echo "Do you want to print it now? (y/no)"
-            read PRINT_NOW
-              if [ "$PRINT_NOW" != "no" ]; then
-                  echo "Press enter to see message."
-                  echo "Use up/down arrows to navigate. Press "q" when your finished."
-                  read
-                  cat temp/newmsg | less
-                  echo "Destroy message now? (y/no)"
-                  read DESTROY
-                    if [ "$DESTROY" != "no" ]; then
-                        echo "Shredding temp file..."
-                        DEL=temp/newmsg
-                        secdelete
-                    fi
-              fi
-        else
-            echo "What UID?"
-            read HIDDEN_UID
-            gpg --homedir gpg-KeyRNG/ --no-permission-warning --local-user "$HIDDEN_ID" --output temp/newmsg --decrypt "$DFILE"
-            echo "File is stored temporarily at KeyRNG/temp/newmsg."
-            echo "Do you want to print it now? (y/no)"
-            read PRINT_NOW
-              if [ "$PRINT_NOW" != "no" ]; then
-                  echo "Press enter to see message."
-                  echo "Use up/down arrows to navigate. Press "q" when your finished."
-                  read
-                  cat temp/newmsg | less
-                  echo "Destroy message now? (y/no)"
-                  read DESTROY
-                    if [ "$DESTROY" != "no" ]; then
-                        echo "Shredding temp file..."
-                        DEL=temp/newmsg
-                        secdelete
-                    fi
-              fi
-        fi
-  else
-      gpg --homedir gpg-KeyRNG/ --no-permission-warning --local-user "$HIDDEN_ID" --output temp/newmsg --decrypt "$DFILE"   
-      echo "File is stored temporarily at KeyRNG/temp/newmsg."
-            echo "Do you want to print it now? (y/no)"
-            read PRINT_NOW
-              if [ "$PRINT_NOW" != "no" ]; then
-                  echo "Press enter to see message."
-                  echo "Use up/down arrows to navigate. Press "q" when finished."
-                  read
-                  cat temp/newmsg | less
-                  echo "Destroy message now? (y/no)"
-                  read DESTROY
-                    if [ "$DESTROY" != "no" ]; then
-                        echo "Shredding temp file..."
-                        DEL=temp/newmsg
-                        secdelete
-                    fi
-              fi 
-  fi
+if [[ "$IS_HIDDEN_UID" != "no" ]]; then
+echo "Do you know the UID it is encrypted to? (y/no)"
+read KNOW_UID
+if [[ "$KNOW_UID" = "no" ]]; then
+echo "Press enter to try all secret keys."
+read
+rm -rf temp/newmsg
+gpg --homedir gpg-KeyRNG/ --no-permission-warning --try-all-secrets --output temp/newmsg --decrypt "$DFILE"
+echo "File is stored temporarily at KeyRNG/temp/newmsg."
+echo "Do you want to print it now? (y/no)"
+read PRINT_NOW
+if [ "$PRINT_NOW" != "no" ]; then
+echo "Press enter to see message."
+echo "Use up/down arrows to navigate. Press "q" when your finished."
+read
+cat temp/newmsg | less
+echo "Destroy message now? (y/no)"
+read DESTROY
+if [ "$DESTROY" != "no" ]; then
+echo "Shredding temp file..."
+DEL=temp/newmsg
+secdelete
+fi
+fi
+else
+echo "What UID?"
+read HIDDEN_UID
+gpg --homedir gpg-KeyRNG/ --no-permission-warning --local-user "$HIDDEN_ID" --output temp/newmsg --decrypt "$DFILE"
+echo "File is stored temporarily at KeyRNG/temp/newmsg."
+echo "Do you want to print it now? (y/no)"
+read PRINT_NOW
+if [ "$PRINT_NOW" != "no" ]; then
+echo "Press enter to see message."
+echo "Use up/down arrows to navigate. Press "q" when your finished."
+read
+cat temp/newmsg | less
+echo "Destroy message now? (y/no)"
+read DESTROY
+if [ "$DESTROY" != "no" ]; then
+echo "Shredding temp file..."
+DEL=temp/newmsg
+secdelete
+fi
+fi
+fi
+else
+gpg --homedir gpg-KeyRNG/ --no-permission-warning --local-user "$HIDDEN_ID" --output temp/newmsg --decrypt "$DFILE"
+echo "File is stored temporarily at KeyRNG/temp/newmsg."
+echo "Do you want to print it now? (y/no)"
+read PRINT_NOW
+if [ "$PRINT_NOW" != "no" ]; then
+echo "Press enter to see message."
+echo "Use up/down arrows to navigate. Press "q" when finished."
+read
+cat temp/newmsg | less
+echo "Destroy message now? (y/no)"
+read DESTROY
+if [ "$DESTROY" != "no" ]; then
+echo "Shredding temp file..."
+DEL=temp/newmsg
+secdelete
+fi
+fi
+fi
 }
 #---------------------------
 ## DECRYPT FROM CLIPBOARD ##
@@ -618,70 +616,70 @@ nano temp/newmsg
 DFILE=temp/newmsg
 echo "Is this encrypted to a hidden UID? (y/no)"
 read IS_HIDDEN_UID
-  if [[ "$IS_HIDDEN_UID" != "no" ]]; then
-      echo "Do you know the UID it is encrypted to? (y/no)"
-      read KNOW_UID
-        if [[ "$KNOW_UID" = "no" ]]; then
-            echo "Press enter to try all secret keys."
-            read
-            rm -rf temp/newmsg
-            gpg --homedir gpg-KeyRNG/ --no-permission-warning --try-all-secrets --output temp/newmsg --decrypt "$DFILE"
-            echo "File is stored temporarily at KeyRNG/temp/newmsg."
-            echo "Do you want to print it now? (y/no)"
-            read PRINT_NOW
-              if [ "$PRINT_NOW" != "no" ]; then
-                  echo "Press enter to see message."
-                  echo "Use up/down arrows to navigate. Press "q" when finished."
-                  read
-                  cat temp/newmsg | less
-                  echo "Destroy message now? (y/no)"
-                  read DESTROY
-                    if [ "$DESTROY" != "no" ]; then
-                        echo "Shredding temp file..."
-                        DEL=temp/newmsg
-                        secdelete
-                    fi
-              fi
-        else
-            echo "What UID?"
-            read HIDDEN_UID
-            gpg --homedir gpg-KeyRNG/ --no-permission-warning --local-user "$HIDDEN_ID" --output temp/newmsg --decrypt "$DFILE"
-            echo "File is stored temporarily at KeyRNG/temp/newmsg."
-            echo "Do you want to print it now? (y/no)"
-            read PRINT_NOW
-              if [ "$PRINT_NOW" != "no" ]; then
-                  echo "Press enter to see message."
-                  echo "Use up/down arrows to navigate. Press "q" when finished."
-                  read
-                  cat temp/newmsg | less
-                  echo "Destroy message now? (y/no)"
-                  read DESTROY
-                    if [ "$DESTROY" != "no" ]; then
-                        echo "Shredding temp file..."
-                        DEL=temp/newmsg
-                        secdelete
-                    fi
-              fi
-        fi
-  else
-      gpg --homedir gpg-KeyRNG/ --no-permission-warning --local-user "$HIDDEN_ID" --output temp/newmsg --decrypt "$DFILE"   
-      echo "File is stored temporarily at KeyRNG/temp/newmsg."
-            echo "Do you want to print it now? (y/no)"
-            read PRINT_NOW
-              if [ "$PRINT_NOW" != "no" ]; then
-                  echo "Press enter to see message."
-                  echo "Use up/down arrows to navigate. Press "q" when finished."
-                  read
-                  cat temp/newmsg | less
-                  echo "Destroy message now? (y/no)"
-                  read DESTROY
-                    if [ "$DESTROY" != "no" ]; then
-                        echo "Shredding temp file..."
-                        DEL=temp/newmsg
-                        secdelete
-                    fi
-              fi 
-  fi
+if [[ "$IS_HIDDEN_UID" != "no" ]]; then
+echo "Do you know the UID it is encrypted to? (y/no)"
+read KNOW_UID
+if [[ "$KNOW_UID" = "no" ]]; then
+echo "Press enter to try all secret keys."
+read
+rm -rf temp/newmsg
+gpg --homedir gpg-KeyRNG/ --no-permission-warning --try-all-secrets --output temp/newmsg --decrypt "$DFILE"
+echo "File is stored temporarily at KeyRNG/temp/newmsg."
+echo "Do you want to print it now? (y/no)"
+read PRINT_NOW
+if [ "$PRINT_NOW" != "no" ]; then
+echo "Press enter to see message."
+echo "Use up/down arrows to navigate. Press "q" when finished."
+read
+cat temp/newmsg | less
+echo "Destroy message now? (y/no)"
+read DESTROY
+if [ "$DESTROY" != "no" ]; then
+echo "Shredding temp file..."
+DEL=temp/newmsg
+secdelete
+fi
+fi
+else
+echo "What UID?"
+read HIDDEN_UID
+gpg --homedir gpg-KeyRNG/ --no-permission-warning --local-user "$HIDDEN_ID" --output temp/newmsg --decrypt "$DFILE"
+echo "File is stored temporarily at KeyRNG/temp/newmsg."
+echo "Do you want to print it now? (y/no)"
+read PRINT_NOW
+if [ "$PRINT_NOW" != "no" ]; then
+echo "Press enter to see message."
+echo "Use up/down arrows to navigate. Press "q" when finished."
+read
+cat temp/newmsg | less
+echo "Destroy message now? (y/no)"
+read DESTROY
+if [ "$DESTROY" != "no" ]; then
+echo "Shredding temp file..."
+DEL=temp/newmsg
+secdelete
+fi
+fi
+fi
+else
+gpg --homedir gpg-KeyRNG/ --no-permission-warning --local-user "$HIDDEN_ID" --output temp/newmsg --decrypt "$DFILE"
+echo "File is stored temporarily at KeyRNG/temp/newmsg."
+echo "Do you want to print it now? (y/no)"
+read PRINT_NOW
+if [ "$PRINT_NOW" != "no" ]; then
+echo "Press enter to see message."
+echo "Use up/down arrows to navigate. Press "q" when finished."
+read
+cat temp/newmsg | less
+echo "Destroy message now? (y/no)"
+read DESTROY
+if [ "$DESTROY" != "no" ]; then
+echo "Shredding temp file..."
+DEL=temp/newmsg
+secdelete
+fi
+fi
+fi
 }
 #-----------------------------
 ## GPG CLEARSIGN FROM FILE ##
@@ -692,13 +690,13 @@ echo "File to sign:"
 read FILE
 echo "See private keys to sign with? (y/no)"
 read SEE
-  if [ "$SEE" != "no" ]; then
-      echo "Copy the UID you would like to sign with."
-      echo "Press enter to see a list of possible recipients by uid."
-      echo "Use up/down arrows to navigate. Press "q" when finished."
-      read
-      gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-secret-keys | grep "uid" | cut -b 21- | less
-  fi
+if [ "$SEE" != "no" ]; then
+echo "Copy the UID you would like to sign with."
+echo "Press enter to see a list of possible recipients by uid."
+echo "Use up/down arrows to navigate. Press "q" when finished."
+read
+gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-secret-keys | grep "uid" | cut -b 21- | less
+fi
 echo "Give UID to sign with:"
 read PRIVKEY
 gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --no-permission-warning --armor --output "$FILE".asc --clearsign "$FILE"
@@ -706,15 +704,15 @@ echo "Signed file is stored at "$FILE".asc."
 echo "Do you want to copy the file to another location? (Y/no)"
 read COPY
 if [ "$COPY" = "Y" ]; then
-  echo "Path to copy to:"
-  read CPATH
-  cp "$FILE".asc "$CPATH"
+echo "Path to copy to:"
+read CPATH
+cp "$FILE".asc "$CPATH"
 fi
 echo "Show the signed document here? (Y/no)"
 read SHOW
-  if [ "$SHOW" = "Y" ]; then
-      cat "$FILE".asc
-  fi
+if [ "$SHOW" = "Y" ]; then
+cat "$FILE".asc
+fi
 }
 #------------------------------
 ## GPG CLEARSIGN NEW MESSAGE ##
@@ -728,13 +726,13 @@ nano temp/newmsg
 FILE=temp/newmsg
 echo "See private keys to sign with? (y/no)"
 read SEE
-  if [ "$SEE" != "no" ]; then
-      echo "Copy the UID you would like to sign with."
-      echo "Press enter to see a list of possible recipients by uid."
-      echo "Use up/down arrows to navigate. Press "q" when finished."
-      read
-      gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-secret-keys | grep "uid" | cut -b 21- | less
-  fi
+if [ "$SEE" != "no" ]; then
+echo "Copy the UID you would like to sign with."
+echo "Press enter to see a list of possible recipients by uid."
+echo "Use up/down arrows to navigate. Press "q" when finished."
+read
+gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-secret-keys | grep "uid" | cut -b 21- | less
+fi
 echo "Give UID to sign with:"
 read PRIVKEY
 gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --no-permission-warning --armor --output "$FILE".asc --clearsign "$FILE"
@@ -743,15 +741,15 @@ echo "This file will be deleted when you do the LOCK UP! option."
 echo "Do you want to copy the file to another location? (Y/no)"
 read COPY
 if [ "$COPY" = "Y" ]; then
-  echo "Path to copy to:"
-  read CPATH
-  cp "$FILE".asc "$CPATH"
+echo "Path to copy to:"
+read CPATH
+cp "$FILE".asc "$CPATH"
 fi
 echo "Show the signed document here? (Y/no)"
 read SHOW
-  if [ "$SHOW" = "Y" ]; then
-      cat "$FILE".asc
-  fi
+if [ "$SHOW" = "Y" ]; then
+cat "$FILE".asc
+fi
 }
 #------------------------------
 ## GPG VERIFY FILE SIGNATURE ##
@@ -763,7 +761,7 @@ read FILE
 gpg --homedir gpg-KeyRNG/ --no-permission-warning --verify "$FILE"
 }
 #------------------------------------
-## GPG VERIFY CLIPBOARD SIGNATURE  ##
+## GPG VERIFY CLIPBOARD SIGNATURE ##
 #------------------------------------
 gpgclipverify ()
 {
@@ -790,11 +788,11 @@ read MSG
 echo "See a list of your addresses and private keys to sign with? (y/no)"
 read SEE
 if [ "$SEE" != "no" ]; then
-    echo "Press enter to see addresses and private keys."
-    echo "Please copy the private key you would like to sign with."
-    echo "Use up/down arrows to navigate. Press "q" when finished."
-    read
-    cat btc-KeyRNG/*.addr | grep ":" | less
+echo "Press enter to see addresses and private keys."
+echo "Please copy the private key you would like to sign with."
+echo "Use up/down arrows to navigate. Press "q" when finished."
+read
+cat btc-KeyRNG/*.addr | grep ":" | less
 fi
 echo "Paste privkey"
 read PRIVKEY
@@ -811,8 +809,8 @@ cat temp/btcmsg
 echo "Destroy message now? (Y/no)"
 read DESTROY
 if [ "$DESTROY" = "Y" ]; then
-    DEL=temp/btcmsg
-    secdelete
+DEL=temp/btcmsg
+secdelete
 fi
 clear
 echo "Press enter to go back to BITCOIN MENU."
@@ -829,83 +827,83 @@ getnewaddress ()
 HAS_SPRIV=$(ls btc-KeyRNG/ | grep -c "s.priv")
 HAS_ADDRFILE=$(ls btc-KeyRNG/ | grep -c "standard")
 if [ "$HAS_ADDRFILE" = "0" ]; then
-    touch btc-KeyRNG/standard.addr
-    chown -R "$USER" btc-KeyRNG/standard.addr
-    chmod 0600 btc-KeyRNG/standard.addr
-    echo "---------------------------------------" > btc-KeyRNG/standard.addr
-    echo "| S T A N D A R D   A D D R E S S E S |" >> btc-KeyRNG/standard.addr
-    echo "---------------------------------------" >> btc-KeyRNG/standard.addr
+touch btc-KeyRNG/standard.addr
+chown -R "$USER" btc-KeyRNG/standard.addr
+chmod 0600 btc-KeyRNG/standard.addr
+echo "---------------------------------------" > btc-KeyRNG/standard.addr
+echo "| S T A N D A R D A D D R E S S E S |" >> btc-KeyRNG/standard.addr
+echo "---------------------------------------" >> btc-KeyRNG/standard.addr
 fi
 if [ "$HAS_SPRIV" = "0" ]; then
-    touch btc-KeyRNG/s.priv
-    chown "$USER" btc-KeyRNG/s.priv
-    chmod 0600 btc-KeyRNG/s.priv
-    echo "-----------------------------------------------------------------" > btc-KeyRNG/s.priv
-    echo "| S T A N D A R D   A D D R E S S E S   P R I V A T E   K E Y S |" >> btc-KeyRNG/s.priv
-    echo "-----------------------------------------------------------------" >> btc-KeyRNG/s.priv
-    echo -e "\nSince this is your first run, you need to create a pass to encrypt your keys."
-    echo -e "\nIF YOU FORGET YOUR PASSWORD YOU WILL NOT BE ABLE TO SPEND FROM THESE ADDRESSES!\n"
-    read -s -p "Enter your password to encrypt your STANDARD private keys: " PW
-    echo ""
-    PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
-    read -s -p "Once more: " CHKPW
-    CHKPW=$(echo -n "$CHKPW" | shasum -t -a 512 | cut -b -128)
-    gpg --homedir gpg-KeyRNG/ --quiet --output btc-KeyRNG/s.priv.gpg --cipher-algo aes256 --passphrase "$PW" --symmetric btc-KeyRNG/s.priv && rm -rf btc-KeyRNG/s.priv
-    unset PW; unset CHKPW
+touch btc-KeyRNG/s.priv
+chown "$USER" btc-KeyRNG/s.priv
+chmod 0600 btc-KeyRNG/s.priv
+echo "-----------------------------------------------------------------" > btc-KeyRNG/s.priv
+echo "| S T A N D A R D A D D R E S S E S P R I V A T E K E Y S |" >> btc-KeyRNG/s.priv
+echo "-----------------------------------------------------------------" >> btc-KeyRNG/s.priv
+echo -e "\nSince this is your first run, you need to create a pass to encrypt your keys."
+echo -e "\nIF YOU FORGET YOUR PASSWORD YOU WILL NOT BE ABLE TO SPEND FROM THESE ADDRESSES!\n"
+read -s -p "Enter your password to encrypt your STANDARD private keys: " PW
+echo ""
+PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
+read -s -p "Once more: " CHKPW
+CHKPW=$(echo -n "$CHKPW" | shasum -t -a 512 | cut -b -128)
+gpg --homedir gpg-KeyRNG/ --quiet --output btc-KeyRNG/s.priv.gpg --cipher-algo aes256 --passphrase "$PW" --symmetric btc-KeyRNG/s.priv && rm -rf btc-KeyRNG/s.priv
+unset PW; unset CHKPW
 fi
 PRIV_LOCKED=$(ls btc-KeyRNG/ | grep -c "s.priv.gpg")
 if [ "$PRIV_LOCKED" = "1" ]; then
-    read -s -p "Enter your password to unlock your private keys: " PW
-    echo ""
-    PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
-    gpg --homedir gpg-KeyRNG --quiet  --output btc-KeyRNG/s.priv --passphrase "$PW" -d btc-KeyRNG/s.priv.gpg && rm -rf btc-KeyRNG/s.priv.gpg
-fi    
+read -s -p "Enter your password to unlock your private keys: " PW
+echo ""
+PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
+gpg --homedir gpg-KeyRNG --quiet --output btc-KeyRNG/s.priv --passphrase "$PW" -d btc-KeyRNG/s.priv.gpg && rm -rf btc-KeyRNG/s.priv.gpg
+fi
 PRIVKEY=$(pybtctools/pybtctool random_key)
 WIF_COMP=$(pybtctools/pybtctool encode_privkey $(echo -n "$PRIVKEY") wif_compressed)
 PUBKEY=$(pybtctools/pybtctool privtopub $(echo -n "$WIF_COMP"))
 ADDRESS=$(pybtctools/pybtctool pubkey_to_address $(echo -n "$PUBKEY"))
 NUM_PRIV=$(grep -c "Pubkey" btc-KeyRNG/standard.addr)
 if [[ "$NUM_PRIV" = "0" ]]; then
-    echo -e "\n\nStandard Privkey 1: "$WIF_COMP"" >> btc-KeyRNG/s.priv
-    gpg --quiet  --homedir gpg-KeyRNG/ --output btc-KeyRNG/s.priv.gpg --passphrase "$PW" --cipher-algo aes256 --symmetric btc-KeyRNG/s.priv && srm -dr btc-KeyRNG/s.priv
-    unset PW; unset CHKPW
-    echo -e "\n\nStnadard Address 1: "$ADDRESS"\nStnadard Pubkey 1:  "$PUBKEY"\n---"
-    echo "Add a note to address? (y/no)"
-    read IS_NOTE
-    if [[ "$IS_NOTE" = "y" ]]; then
-        echo "Type the note and press enter:"
-        read NOTE 
-        echo -e "\n\nStandard Address 1: "$ADDRESS"     Note: "$NOTE"\nStandard Pubkey 1:  "$PUBKEY"\n---" >> btc-KeyRNG/standard.addr
-        echo "DONE!"
-        sleep 1
-        clear
-    else
-        echo -e "\n\nStandard Address 1: "$ADDRESS"\nStandard Pubkey 1:  "$PUBKEY"\n---" >> btc-KeyRNG/standard.addr 
-        echo "DONE!"
-        sleep 1
-        clear
-    fi
+echo -e "\n\nStandard Privkey 1: "$WIF_COMP"" >> btc-KeyRNG/s.priv
+gpg --quiet --homedir gpg-KeyRNG/ --output btc-KeyRNG/s.priv.gpg --passphrase "$PW" --cipher-algo aes256 --symmetric btc-KeyRNG/s.priv && srm -dr btc-KeyRNG/s.priv
+unset PW; unset CHKPW
+echo -e "\n\nStnadard Address 1: "$ADDRESS"\nStnadard Pubkey 1: "$PUBKEY"\n---"
+echo "Add a note to address? (y/no)"
+read IS_NOTE
+if [[ "$IS_NOTE" = "y" ]]; then
+echo "Type the note and press enter:"
+read NOTE
+echo -e "\n\nStandard Address 1: "$ADDRESS" Note: "$NOTE"\nStandard Pubkey 1: "$PUBKEY"\n---" >> btc-KeyRNG/standard.addr
+echo "DONE!"
+sleep 1
+clear
 else
-    NUM_PRIV=$(expr "$NUM_PRIV" + 1)
-    echo -e "\nStnadard Address "$NUM_PRIV": "$ADDRESS"\nStnadard Pubkey "$NUM_PRIV":  "$PUBKEY"\n---"
-    echo -e "Stnadard Privkey "$NUM_PRIV":  "$WIF_COMP"" >> btc-KeyRNG/s.priv
-    gpg --quiet  --homedir gpg-KeyRNG/ --output btc-KeyRNG/s.priv.gpg --passphrase "$PW" --cipher-algo aes256 --symmetric btc-KeyRNG/s.priv && srm -dr btc-KeyRNG/s.priv
-    unset PW; unset CHKPW
-        echo "Add a note to address? (y/no)"
-        read IS_NOTE
-        if [[ "$IS_NOTE" = "y" ]]; then
-            echo "Type the note and press enter:"
-            read NOTE 
-            echo -e "\nStandard Address "$NUM_PRIV": "$ADDRESS"     Note: "$NOTE"\nStandard Pubkey "$NUM_PRIV":  "$PUBKEY"\n---" >> btc-KeyRNG/standard.addr
-            echo "DONE!"
-            sleep 1
-            clear
-        else
-            echo -e "\nStandard Address "$NUM_PRIV": "$ADDRESS"\nStandard Pubkey "$NUM_PRIV":  "$PUBKEY"\n---" >> btc-KeyRNG/standard.addr
-            echo "DONE!"
-            sleep 1
-            clear
-        fi 
+echo -e "\n\nStandard Address 1: "$ADDRESS"\nStandard Pubkey 1: "$PUBKEY"\n---" >> btc-KeyRNG/standard.addr
+echo "DONE!"
+sleep 1
+clear
+fi
+else
+NUM_PRIV=$(expr "$NUM_PRIV" + 1)
+echo -e "\nStnadard Address "$NUM_PRIV": "$ADDRESS"\nStnadard Pubkey "$NUM_PRIV": "$PUBKEY"\n---"
+echo -e "Stnadard Privkey "$NUM_PRIV": "$WIF_COMP"" >> btc-KeyRNG/s.priv
+gpg --quiet --homedir gpg-KeyRNG/ --output btc-KeyRNG/s.priv.gpg --passphrase "$PW" --cipher-algo aes256 --symmetric btc-KeyRNG/s.priv && srm -dr btc-KeyRNG/s.priv
+unset PW; unset CHKPW
+echo "Add a note to address? (y/no)"
+read IS_NOTE
+if [[ "$IS_NOTE" = "y" ]]; then
+echo "Type the note and press enter:"
+read NOTE
+echo -e "\nStandard Address "$NUM_PRIV": "$ADDRESS" Note: "$NOTE"\nStandard Pubkey "$NUM_PRIV": "$PUBKEY"\n---" >> btc-KeyRNG/standard.addr
+echo "DONE!"
+sleep 1
+clear
+else
+echo -e "\nStandard Address "$NUM_PRIV": "$ADDRESS"\nStandard Pubkey "$NUM_PRIV": "$PUBKEY"\n---" >> btc-KeyRNG/standard.addr
+echo "DONE!"
+sleep 1
+clear
+fi
 fi
 }
 #---------------------------------------
@@ -916,56 +914,56 @@ multiplestandaddr ()
 HAS_SPRIV=$(ls btc-KeyRNG/ | grep -c "s.priv")
 HAS_ADDRFILE=$(ls btc-KeyRNG/ | grep -c "standard.addr")
 if [ "$HAS_ADDRFILE" = "0" ]; then
-    touch btc-KeyRNG/standard.addr
-    chown -R "$USER" btc-KeyRNG/standard.addr
-    chmod 0600 btc-KeyRNG/standard.addr
-    echo "---------------------------------------" > btc-KeyRNG/standard.addr
-    echo "| S T A N D A R D   A D D R E S S E S |" >> btc-KeyRNG/standard.addr
-    echo "---------------------------------------" >> btc-KeyRNG/standard.addr
+touch btc-KeyRNG/standard.addr
+chown -R "$USER" btc-KeyRNG/standard.addr
+chmod 0600 btc-KeyRNG/standard.addr
+echo "---------------------------------------" > btc-KeyRNG/standard.addr
+echo "| S T A N D A R D A D D R E S S E S |" >> btc-KeyRNG/standard.addr
+echo "---------------------------------------" >> btc-KeyRNG/standard.addr
 fi
 if [ "$HAS_SPRIV" = "0" ]; then
-    touch btc-KeyRNG/s.priv
-    chown "$USER" btc-KeyRNG/s.priv
-    chmod 0600 btc-KeyRNG/s.priv
-    echo "-----------------------------------------------------------------" > btc-KeyRNG/s.priv
-    echo "| S T A N D A R D   A D D R E S S E S   P R I V A T E   K E Y S |" >> btc-KeyRNG/s.priv
-    echo "-----------------------------------------------------------------" >> btc-KeyRNG/s.priv
-    echo -e "\nSince this is your first run, you need to create a pass to encrypt your keys."
-    echo -e "\nIF YOU FORGET YOUR PASSWORD YOU WILL NOT BE ABLE TO SPEND FROM THESE ADDRESSES!\n"
-    read -s -p "Enter your password to encrypt your STANDARD private keys: " PW
-    echo ""
-    PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
-    read -s -p "Once more: " CHKPW
-    CHKPW=$(echo -n "$CHKPW" | shasum -t -a 512 | cut -b -128)
-    gpg --homedir gpg-KeyRNG/ --quiet --output btc-KeyRNG/s.priv.gpg  --passphrase "$PW" --symmetric btc-KeyRNG/s.priv && rm -rf btc-KeyRNG/s.priv
-    echo ""
+touch btc-KeyRNG/s.priv
+chown "$USER" btc-KeyRNG/s.priv
+chmod 0600 btc-KeyRNG/s.priv
+echo "-----------------------------------------------------------------" > btc-KeyRNG/s.priv
+echo "| S T A N D A R D A D D R E S S E S P R I V A T E K E Y S |" >> btc-KeyRNG/s.priv
+echo "-----------------------------------------------------------------" >> btc-KeyRNG/s.priv
+echo -e "\nSince this is your first run, you need to create a pass to encrypt your keys."
+echo -e "\nIF YOU FORGET YOUR PASSWORD YOU WILL NOT BE ABLE TO SPEND FROM THESE ADDRESSES!\n"
+read -s -p "Enter your password to encrypt your STANDARD private keys: " PW
+echo ""
+PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
+read -s -p "Once more: " CHKPW
+CHKPW=$(echo -n "$CHKPW" | shasum -t -a 512 | cut -b -128)
+gpg --homedir gpg-KeyRNG/ --quiet --output btc-KeyRNG/s.priv.gpg --passphrase "$PW" --symmetric btc-KeyRNG/s.priv && rm -rf btc-KeyRNG/s.priv
+echo ""
 fi
 read -s -p "Enter your password to unlock your private keys: " PW
 echo ""
 PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
-gpg --homedir gpg-KeyRNG/ --quiet  --output btc-KeyRNG/s.priv --cipher-algo aes256 --passphrase "$PW" -d btc-KeyRNG/s.priv.gpg && rm -rf btc-KeyRNG/s.priv.gpg
+gpg --homedir gpg-KeyRNG/ --quiet --output btc-KeyRNG/s.priv --cipher-algo aes256 --passphrase "$PW" -d btc-KeyRNG/s.priv.gpg && rm -rf btc-KeyRNG/s.priv.gpg
 echo -e "\nHow may standard addresses to create?"
 read NUM
 echo "Creating "$NUM" standard addresses..."
 for i in $(seq 1 "$NUM")
 do
-    PRIVKEY=$(pybtctools/pybtctool random_key)
-    WIF_COMP=$(pybtctools/pybtctool encode_privkey $(echo -n "$PRIVKEY") wif_compressed)
-    PUBKEY=$(pybtctools/pybtctool privtopub $(echo -n "$WIF_COMP"))
-    ADDRESS=$(pybtctools/pybtctool pubkey_to_address $(echo -n "$PUBKEY"))
-    NUM_PRIV=$(grep -c "Pubkey" btc-KeyRNG/standard.addr)
-    if [[ "$NUM_PRIV" = "0" ]]; then
-        echo -e "\nStandard Privkey 1:  "$WIF_COMP"" >> btc-KeyRNG/s.priv
-        echo -e "\n\nStnadard Address 1: "$ADDRESS"\nStnadard Pubkey 1:  "$PUBKEY"\n---"
-        echo -e "\n\nStandard Address 1: "$ADDRESS"\nStandard Pubkey 1:  "$PUBKEY"\n---" >> btc-KeyRNG/standard.addr
-    else
-        NUM_PRIV=$(expr "$NUM_PRIV" + 1)
-        echo -e "\nStandard Privkey "$NUM_PRIV":  "$WIF_COMP"" >> btc-KeyRNG/s.priv
-        echo -e "\nStnadard Address "$NUM_PRIV": "$ADDRESS"\nStnadard Pubkey "$NUM_PRIV":  "$PUBKEY"\n---"
-        echo -e "\nStandard Address "$NUM_PRIV": "$ADDRESS"\nStandard Pubkey "$NUM_PRIV":  "$PUBKEY"\n---" >> btc-KeyRNG/standard.addr
-    fi
+PRIVKEY=$(pybtctools/pybtctool random_key)
+WIF_COMP=$(pybtctools/pybtctool encode_privkey $(echo -n "$PRIVKEY") wif_compressed)
+PUBKEY=$(pybtctools/pybtctool privtopub $(echo -n "$WIF_COMP"))
+ADDRESS=$(pybtctools/pybtctool pubkey_to_address $(echo -n "$PUBKEY"))
+NUM_PRIV=$(grep -c "Pubkey" btc-KeyRNG/standard.addr)
+if [[ "$NUM_PRIV" = "0" ]]; then
+echo -e "\nStandard Privkey 1: "$WIF_COMP"" >> btc-KeyRNG/s.priv
+echo -e "\n\nStnadard Address 1: "$ADDRESS"\nStnadard Pubkey 1: "$PUBKEY"\n---"
+echo -e "\n\nStandard Address 1: "$ADDRESS"\nStandard Pubkey 1: "$PUBKEY"\n---" >> btc-KeyRNG/standard.addr
+else
+NUM_PRIV=$(expr "$NUM_PRIV" + 1)
+echo -e "\nStandard Privkey "$NUM_PRIV": "$WIF_COMP"" >> btc-KeyRNG/s.priv
+echo -e "\nStnadard Address "$NUM_PRIV": "$ADDRESS"\nStnadard Pubkey "$NUM_PRIV": "$PUBKEY"\n---"
+echo -e "\nStandard Address "$NUM_PRIV": "$ADDRESS"\nStandard Pubkey "$NUM_PRIV": "$PUBKEY"\n---" >> btc-KeyRNG/standard.addr
+fi
 done
-gpg --homedir gpg-KeyRNG/ --quiet --output btc-KeyRNG/s.priv.gpg  --passphrase "$PW" --symmetric btc-KeyRNG/s.priv && srm -dr btc-KeyRNG/s.priv
+gpg --homedir gpg-KeyRNG/ --quiet --output btc-KeyRNG/s.priv.gpg --passphrase "$PW" --symmetric btc-KeyRNG/s.priv && srm -dr btc-KeyRNG/s.priv
 unset PW; unset CHKPW
 echo -e "\nDONE CREATING "$NUM" STANDARD ADDRESSES."
 echo -e "ADDRESSES ARE STORED IN KeyRNG/btc-KeyRNG/standard.addr\n"
@@ -980,12 +978,12 @@ showstandardpriv ()
 {
 read -s -p "Enter password: " PW
 PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
-gpg --homedir gpg-KeyRNG/ --quiet  --passphrase "$PW" --output btc-KeyRNG/s.priv -d btc-KeyRNG/s.priv.gpg && rm -rf btc-KeyRNG/s.priv.gpg
+gpg --homedir gpg-KeyRNG/ --quiet --passphrase "$PW" --output btc-KeyRNG/s.priv -d btc-KeyRNG/s.priv.gpg && rm -rf btc-KeyRNG/s.priv.gpg
 echo "Press enter to see private keys."
 echo "Use up/down arrows to navigate. Press q when finished."
 read
 cat btc-KeyRNG/s.priv | less
-gpg --homedir gpg-KeyRNG/ --quiet  --passphrase "$PW" --output btc-KeyRNG/s.priv.gpg --cipher-algo aes256 --symmetric btc-KeyRNG/s.priv && srm -dr btc-KeyRNG/s.priv
+gpg --homedir gpg-KeyRNG/ --quiet --passphrase "$PW" --output btc-KeyRNG/s.priv.gpg --cipher-algo aes256 --symmetric btc-KeyRNG/s.priv && srm -dr btc-KeyRNG/s.priv
 unset PW
 clear
 }
@@ -1019,27 +1017,27 @@ checkeleseed ()
 {
 HAS_SEEDFILE=$(ls btc-KeyRNG/ | grep -c "ele.seed")
 if [[ "$HAS_SEEDFILE" -lt "1" ]]; then
-    touch btc-KeyRNG/ele.seed btc-KeyRNG/ele.priv
-    chown "$USER" btc-KeyRNG/ele*
-    chmod 0600 btc-KeyRNG/ele*
-    newelectrumseed
-    echo "---------------------------------------------" > btc-KeyRNG/ele.priv
-    echo "| E L E C T R U M   P R I V A T E   K E Y S |" >> btc-KeyRNG/ele.priv
-    echo "---------------------------------------------" >> btc-KeyRNG/ele.priv
-    clear
-    echo "THIS IS YOUR PRIVATE SEED TO RESTORE PRIVATE KEYS."
-    echo "WRITE IT DOWN SOMEWHERE SAFE AS A BACKUP!"
-    echo -ne "\n"$SEED"\n"
-    echo -e "--------------------------------\n"
-    echo -e "\nPress enter when you have your seed backed up.\n"
-    read
-    read -s -p "Enter a password to encrypt your seed/private keys: " PW
-    echo ""
-    PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
-    read -s -p "Once more: " CHKPW
-    CHKPW=$(echo -n "$CHKPW" | shasum -t -a 512 | cut -b -128)
-    gpg --homedir gpg-KeyRNG/ --quiet --output btc-KeyRNG/ele.priv.gpg  --passphrase "$PW" --symmetric btc-KeyRNG/ele.priv && rm -rf btc-KeyRNG/ele.priv
-    gpg --homedir gpg-KeyRNG/ --quiet --output btc-KeyRNG/ele.seed.gpg  --passphrase "$PW" --symmetric btc-KeyRNG/ele.seed && rm -rf btc-KeyRNG/ele.seed
+touch btc-KeyRNG/ele.seed btc-KeyRNG/ele.priv
+chown "$USER" btc-KeyRNG/ele*
+chmod 0600 btc-KeyRNG/ele*
+newelectrumseed
+echo "---------------------------------------------" > btc-KeyRNG/ele.priv
+echo "| E L E C T R U M P R I V A T E K E Y S |" >> btc-KeyRNG/ele.priv
+echo "---------------------------------------------" >> btc-KeyRNG/ele.priv
+clear
+echo "THIS IS YOUR PRIVATE SEED TO RESTORE PRIVATE KEYS."
+echo "WRITE IT DOWN SOMEWHERE SAFE AS A BACKUP!"
+echo -ne "\n"$SEED"\n"
+echo -e "--------------------------------\n"
+echo -e "\nPress enter when you have your seed backed up.\n"
+read
+read -s -p "Enter a password to encrypt your seed/private keys: " PW
+echo ""
+PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
+read -s -p "Once more: " CHKPW
+CHKPW=$(echo -n "$CHKPW" | shasum -t -a 512 | cut -b -128)
+gpg --homedir gpg-KeyRNG/ --quiet --output btc-KeyRNG/ele.priv.gpg --passphrase "$PW" --symmetric btc-KeyRNG/ele.priv && rm -rf btc-KeyRNG/ele.priv
+gpg --homedir gpg-KeyRNG/ --quiet --output btc-KeyRNG/ele.seed.gpg --passphrase "$PW" --symmetric btc-KeyRNG/ele.seed && rm -rf btc-KeyRNG/ele.seed
 fi
 clear
 }
@@ -1058,55 +1056,55 @@ elecreateaddr ()
 {
 read -s -p "Enter Electrum seed/private key password: " PW
 PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
-gpg --homedir gpg-KeyRNG/ --quiet  --passphrase "$PW" --output btc-KeyRNG/ele.seed -d btc-KeyRNG/ele.seed.gpg && rm -rf btc-KeyRNG/ele.seed.gpg
-gpg --homedir gpg-KeyRNG/ --quiet  --passphrase "$PW" --output btc-KeyRNG/ele.priv -d btc-KeyRNG/ele.priv.gpg && rm -rf btc-KeyRNG/ele.priv.gpg
+gpg --homedir gpg-KeyRNG/ --quiet --passphrase "$PW" --output btc-KeyRNG/ele.seed -d btc-KeyRNG/ele.seed.gpg && rm -rf btc-KeyRNG/ele.seed.gpg
+gpg --homedir gpg-KeyRNG/ --quiet --passphrase "$PW" --output btc-KeyRNG/ele.priv -d btc-KeyRNG/ele.priv.gpg && rm -rf btc-KeyRNG/ele.priv.gpg
 SEED=$(cat btc-KeyRNG/ele.seed)
 HAS_ADDRFILE=$(ls btc-KeyRNG/ | grep -c "ele.addr")
 if [ "$HAS_ADDRFILE" -lt "1" ]; then
-    touch btc-KeyRNG/ele.addr
-    chown -R "$USER" btc-KeyRNG/
-    chmod 0600 btc-KeyRNG/ele.addr
-    echo "----------------------------------------" > btc-KeyRNG/ele.addr
-    echo "| E L E C T R U M    A D D R E S S E S |" >> btc-KeyRNG/ele.addr
-    echo "----------------------------------------" >> btc-KeyRNG/ele.addr
-    MPK=$(pybtctools/pybtctool electrum_mpk $(echo -n "$SEED"))
-    echo -e "\n\nMaster Public Key:  "$MPK"" >> btc-KeyRNG/ele.addr
+touch btc-KeyRNG/ele.addr
+chown -R "$USER" btc-KeyRNG/
+chmod 0600 btc-KeyRNG/ele.addr
+echo "----------------------------------------" > btc-KeyRNG/ele.addr
+echo "| E L E C T R U M A D D R E S S E S |" >> btc-KeyRNG/ele.addr
+echo "----------------------------------------" >> btc-KeyRNG/ele.addr
+MPK=$(pybtctools/pybtctool electrum_mpk $(echo -n "$SEED"))
+echo -e "\n\nMaster Public Key: "$MPK"" >> btc-KeyRNG/ele.addr
 fi
 ADDR_COUNT=$(cat btc-KeyRNG/ele.addr | grep -c "Pubkey")
 if [[ "$ADDR_COUNT" = "0" ]]; then
-    WIF_COMP=$(pybtctools/pybtctool electrum_privkey $(echo -n "$SEED") 0 wif_compressed)
-    PUB=$(pybtctools/pybtctool privtopub $(echo -n "$WIF_COMP"))
-    ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$PUB"))
-    echo -e "\n\nEle Address 1: "$ADDR"\nEle Pubkey 1:  "$PUB"\n---"
-    echo -e "\nEle Privkey 1:  "$WIF_COMP"" >> ele.priv
-    echo "Add a note to address? (y/no)"
-    read IS_NOTE
-    if [[ "$IS_NOTE" = "y" ]]; then
-        echo "Type the note and press enter:"
-        read NOTE 
-        echo -e "\nEle Address 1: "$ADDR"     Note: "$NOTE"\nEle Pubkey 1:  "$PUB"\n---" >> btc-KeyRNG/ele.addr
-    else
-        echo -e "\n\nEle Address 1: "$ADDR"\nEle Pubkey 1:  "$PUB"\n\n---" >> btc-KeyRNG/ele.addr
-    fi
+WIF_COMP=$(pybtctools/pybtctool electrum_privkey $(echo -n "$SEED") 0 wif_compressed)
+PUB=$(pybtctools/pybtctool privtopub $(echo -n "$WIF_COMP"))
+ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$PUB"))
+echo -e "\n\nEle Address 1: "$ADDR"\nEle Pubkey 1: "$PUB"\n---"
+echo -e "\nEle Privkey 1: "$WIF_COMP"" >> ele.priv
+echo "Add a note to address? (y/no)"
+read IS_NOTE
+if [[ "$IS_NOTE" = "y" ]]; then
+echo "Type the note and press enter:"
+read NOTE
+echo -e "\nEle Address 1: "$ADDR" Note: "$NOTE"\nEle Pubkey 1: "$PUB"\n---" >> btc-KeyRNG/ele.addr
 else
-    ADDR_COUNT=$(expr "$ADDR_COUNT" + 1)
-    WIF_COMP=$(pybtctools/pybtctool electrum_privkey $(echo -n "$SEED") $(echo -n "$ADDR_COUNT") wif_compressed)
-    PUB=$(pybtctools/pybtctool privtopub $(echo -n "$WIF_COMP"))
-    ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$PUB"))
-    echo -e "\nEle Address "$ADDR_COUNT": "$ADDR"\nEle Pubkey "$ADDR_COUNT":  "$PUB"\n---"
-    echo -e "\nEle Privkey "$ADDR_COUNT":  "$WIF_COMP"" >> btc-KeyRNG/ele.priv
-    echo "Add a note to address? (y/no)"
-    read IS_NOTE
-    if [[ "$IS_NOTE" = "y" ]]; then
-        echo "Type the note and press enter:"
-        read NOTE 
-        echo -e "\nEle Address "$ADDR_COUNT": "$ADDR"     Note: "$NOTE"\nEle Pubkey "$ADDR_COUNT":  "$PUB"\n---" >> btc-KeyRNG/ele.addr
-    else
-        echo -e "\nEle Address "$ADDR_COUNT": "$ADDR"\nEle Pubkey "$ADDR_COUNT":  "$PUB"\n---" >> btc-KeyRNG/ele.addr
-    fi
+echo -e "\n\nEle Address 1: "$ADDR"\nEle Pubkey 1: "$PUB"\n\n---" >> btc-KeyRNG/ele.addr
 fi
-gpg --homedir gpg-KeyRNG/ --quiet  --passphrase "$PW" --output btc-KeyRNG/ele.seed.gpg --symmetric btc-KeyRNG/ele.seed && srm -dr btc-KeyRNG/ele.seed
-gpg --homedir gpg-KeyRNG/ --quiet  --passphrase "$PW" --output btc-KeyRNG/ele.priv.gpg --symmetric btc-KeyRNG/ele.priv && srm -dr btc-KeyRNG/ele.priv
+else
+ADDR_COUNT=$(expr "$ADDR_COUNT" + 1)
+WIF_COMP=$(pybtctools/pybtctool electrum_privkey $(echo -n "$SEED") $(echo -n "$ADDR_COUNT") wif_compressed)
+PUB=$(pybtctools/pybtctool privtopub $(echo -n "$WIF_COMP"))
+ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$PUB"))
+echo -e "\nEle Address "$ADDR_COUNT": "$ADDR"\nEle Pubkey "$ADDR_COUNT": "$PUB"\n---"
+echo -e "\nEle Privkey "$ADDR_COUNT": "$WIF_COMP"" >> btc-KeyRNG/ele.priv
+echo "Add a note to address? (y/no)"
+read IS_NOTE
+if [[ "$IS_NOTE" = "y" ]]; then
+echo "Type the note and press enter:"
+read NOTE
+echo -e "\nEle Address "$ADDR_COUNT": "$ADDR" Note: "$NOTE"\nEle Pubkey "$ADDR_COUNT": "$PUB"\n---" >> btc-KeyRNG/ele.addr
+else
+echo -e "\nEle Address "$ADDR_COUNT": "$ADDR"\nEle Pubkey "$ADDR_COUNT": "$PUB"\n---" >> btc-KeyRNG/ele.addr
+fi
+fi
+gpg --homedir gpg-KeyRNG/ --quiet --passphrase "$PW" --output btc-KeyRNG/ele.seed.gpg --symmetric btc-KeyRNG/ele.seed && srm -dr btc-KeyRNG/ele.seed
+gpg --homedir gpg-KeyRNG/ --quiet --passphrase "$PW" --output btc-KeyRNG/ele.priv.gpg --symmetric btc-KeyRNG/ele.priv && srm -dr btc-KeyRNG/ele.priv
 unset PW
 echo "DONE!"
 clear
@@ -1118,20 +1116,20 @@ multipleeleaddr ()
 {
 read -s -p "Enter Electrum seed/private key password: " PW
 PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
-gpg --homedir gpg-KeyRNG/ --quiet  --passphrase "$PW" --output btc-KeyRNG/ele.seed -d btc-KeyRNG/ele.seed.gpg && rm -rf btc-KeyRNG/ele.seed.gpg
-gpg --homedir gpg-KeyRNG/ --quiet  --passphrase "$PW" --output btc-KeyRNG/ele.priv -d btc-KeyRNG/ele.priv.gpg && rm -rf btc-KeyRNG/ele.priv.gpg
+gpg --homedir gpg-KeyRNG/ --quiet --passphrase "$PW" --output btc-KeyRNG/ele.seed -d btc-KeyRNG/ele.seed.gpg && rm -rf btc-KeyRNG/ele.seed.gpg
+gpg --homedir gpg-KeyRNG/ --quiet --passphrase "$PW" --output btc-KeyRNG/ele.priv -d btc-KeyRNG/ele.priv.gpg && rm -rf btc-KeyRNG/ele.priv.gpg
 SEED=$(cat btc-KeyRNG/ele.seed)
 HAS_ADDRFILE=$(ls btc-KeyRNG/ | grep -c "ele.addr")
 if [ "$HAS_ADDRFILE" -lt "1" ]; then
-    touch btc-KeyRNG/ele.addr
-    chown -R "$USER" btc-KeyRNG/
-    chmod 0600 btc-KeyRNG/ele.addr
-    echo "----------------------------------------" > btc-KeyRNG/ele.addr
-    echo "| E L E C T R U M    A D D R E S S E S |" >> btc-KeyRNG/ele.addr
-    echo "----------------------------------------" >> btc-KeyRNG/ele.addr
-    echo -e "\n\n-----------------------------------------\n|Seed| "$SEED" |\n-----------------------------------------" >> btc-KeyRNG/ele.addr
-    MPK=$(pybtctools/pybtctool electrum_mpk $(echo -n "$SEED"))
-    echo -e "\n\nMaster Public Key:  "$MPK"" >> btc-KeyRNG/ele.addr
+touch btc-KeyRNG/ele.addr
+chown -R "$USER" btc-KeyRNG/
+chmod 0600 btc-KeyRNG/ele.addr
+echo "----------------------------------------" > btc-KeyRNG/ele.addr
+echo "| E L E C T R U M A D D R E S S E S |" >> btc-KeyRNG/ele.addr
+echo "----------------------------------------" >> btc-KeyRNG/ele.addr
+echo -e "\n\n-----------------------------------------\n|Seed| "$SEED" |\n-----------------------------------------" >> btc-KeyRNG/ele.addr
+MPK=$(pybtctools/pybtctool electrum_mpk $(echo -n "$SEED"))
+echo -e "\n\nMaster Public Key: "$MPK"" >> btc-KeyRNG/ele.addr
 fi
 echo ""
 echo -e "\nHow may Electrum seed addresses to create?"
@@ -1139,26 +1137,26 @@ read NUM
 echo "Creating "$NUM" Electrum addresses..."
 for i in $(seq 1 "$NUM")
 do
-    ADDR_COUNT=$(cat btc-KeyRNG/ele.addr | grep -c "Pubkey")
-    if [[ "$ADDR_COUNT" = "0" ]]; then
-        WIF_COMP=$(pybtctools/pybtctool electrum_privkey $(echo -n "$SEED") 0 wif_compressed)
-        PUB=$(pybtctools/pybtctool privtopub $(echo -n "$WIF_COMP"))
-        ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$PUB"))
-        echo -e "\n\n\nEle Privkey 1:  "$WIF_COMP"" >> btc-KeyRNG/ele.priv
-        echo -e "\n\nEle Address 1: "$ADDR"\nEle Pubkey 1:  "$PUB"\n---"
-        echo -e "\n\nEle Address 1: "$ADDR"\nEle Pubkey 1:  "$PUB"\n---" >> btc-KeyRNG/ele.addr
-    else
-        ADDR_COUNT=$(expr "$ADDR_COUNT" + 1)
-        WIF_COMP=$(pybtctools/pybtctool electrum_privkey $(echo -n "$SEED") $(echo -n "$ADDR_COUNT") wif_compressed)
-        PUB=$(pybtctools/pybtctool privtopub $(echo -n "$WIF_COMP"))
-        ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$PUB"))
-        echo -e "\nEle Privkey "$ADDR_COUNT":  "$WIF_COMP"" >> btc-KeyRNG/ele.priv
-        echo -e "\nEle Address "$ADDR_COUNT": "$ADDR"\nEle Pubkey "$ADDR_COUNT":  "$PUB"\n---"
-        echo -e "\nEle Address "$ADDR_COUNT": "$ADDR"\nEle Pubkey "$ADDR_COUNT":  "$PUB"\n---" >> btc-KeyRNG/ele.addr
-    fi
+ADDR_COUNT=$(cat btc-KeyRNG/ele.addr | grep -c "Pubkey")
+if [[ "$ADDR_COUNT" = "0" ]]; then
+WIF_COMP=$(pybtctools/pybtctool electrum_privkey $(echo -n "$SEED") 0 wif_compressed)
+PUB=$(pybtctools/pybtctool privtopub $(echo -n "$WIF_COMP"))
+ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$PUB"))
+echo -e "\n\n\nEle Privkey 1: "$WIF_COMP"" >> btc-KeyRNG/ele.priv
+echo -e "\n\nEle Address 1: "$ADDR"\nEle Pubkey 1: "$PUB"\n---"
+echo -e "\n\nEle Address 1: "$ADDR"\nEle Pubkey 1: "$PUB"\n---" >> btc-KeyRNG/ele.addr
+else
+ADDR_COUNT=$(expr "$ADDR_COUNT" + 1)
+WIF_COMP=$(pybtctools/pybtctool electrum_privkey $(echo -n "$SEED") $(echo -n "$ADDR_COUNT") wif_compressed)
+PUB=$(pybtctools/pybtctool privtopub $(echo -n "$WIF_COMP"))
+ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$PUB"))
+echo -e "\nEle Privkey "$ADDR_COUNT": "$WIF_COMP"" >> btc-KeyRNG/ele.priv
+echo -e "\nEle Address "$ADDR_COUNT": "$ADDR"\nEle Pubkey "$ADDR_COUNT": "$PUB"\n---"
+echo -e "\nEle Address "$ADDR_COUNT": "$ADDR"\nEle Pubkey "$ADDR_COUNT": "$PUB"\n---" >> btc-KeyRNG/ele.addr
+fi
 done
-gpg --homedir gpg-KeyRNG/ --quiet  --passphrase "$PW" --output btc-KeyRNG/ele.seed.gpg --symmetric btc-KeyRNG/ele.seed && srm -dr btc-KeyRNG/ele.seed
-gpg --homedir gpg-KeyRNG/ --quiet  --passphrase "$PW" --output btc-KeyRNG/ele.priv.gpg --symmetric btc-KeyRNG/ele.priv && srm -dr btc-KeyRNG/ele.priv
+gpg --homedir gpg-KeyRNG/ --quiet --passphrase "$PW" --output btc-KeyRNG/ele.seed.gpg --symmetric btc-KeyRNG/ele.seed && srm -dr btc-KeyRNG/ele.seed
+gpg --homedir gpg-KeyRNG/ --quiet --passphrase "$PW" --output btc-KeyRNG/ele.priv.gpg --symmetric btc-KeyRNG/ele.priv && srm -dr btc-KeyRNG/ele.priv
 unset PW
 echo -e "\nDONE CREATING "$NUM" ELECTRUM ADDRESSES."
 echo -e "ADDRESSES ARE STORED IN KeyRNG/btc-KeyRNG/ele.addr\n"
@@ -1193,12 +1191,12 @@ showelepriv ()
 {
 read -s -p "Enter password: " PW
 PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
-gpg --homedir gpg-KeyRNG/ --quiet  --passphrase "$PW" --output btc-KeyRNG/ele.priv -d btc-KeyRNG/ele.priv.gpg && rm -rf btc-KeyRNG/ele.priv.gpg
+gpg --homedir gpg-KeyRNG/ --quiet --passphrase "$PW" --output btc-KeyRNG/ele.priv -d btc-KeyRNG/ele.priv.gpg && rm -rf btc-KeyRNG/ele.priv.gpg
 echo "Press enter to see private keys."
 echo "Use up/down arrows to navigate. Press q when finished."
 read
 cat btc-KeyRNG/ele.priv | less
-gpg --homedir gpg-KeyRNG/ --quiet  --passphrase "$PW" --output btc-KeyRNG/ele.priv.gpg --cipher-algo aes256 --symmetric btc-KeyRNG/ele.priv && srm -dr btc-KeyRNG/ele.priv
+gpg --homedir gpg-KeyRNG/ --quiet --passphrase "$PW" --output btc-KeyRNG/ele.priv.gpg --cipher-algo aes256 --symmetric btc-KeyRNG/ele.priv && srm -dr btc-KeyRNG/ele.priv
 unset PW
 clear
 }
@@ -1212,30 +1210,30 @@ checkbipseed ()
 {
 HAS_SEEDFILE=$(ls btc-KeyRNG/ | grep -c "bip.seed")
 if [[ "$HAS_SEEDFILE" -lt "1" ]]; then
-    touch btc-KeyRNG/bip.seed
-    chown "$USER" btc-KeyRNG/bip.seed
-    chmod 0600 btc-KeyRNG/bip.seed
-    newbipseed
-    clear
-    echo "THIS IS YOUR PRIVATE BIP32 SEED TO RESTORE PRIVATE KEYS."
-    echo "WRITE IT DOWN SOMEWHERE SAFE AS A BACKUP!"
-    echo "WHILE KeyRNG IS UNLOCKED THE SEED IS STORED DECRYPTED AT KeyRNG/btc-KeyRNG/bip.seed"
-    echo -ne "\n"$SEED"\n"
-    echo -e "\nPress enter when you have your seed backed up."
-    read
+touch btc-KeyRNG/bip.seed
+chown "$USER" btc-KeyRNG/bip.seed
+chmod 0600 btc-KeyRNG/bip.seed
+newbipseed
+clear
+echo "THIS IS YOUR PRIVATE BIP32 SEED TO RESTORE PRIVATE KEYS."
+echo "WRITE IT DOWN SOMEWHERE SAFE AS A BACKUP!"
+echo "WHILE KeyRNG IS UNLOCKED THE SEED IS STORED DECRYPTED AT KeyRNG/btc-KeyRNG/bip.seed"
+echo -ne "\n"$SEED"\n"
+echo -e "\nPress enter when you have your seed backed up."
+read
 else
-    EMPTY=$(cat btc-KeyRNG/bip.seed | grep -c "")
-    if [ "$EMPTY" -lt "1" ]; then
-        chown "$USER" btc-KeyRNG/bip.seed
-        chmod 0600 btc-KeyRNG/bip.seed
-        newbipseed
-        echo "THIS IS YOUR PRIVATE BIP32 SEED TO RESTORE PRIVATE KEYS."
-        echo "WRITE IT DOWN SOMEWHERE SAFE AS A BACKUP!"
-        echo "WHILE KeyRNG IS UNLOCKED THE SEED IS STORED DECRYPTED AT KeyRNG/btc-KeyRNG/bip.seed"
-        echo -ne "\n"$SEED"\n"
-        echo -e "\nPress enter when you have your seed backed up."
-        read
-    fi
+EMPTY=$(cat btc-KeyRNG/bip.seed | grep -c "")
+if [ "$EMPTY" -lt "1" ]; then
+chown "$USER" btc-KeyRNG/bip.seed
+chmod 0600 btc-KeyRNG/bip.seed
+newbipseed
+echo "THIS IS YOUR PRIVATE BIP32 SEED TO RESTORE PRIVATE KEYS."
+echo "WRITE IT DOWN SOMEWHERE SAFE AS A BACKUP!"
+echo "WHILE KeyRNG IS UNLOCKED THE SEED IS STORED DECRYPTED AT KeyRNG/btc-KeyRNG/bip.seed"
+echo -ne "\n"$SEED"\n"
+echo -e "\nPress enter when you have your seed backed up."
+read
+fi
 fi
 clear
 }
@@ -1255,64 +1253,64 @@ bipcreateaddr ()
 SEED=$(cat btc-KeyRNG/bip.seed)
 HAS_ADDRFILE=$(ls btc-KeyRNG/ | grep -c "bip.addr")
 if [ "$HAS_ADDRFILE" -lt "1" ]; then
-    touch btc-KeyRNG/bip.addr
-    chown -R "$USER" btc-KeyRNG/
-    chmod 0600 btc-KeyRNG/bip.addr
-    echo "----------------------------------" > btc-KeyRNG/bip.addr
-    echo "| B I P 3 2    A D D R E S S E S |" >> btc-KeyRNG/bip.addr
-    echo "----------------------------------" >> btc-KeyRNG/bip.addr
-    echo -e "\n\n------------------------------------------------------------------------------------------------------------------------\n|Seed| "$SEED" |\n------------------------------------------------------------------------------------------------------------------------" >> btc-KeyRNG/bip.addr
+touch btc-KeyRNG/bip.addr
+chown -R "$USER" btc-KeyRNG/
+chmod 0600 btc-KeyRNG/bip.addr
+echo "----------------------------------" > btc-KeyRNG/bip.addr
+echo "| B I P 3 2 A D D R E S S E S |" >> btc-KeyRNG/bip.addr
+echo "----------------------------------" >> btc-KeyRNG/bip.addr
+echo -e "\n\n------------------------------------------------------------------------------------------------------------------------\n|Seed| "$SEED" |\n------------------------------------------------------------------------------------------------------------------------" >> btc-KeyRNG/bip.addr
 fi
 ADDR_COUNT=$(cat btc-KeyRNG/bip.addr | grep -c "Pubkey")
 if [[ "$ADDR_COUNT" = "0" ]]; then
-    XPRIV=$(pybtctools/pybtctool bip32_ckd $(echo -n "$SEED") 0)
-    XPUB=$(pybtctools/pybtctool bip32_privtopub $(echo -n "$XPRIV"))
-    ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$XPUB"))
-    echo -e "\n\nBIP32 Address 1: "$ADDR"\nBIP32 Pubkey 1:  "$XPUB"\nBIP32 Privkey 1:  "$XPRIV"\n\n---"
-    echo "Add to backup file: btc-KeyRNG/bip.addr? (y/no)"
-    read BACKUPKEY
-    if [ "$BACKUPKEY" != "no" ]; then
-        echo "Add a note to address? (y/no)"
-        read IS_NOTE
-        if [[ "$IS_NOTE" = "y" ]]; then
-            echo "Type the note and press enter:"
-            read NOTE 
-            echo -e "\nBIP32 Address 1: "$ADDR"     Note: "$NOTE"\nBIP32 Pubkey 1:  "$XPUB"\nBIP32 Privkey 1:  "$XPRIV"\n\n---" >> btc-KeyRNG/bip.addr
-            echo "DONE!"
-            sleep 1
-            clear
-        else
-            echo -e "\n\nBIP32 Address 1: "$ADDR"\nBIP32 Pubkey 1:  "$XPUB"\nBIP32 Privkey 1:  "$XPRIV"\n\n---" >> btc-KeyRNG/bip.addr
-            echo "DONE!"
-            sleep 1
-            clear
-        fi
-    fi
+XPRIV=$(pybtctools/pybtctool bip32_ckd $(echo -n "$SEED") 0)
+XPUB=$(pybtctools/pybtctool bip32_privtopub $(echo -n "$XPRIV"))
+ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$XPUB"))
+echo -e "\n\nBIP32 Address 1: "$ADDR"\nBIP32 Pubkey 1: "$XPUB"\nBIP32 Privkey 1: "$XPRIV"\n\n---"
+echo "Add to backup file: btc-KeyRNG/bip.addr? (y/no)"
+read BACKUPKEY
+if [ "$BACKUPKEY" != "no" ]; then
+echo "Add a note to address? (y/no)"
+read IS_NOTE
+if [[ "$IS_NOTE" = "y" ]]; then
+echo "Type the note and press enter:"
+read NOTE
+echo -e "\nBIP32 Address 1: "$ADDR" Note: "$NOTE"\nBIP32 Pubkey 1: "$XPUB"\nBIP32 Privkey 1: "$XPRIV"\n\n---" >> btc-KeyRNG/bip.addr
+echo "DONE!"
+sleep 1
+clear
 else
-    ADDR_COUNT=$(expr "$ADDR_COUNT" + 1)
-    XPRIV=$(pybtctools/pybtctool bip32_ckd $(echo -n "$SEED") $(echo -n "$ADDR_COUNT"))
-    XPUB=$(pybtctools/pybtctool bip32_privtopub $(echo -n "$XPRIV"))
-    ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$XPUB"))
-    echo -e "\n\nBIP32 Address "$ADDR_COUNT": "$ADDR"\nBIP32 Pubkey "$ADDR_COUNT":  "$XPUB"\nBIP32 Privkey "$ADDR_COUNT":  "$XPRIV"\n\n---"
-    echo "Add to backup file: btc-KeyRNG/bip.addr? (y/no)"
-    read BACKUPKEY
-    if [ "$BACKUPKEY" != "no" ]; then
-        echo "Add a note to address? (y/no)"
-        read IS_NOTE
-        if [[ "$IS_NOTE" = "y" ]]; then
-            echo "Type the note and press enter:"
-            read NOTE 
-            echo -e "\n\nBIP32 Address "$ADDR_COUNT": "$ADDR"     Note: "$NOTE"\nBIP32 Pubkey "$ADDR_COUNT":  "$XPUB"\nBIP32 Privkey "$ADDR_COUNT":  "$XPRIV"\n\n---" >> btc-KeyRNG/bip.addr
-            echo "DONE!"
-            sleep 1
-            clear
-        else
-            echo -e "\n\nBIP32 Address "$ADDR_COUNT": "$ADDR"\nBIP32 Pubkey "$ADDR_COUNT":  "$XPUB"\nBIP32 Privkey "$ADDR_COUNT":  "$XPRIV"\n\n---" >> btc-KeyRNG/bip.addr
-            echo "DONE!"
-            sleep 1
-            clear
-        fi
-    fi
+echo -e "\n\nBIP32 Address 1: "$ADDR"\nBIP32 Pubkey 1: "$XPUB"\nBIP32 Privkey 1: "$XPRIV"\n\n---" >> btc-KeyRNG/bip.addr
+echo "DONE!"
+sleep 1
+clear
+fi
+fi
+else
+ADDR_COUNT=$(expr "$ADDR_COUNT" + 1)
+XPRIV=$(pybtctools/pybtctool bip32_ckd $(echo -n "$SEED") $(echo -n "$ADDR_COUNT"))
+XPUB=$(pybtctools/pybtctool bip32_privtopub $(echo -n "$XPRIV"))
+ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$XPUB"))
+echo -e "\n\nBIP32 Address "$ADDR_COUNT": "$ADDR"\nBIP32 Pubkey "$ADDR_COUNT": "$XPUB"\nBIP32 Privkey "$ADDR_COUNT": "$XPRIV"\n\n---"
+echo "Add to backup file: btc-KeyRNG/bip.addr? (y/no)"
+read BACKUPKEY
+if [ "$BACKUPKEY" != "no" ]; then
+echo "Add a note to address? (y/no)"
+read IS_NOTE
+if [[ "$IS_NOTE" = "y" ]]; then
+echo "Type the note and press enter:"
+read NOTE
+echo -e "\n\nBIP32 Address "$ADDR_COUNT": "$ADDR" Note: "$NOTE"\nBIP32 Pubkey "$ADDR_COUNT": "$XPUB"\nBIP32 Privkey "$ADDR_COUNT": "$XPRIV"\n\n---" >> btc-KeyRNG/bip.addr
+echo "DONE!"
+sleep 1
+clear
+else
+echo -e "\n\nBIP32 Address "$ADDR_COUNT": "$ADDR"\nBIP32 Pubkey "$ADDR_COUNT": "$XPUB"\nBIP32 Privkey "$ADDR_COUNT": "$XPRIV"\n\n---" >> btc-KeyRNG/bip.addr
+echo "DONE!"
+sleep 1
+clear
+fi
+fi
 fi
 }
 #------------------------------------
@@ -1323,34 +1321,34 @@ multiplebipaddr ()
 SEED=$(cat btc-KeyRNG/bip.seed)
 HAS_ADDRFILE=$(ls btc-KeyRNG/ | grep -c "bip.addr")
 if [ "$HAS_ADDRFILE" -lt "1" ]; then
-    touch btc-KeyRNG/bip.addr
-    chown -R "$USER" btc-KeyRNG/
-    chmod 0600 btc-KeyRNG/bip.addr
-    echo "----------------------------------" > btc-KeyRNG/bip.addr
-    echo "| B I P 3 2    A D D R E S S E S |" >> btc-KeyRNG/bip.addr
-    echo "----------------------------------" >> btc-KeyRNG/bip.addr
-    echo -e "\n\n------------------------------------------------------------------------------------------------------------------------\n|Seed| "$SEED" |\n------------------------------------------------------------------------------------------------------------------------" >> btc-KeyRNG/bip.addr
+touch btc-KeyRNG/bip.addr
+chown -R "$USER" btc-KeyRNG/
+chmod 0600 btc-KeyRNG/bip.addr
+echo "----------------------------------" > btc-KeyRNG/bip.addr
+echo "| B I P 3 2 A D D R E S S E S |" >> btc-KeyRNG/bip.addr
+echo "----------------------------------" >> btc-KeyRNG/bip.addr
+echo -e "\n\n------------------------------------------------------------------------------------------------------------------------\n|Seed| "$SEED" |\n------------------------------------------------------------------------------------------------------------------------" >> btc-KeyRNG/bip.addr
 fi
 echo -e "\nHow may BIP32 seed addresses to create?"
 read NUM
 echo "Creating "$NUM" BIP32 addresses..."
 for i in $(seq 1 "$NUM")
 do
-    ADDR_COUNT=$(cat btc-KeyRNG/bip.addr | grep -c "Pubkey")
-    if [[ "$ADDR_COUNT" = "0" ]]; then
-        XPRIV=$(pybtctools/pybtctool bip32_ckd $(echo -n "$SEED") 0)
-        XPUB=$(pybtctools/pybtctool bip32_privtopub $(echo -n "$XPRIV"))
-        ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$XPUB"))
-        echo -e "\n\nBIP32 Address 1: "$ADDR"\nBIP32 Pubkey 1:  "$XPUB"\nBIP32 Privkey 1:  "$XPRIV"\n\n---"
-        echo -e "\n\nBIP32 Address 1: "$ADDR"\nBIP32 Pubkey 1:  "$XPUB"\nBIP32 Privkey 1:  "$XPRIV"\n\n---" >> btc-KeyRNG/bip.addr
-    else
-        ADDR_COUNT=$(expr "$ADDR_COUNT" + 1)
-        XPRIV=$(pybtctools/pybtctool bip32_ckd $(echo -n "$SEED") $(echo -n "$ADDR_COUNT"))
-        XPUB=$(pybtctools/pybtctool bip32_privtopub $(echo -n "$XPRIV"))
-        ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$XPUB"))
-        echo -e "\n\nBIP32 Address "$ADDR_COUNT": "$ADDR"\nBIP32 Pubkey "$ADDR_COUNT":  "$XPUB"\nBIP32 Privkey "$ADDR_COUNT":  "$XPRIV"\n\n---"
-        echo -e "\n\nBIP32 Address "$ADDR_COUNT": "$ADDR"\nBIP32 Pubkey "$ADDR_COUNT":  "$XPUB"\nBIP32 Privkey "$ADDR_COUNT":  "$XPRIV"\n\n---" >> btc-KeyRNG/bip.addr
-    fi
+ADDR_COUNT=$(cat btc-KeyRNG/bip.addr | grep -c "Pubkey")
+if [[ "$ADDR_COUNT" = "0" ]]; then
+XPRIV=$(pybtctools/pybtctool bip32_ckd $(echo -n "$SEED") 0)
+XPUB=$(pybtctools/pybtctool bip32_privtopub $(echo -n "$XPRIV"))
+ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$XPUB"))
+echo -e "\n\nBIP32 Address 1: "$ADDR"\nBIP32 Pubkey 1: "$XPUB"\nBIP32 Privkey 1: "$XPRIV"\n\n---"
+echo -e "\n\nBIP32 Address 1: "$ADDR"\nBIP32 Pubkey 1: "$XPUB"\nBIP32 Privkey 1: "$XPRIV"\n\n---" >> btc-KeyRNG/bip.addr
+else
+ADDR_COUNT=$(expr "$ADDR_COUNT" + 1)
+XPRIV=$(pybtctools/pybtctool bip32_ckd $(echo -n "$SEED") $(echo -n "$ADDR_COUNT"))
+XPUB=$(pybtctools/pybtctool bip32_privtopub $(echo -n "$XPRIV"))
+ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$XPUB"))
+echo -e "\n\nBIP32 Address "$ADDR_COUNT": "$ADDR"\nBIP32 Pubkey "$ADDR_COUNT": "$XPUB"\nBIP32 Privkey "$ADDR_COUNT": "$XPRIV"\n\n---"
+echo -e "\n\nBIP32 Address "$ADDR_COUNT": "$ADDR"\nBIP32 Pubkey "$ADDR_COUNT": "$XPUB"\nBIP32 Privkey "$ADDR_COUNT": "$XPRIV"\n\n---" >> btc-KeyRNG/bip.addr
+fi
 done
 echo -e "\nDONE CREATING "$NUM" BIP32 ADDRESSES."
 echo -e "ADDRESSES AND PRIVKEYS STORED IN KeyRNG/btc-KeyRNG/bip.addr\n"
@@ -1388,38 +1386,36 @@ cat btc-KeyRNG/bip.addr | less
 checkunspent ()
 {
 clear
-
 read -p "See a list of the addresses in KeyRNG? (y/no) " LIST
 if [ "$LIST" != "no" ]; then
-    echo -e "\nPress enter to see addresses."
-    echo "Use up/down arrows to navigate. Press "q" when finished."
-    read
-    cat btc-KeyRNG/*.addr | grep Address | less
+echo -e "\nPress enter to see addresses."
+echo "Use up/down arrows to navigate. Press "q" when finished."
+read
+cat btc-KeyRNG/*.addr | grep Address | less
 fi
 echo -e "\nPaste address to check unspent outputs with 0 confirmations."
 read ADDR
 echo "Getting unspent outputs..."
-if  [[ "$USE_TOR" = "y" && "$HAVE_API" = "y" ]]; then
-    UNSPENT=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/q/addressbalance/"$ADDR"?api_code="$BCI_API")
-    echo -e "\nAmount is in Satoshis: "$UNSPENT""
-    echo -e "\nPress enter to return to BLOCKCHAIN MENU."
-    read
-
+if [[ "$USE_TOR" = "y" && "$HAVE_API" = "y" ]]; then
+UNSPENT=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/q/addressbalance/"$ADDR"?api_code="$BCI_API")
+echo -e "\nAmount is in Satoshis: "$UNSPENT""
+echo -e "\nPress enter to return to BLOCKCHAIN MENU."
+read
 elif [[ "$USE_TOR" = "y" && "$HAVE_API" != "y" ]]; then
-    UNSPENT=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/q/addressbalance/"$ADDR")
-    echo -e "\nAmount is in Satoshis: "$UNSPENT""
-    echo -e "\nPress enter to return to BLOCKCHAIN MENU."
-    read
+UNSPENT=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/q/addressbalance/"$ADDR")
+echo -e "\nAmount is in Satoshis: "$UNSPENT""
+echo -e "\nPress enter to return to BLOCKCHAIN MENU."
+read
 elif [[ "$USE_TOR" != "y" && "$HAVE_API" = "y" ]]; then
-    UNSPENT=$(curl --silent --get https://blockchain.info/q/addressbalance/"$ADDR"?api_code="$BCI_API")
-    echo -e "\nAmount is in Satoshis: "$UNSPENT""
-    echo -e "\nPress enter to return to BLOCKCHAIN MENU."
-    read
+UNSPENT=$(curl --silent --get https://blockchain.info/q/addressbalance/"$ADDR"?api_code="$BCI_API")
+echo -e "\nAmount is in Satoshis: "$UNSPENT""
+echo -e "\nPress enter to return to BLOCKCHAIN MENU."
+read
 else
-    UNSPENT=$(curl --silent --get https://blockchain.info/q/addressbalance/"$ADDR")
-    echo -e "\nAmount is in Satoshis: "$UNSPENT""
-    echo -e "\nPress enter to return to BLOCKCHAIN MENU."
-    read
+UNSPENT=$(curl --silent --get https://blockchain.info/q/addressbalance/"$ADDR")
+echo -e "\nAmount is in Satoshis: "$UNSPENT""
+echo -e "\nPress enter to return to BLOCKCHAIN MENU."
+read
 fi
 }
 #-------------------
@@ -1431,30 +1427,30 @@ clear
 echo -e "\nPaste the transaction hash."
 read TXID
 echo "Getting raw transaction details..."
-if  [[ "$USE_TOR" = "y" && "$HAVE_API" = "y" ]]; then
-    RAWTX=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/rawtx/"$TXID"?api_code="$BCI_API")
-    echo -e "\nPress enter to see transaction details."
-    echo "Use up/down arrows to navigate. Press "q" when finished."
-    read
-    echo "$RAWTX" | less
+if [[ "$USE_TOR" = "y" && "$HAVE_API" = "y" ]]; then
+RAWTX=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/rawtx/"$TXID"?api_code="$BCI_API")
+echo -e "\nPress enter to see transaction details."
+echo "Use up/down arrows to navigate. Press "q" when finished."
+read
+echo "$RAWTX" | less
 elif [[ "$USE_TOR" = "y" && "$HAVE_API" != "y" ]]; then
-    UNSPENT=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/rawtx/"$TXID")
-    echo -e "\nPress enter to see transaction details."
-    echo "Use up/down arrows to navigate. Press "q" when finished."
-    read
-    echo "$RAWTX" | less
+UNSPENT=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/rawtx/"$TXID")
+echo -e "\nPress enter to see transaction details."
+echo "Use up/down arrows to navigate. Press "q" when finished."
+read
+echo "$RAWTX" | less
 elif [[ "$USE_TOR" != "y" && "$HAVE_API" = "y" ]]; then
-    UNSPENT=$(curl --silent --get https://blockchain.info/rawtx/"$TXID"?api_code="$BCI_API")
-    echo -e "\nPress enter to see transaction details."
-    echo "Use up/down arrows to navigate. Press "q" when finished."
-    read
-    echo "$RAWTX" | less
+UNSPENT=$(curl --silent --get https://blockchain.info/rawtx/"$TXID"?api_code="$BCI_API")
+echo -e "\nPress enter to see transaction details."
+echo "Use up/down arrows to navigate. Press "q" when finished."
+read
+echo "$RAWTX" | less
 else
-    UNSPENT=$(curl --silent --get https://blockchain.info/rawtx/"$TXID")
-    echo -e "\nPress enter to see transaction details."
-    echo "Use up/down arrows to navigate. Press "q" when finished."
-    read
-    echo "$RAWTX" | less
+UNSPENT=$(curl --silent --get https://blockchain.info/rawtx/"$TXID")
+echo -e "\nPress enter to see transaction details."
+echo "Use up/down arrows to navigate. Press "q" when finished."
+read
+echo "$RAWTX" | less
 fi
 }
 #------------------------
@@ -1466,42 +1462,42 @@ clear
 echo "See a list of the addresses in KeyRNG? (y/no)"
 read LIST
 if [ "$LIST" != "no" ]; then
-    echo -e "\nPress enter to see addresses."
-    echo "Use up/down arrows to navigate. Press "q" when finished."
-    read
-    cat btc-KeyRNG/*.addr | grep Address | less
+echo -e "\nPress enter to see addresses."
+echo "Use up/down arrows to navigate. Press "q" when finished."
+read
+cat btc-KeyRNG/*.addr | grep Address | less
 fi
 echo -e "\nPaste address to check raw history."
 read ADDR
 echo "Getting history..."
-if  [[ "$USE_TOR" = "y" && "$HAVE_API" = "y" ]]; then
-    HIST=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/rawaddr/"$ADDR"?api_code="$BCI_API")
-    echo -e "\nPress enter to see history."
-    echo "Use up/down arrows to navigate. Press "q" when finished."
-    echo -e " "$HIST""
-    echo -e "\nPress enter to return to BLOCKCHAIN MENU."
-    read
+if [[ "$USE_TOR" = "y" && "$HAVE_API" = "y" ]]; then
+HIST=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/rawaddr/"$ADDR"?api_code="$BCI_API")
+echo -e "\nPress enter to see history."
+echo "Use up/down arrows to navigate. Press "q" when finished."
+echo -e " "$HIST""
+echo -e "\nPress enter to return to BLOCKCHAIN MENU."
+read
 elif [[ "$USE_TOR" = "y" && "$HAVE_API" != "y" ]]; then
-    HIST=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/rawaddr/"$ADDR")
-    echo -e "\nPress enter to see history."
-    echo "Use up/down arrows to navigate. Press "q" when finished."
-    echo -e " "$HIST""
-    echo -e "\nPress enter to return to BLOCKCHAIN MENU."
-    read
+HIST=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/rawaddr/"$ADDR")
+echo -e "\nPress enter to see history."
+echo "Use up/down arrows to navigate. Press "q" when finished."
+echo -e " "$HIST""
+echo -e "\nPress enter to return to BLOCKCHAIN MENU."
+read
 elif [[ "$USE_TOR" != "y" && "$HAVE_API" = "y" ]]; then
-    HIST=$(curl --silent --get https://blockchain.info/rawaddr/"$ADDR"?api_code="$BCI_API")
-    echo -e "\nPress enter to see history."
-    echo "Use up/down arrows to navigate. Press "q" when finished."
-    echo -e " "$HIST""
-    echo -e "\nPress enter to return to BLOCKCHAIN MENU."
-    read
+HIST=$(curl --silent --get https://blockchain.info/rawaddr/"$ADDR"?api_code="$BCI_API")
+echo -e "\nPress enter to see history."
+echo "Use up/down arrows to navigate. Press "q" when finished."
+echo -e " "$HIST""
+echo -e "\nPress enter to return to BLOCKCHAIN MENU."
+read
 else
-    HIST=$(curl --silent --get https://blockchain.info/rawaddr/"$ADDR")
-    echo -e "\nPress enter to see history."
-    echo "Use up/down arrows to navigate. Press "q" when finished."
-    echo -e " "$HIST""
-    echo -e "\nPress enter to return to BLOCKCHAIN MENU."
-    read
+HIST=$(curl --silent --get https://blockchain.info/rawaddr/"$ADDR")
+echo -e "\nPress enter to see history."
+echo "Use up/down arrows to navigate. Press "q" when finished."
+echo -e " "$HIST""
+echo -e "\nPress enter to return to BLOCKCHAIN MENU."
+read
 fi
 }
 #-----------------------------------
