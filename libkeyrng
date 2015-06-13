@@ -82,11 +82,7 @@ exit 0
 fastlockup ()
 {
 tar -c *-KeyRNG/ pybtctools/ libkeyrng > lock.KeyRNG.tar.gz
-<<<<<<< HEAD
 gpg --symmetric --cipher-algo aes256 lock.KeyRNG.tar.gz
-=======
-gpg2 --symmetric --cipher-algo aes256 lock.KeyRNG.tar.gz
->>>>>>> refs/remotes/origin/master
 rm -rf *KeyRNG/ pybtctools/ libkeyrng *.tar.gz temp/
 exit 0
 }
@@ -172,11 +168,7 @@ echo "Press enter when you are ready to paste key to import."
 read
 rm -rf temp/temp
 nano temp/temp
-<<<<<<< HEAD
 gpg --homedir gpg-KeyRNG/ --no-permission-warning --import temp/temp
-=======
-gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --import temp/temp
->>>>>>> refs/remotes/origin/master
 echo "Shredding temp file..."
 DEL=temp/temp
 secdelete
@@ -204,11 +196,7 @@ read LIST_KEYS
   fi
 echo "What key UID do you want to import to KeyRNG?"
 read IMPORT_KEY
-<<<<<<< HEAD
 gpg --homedir "$DEFAULT_GPG" --keyid-format 0xlong --export "$IMPORT_KEY" | gpg --homedir gpg-KeyRNG/ --no-permission-warning --import -
-=======
-gpg2 --homedir "$DEFAULT_GPG" --keyid-format 0xlong --export "$IMPORT_KEY" | gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --import -
->>>>>>> refs/remotes/origin/master
 }
 #--------------------------------------------
 ## IMPORT ALL PUBLIC KEYS FROM ANOTHER GPG ##
@@ -224,11 +212,7 @@ else
     read GPG
 fi
 rm -rf temp/temp
-<<<<<<< HEAD
 gpg --homedir "$GPG" --no-permission-warning --list-keys --keyid-format 0xlong | grep "0x" | cut -b 13- | cut -b -19 > temp/temp
-=======
-gpg2 --homedir "$GPG" --no-permission-warning --list-keys --keyid-format 0xlong | grep "0x" | cut -b 13- | cut -b -19 > temp/temp
->>>>>>> refs/remotes/origin/master
 LINES=$(grep -c "0x" temp/temp)
 if [ "$LINES" -gt "0" ]; then
     cat temp/temp | xargs -I{} -d"\n" gpg --no-permission-warning --homedir "$GPG" --export {} | gpg --no-permission-warning --homedir gpg-KeyRNG/ --import
@@ -256,19 +240,11 @@ read LIST_KEYS
       echo "Press enter to see a list of possible recipients by UID."
       echo "Use up/down arrows to navigate. Press "q" when finished."
       read
-<<<<<<< HEAD
       gpg --homedir "$DEFAULT_GPG" --list-secret-keys | less
   fi
 echo "What key UID do you want to import to KeyRNG?"
 read IMPORT_KEY
 gpg --homedir "$DEFAULT_GPG" --keyid-format 0xlong --export "$IMPORT_KEY" | gpg --homedir gpg-KeyRNG/ --no-permission-warning --import
-=======
-      gpg2 --homedir "$DEFAULT_GPG" --list-secret-keys | less
-  fi
-echo "What key UID do you want to import to KeyRNG?"
-read IMPORT_KEY
-gpg2 --homedir "$DEFAULT_GPG" --keyid-format 0xlong --export "$IMPORT_KEY" | gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --import
->>>>>>> refs/remotes/origin/master
 }
 #---------------------------------------------
 ## IMPORT ALL PRIVATE KEYS FROM ANOTHER GPG ##
@@ -284,11 +260,7 @@ else
     read GPG
 fi
 rm -rf temp/temp
-<<<<<<< HEAD
 gpg --homedir "$GPG" --no-permission-warning --keyid-format 0xlong --list-secret-keys | grep "0x" | cut -b 13- | cut -b -19 > temp/temp
-=======
-gpg2 --homedir "$GPG" --no-permission-warning --keyid-format 0xlong --list-secret-keys | grep "0x" | cut -b 13- | cut -b -19 > temp/temp
->>>>>>> refs/remotes/origin/master
 LINES=$(grep -c "0x" temp/temp)
 if [ "$LINES" -gt "0" ]; then
     cat temp/temp | xargs -I{} -d"\n" gpg --no-permission-warning --homedir "$GPG" --export-secret-keys {} | gpg --no-permission-warning --homedir gpg-KeyRNG/ --import
