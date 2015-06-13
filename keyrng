@@ -1,5 +1,8 @@
 #!/bin/bash
-#
+set +o history
+unset "$HISTFILE"
+BCI_API=
+USE_TOR=y
 #
 #
 #
@@ -8,7 +11,7 @@
 #
 #
 ## IS LOCKED
-IS_LOCKED=$(ls | grep -c ".tar.gz.gpg")
+IS_LOCKED=$(ls | grep -c "KeyRNG.gpg")
 if [ "$IS_LOCKED" -gt "0" ]; then
     clear
     echo "---------------------------------------"
@@ -22,29 +25,46 @@ if [ "$IS_LOCKED" -gt "0" ]; then
             "Unlock KeyRNG Files")
 unlock ()
 {
-gpg2 -d *.tar.gz.gpg > lock.KeyRNG.tar.gz
-tar -xf lock.KeyRNG.tar.gz
+read -s -p "Enter Password: " PW
+PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
+gpg --quiet --no-use-agent --output checksum --passphrase "$PW" -d checksum.gpg
+rm -rf checksum.gpg
+SUM=$(cat checksum)
+CHK=$(cat keyrng | shasum -t -a 512 | cut -b -128)
+if [ "$SUM" != "$CHK" ]; then
+    echo -e "\nCHECKSUM OF keyrng DOES NOT MATCH FROM BEFORE LOCKING."
+    echo "Do you still want to unlock your files? (Y/no)"
+    read UNLOCK
+    if [ "$UNLOCK" != "Y" ]; then
+        gpg --passphrase "$PW" --no-use-agent --cipher-algo aes256 --symmetric checksum
+        rm -rf checksum
+        exit 0
+    fi
+fi
+gpg --quiet --no-use-agent --output KeyRNG.tar.gz --passphrase "$PW" -d KeyRNG.gpg
+unset PW; unset CHKPW; unset SUM; unset CHKSUM
+tar -xf KeyRNG.tar.gz
 chown -R "$USER" * */ */*
 chmod 0600 gpg-KeyRNG/gpg.conf
+chmod 0600 btc-KeyRNG/*
 echo "Shredding temp files..."
-HAS_SRM=$(ls /usr/bin/ /usr/sbin/ /usr/local/bin/ /home/"$USER"/bin/ | grep -c srm)
+HAS_SRM=$(ls /usr/bin/ /usr/sbin/ /usr/local/bin/ | grep -c srm)
 if [[ "$HAS_SRM" -gt "0" ]]; then
-    srm -drlv *.tar.gz*
+    srm -drlv checksum* KeyRNG.*
 else
-    shred -vuzn 3 *.tar.gz*
+    shred -vuzn 3 checksum* KeyRNG.*
 fi
 }
                 unlock
-                . libkeyrng
                 break
                 ;;
             "Copy Encrypted Files For Backup")
                 clear
-                echo "What would you like to name the backup copy?"
+                echo "What would you like to path and/or name to be?"
                 read BACKUP
                 echo "Copying..."
-                cp *.tar.gz.gpg "$BACKUP".tar.gz.gpg
-                echo "File is at "$BACKUP".tar.gz.gpg"
+                cp locked.KeyRNG "$BACKUP"
+                echo "File is at "$BACKUP""
                 echo "You should move it somewhere else if you would like to keep it."
                 echo "Press enter to exit."
                 read
@@ -52,7 +72,7 @@ fi
                 ;;
             "About Locked File")
                 clear
-                echo -e "\n\n$(ls -lh *.tar.gz.gpg)\n\n"
+                echo -e "\n\n$(ls -lh KeyRNG.locked)\n\n"
                 ;;
             "Quit")
                 exit 0
@@ -445,7 +465,7 @@ do
             echo "| B I T C O I N   M E N U |"
             echo "---------------------------"
             PS3='Enter option (press enter to see options again): '
-            options=("Standard Addresses" "Electrum Addresses Menu" "BIP32 Seed Addresses" "Sign Message" "Back To MAIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+            options=("Standard Addresses" "Electrum Addresses Menu" "BIP32 Seed Addresses" "Show All Addresses" "Blockchain Interaction" "Sign Message" "Back To MAIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
             select opt in "${options[@]}"
             do
                 case "$opt" in
@@ -455,18 +475,24 @@ do
                     echo "| S T A N D A R D   A D D R E S S   M E N U |"
                     echo "---------------------------------------------"
                     PS3='Enter option (press enter to see options again): '
-                    options=("Create New Address" "Show Addresses Only" "Show Addresses And Private Keys" "Back To BITCOIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+                    options=("Create New Address" "Create Multiple New Addresses" "Show Addresses Only" "Show Addresses And Public Keys" "Show Private Keys" "Back To BITCOIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                     select opt in "${options[@]}"
                     do
                         case "$opt" in
                             "Create New Address")
                                 getnewaddress
                                 ;;
+                            "Create Multiple New Addresses")
+                                multiplestandaddr
+                                ;;
                             "Show Addresses Only")
                                 showaddr
                                 ;;
-                            "Show Addresses And Private Keys")
+                            "Show Addresses And Public Keys")
                                 showalladdr
+                                ;;
+                            "Show Private Keys")
+                                showstandardpriv
                                 ;;
                             "Back To BITCOIN MENU")
                                 break
@@ -491,18 +517,24 @@ do
                         echo "| E L E C T R U M   A D D R E S S   M E N U |"
                         echo "---------------------------------------------"
                         PS3='Enter choice (press enter to see options again): '
-                        options=("Create New Address" "Show Addresses Only" "Show Addresses And Private Keys" "Back to BITCOIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+                        options=("Create New Address" "Create Multiple Addresses" "Show Addresses Only" "Show Addresses And Public Keys" "Show Private Keys" "Back to BITCOIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                         select opt in "${options[@]}"
                         do
                             case "$opt" in
                                 "Create New Address")
                                     elecreateaddr
                                     ;;
+                                "Create Multiple Addresses")
+                                    multipleeleaddr
+                                    ;;
                                 "Show Addresses Only")
                                     eleshowaddr
                                     ;;
-                                "Show Addresses And Private Keys")
+                                "Show Addresses And Public Keys")
                                     eleshowall
+                                    ;;
+                                "Show Private Keys")
+                                    showelepriv
                                     ;;
                                 "Back to BITCOIN MENU")
                                     break
@@ -527,12 +559,15 @@ do
                         echo "| B I P 3 2   A D D R E S S   M E N U |"
                         echo "---------------------------------------"
                         PS3='Enter choice (press enter to see options again): '
-                        options=("Create New Address" "Show Addresses Only" "Show Addresses, Privkeys, And Seed" "Back to BITCOIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+                        options=("Create New Address" "Create Multiple Addresses" "Show Addresses Only" "Show Addresses, Privkeys, And Seed" "Back to BITCOIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                         select opt in "${options[@]}"
                         do
                             case "$opt" in
                                 "Create New Address")
                                     bipcreateaddr
+                                    ;;
+                                "Create Multiple Addresses")
+                                    multiplebipaddr
                                     ;;
                                 "Show Addresses Only")
                                     bipshowaddr
@@ -555,6 +590,55 @@ do
                                 *) echo "Invalid Option";;
                             esac
                         done                        
+                        ;;
+                    "Show All Addresses")
+                        showalladdr
+                        ;;
+                    "Blockchain Interaction")
+                    RAN=$(echo -n "$USE_TOR" | grep -c "")
+                    if [ "$RAN" = "0" ]; then
+                        echo -e "\nKeyRNG is using the Blockchain.info API for blockchain interaction."
+                        echo "Tor users go through BCIs hidden service."
+                        echo -e "\nRoute your requests through tor? (y/no)"
+                        read USE_TOR
+                        echo -e "\nWithout an API key you may get rate limiting errors."
+                        echo "Do you have a BCI API key? (y/no)"
+                        read HAVE_API
+                        if [ "$HAVE_API" = "y" ]; then
+                            echo "Paste key."
+                            read BCI_API
+                        fi
+                    fi
+                    clear
+                    echo "-------------------------------"
+		    echo "| BLOCKCHAIN INTERACTION MENU |"
+		    echo "-------------------------------"
+                    PS3='Enter option (press enter to see options again): '
+                    options=("Check Unspent Balance" "Raw Transaction Details" "Raw Address History" "Back to BITCOIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+                    select opt in "${options[@]}"
+                    do
+                        case "$opt" in
+                            "Check Unspent Balance")
+                                checkunspent
+                                ;;
+                            "Raw Transaction Details")
+                                getrawtx
+                                ;;
+                            "Raw Address History")
+                                rawaddrhist
+                                ;;
+                            "Quit")
+                                badquit
+                                ;;
+                            "FAST LOCK UP")
+                                fastlockup
+                                ;;
+                            "SECURE LOCK UP")
+                                lockup
+                                ;;
+                            *) echo "Invalid Option";;
+                        esac
+                    done
                         ;;
                     "Sign Message")
                         btcsign
