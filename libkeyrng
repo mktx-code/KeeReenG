@@ -335,7 +335,7 @@ read
 gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | less
 echo "Enter the UID you would like to send to the keyserver."
 read SEND_KEYSERV_UID
-gpg2 --homedir gpg-KeyRNG/ --no-permission-warning --send-keys "$SEND_KEYSERV_UID"
+gpg --homedir gpg-KeyRNG/ --no-permission-warning --send-keys "$SEND_KEYSERV_UID"
 }
 #-----------------------------
 ## RECEIVE KEYS FROM SERVER ##
