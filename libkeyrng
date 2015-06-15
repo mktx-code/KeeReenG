@@ -4,8 +4,22 @@
 #
 firstrun ()
 {
-echo "Generating gpg key-pair. Please answer the questions."
-gpg --homedir gpg-KeyRNG/ --no-permission-warning --gen-key
+REDO=$(gpg --homedir gpg-KeyRNG/ --list-keys | grep -c KeyRNG)
+if [ "$REDO" -gt "0" ]; then gpg --homedir gpg-KeyRNG/ --delete-secret-keys KeyRNG && gpg --homedir gpg-KeyRNG/ --delete-keys KeyRNG
+fi
+echo "GENERATING GPG MASTER KEY!."
+echo "This key will be used to encrypt your private bitcoin keys and seeds."
+read -s -p "Create a strong passphrase for this key: " PW
+echo ""
+read -s -p "Repeat: " CPW
+while [[ "$PW" != "$CPW" ]]; do echo "Passwords don't match."; echo ""
+read -s -p "Create a strong passphrase for this key: " PW
+echo ""
+read -s -p "Repeat: " CPW
+done
+echo -e "\nGenerating key..."
+echo -e "Key-Type: 1\nKey-Length: 4096\nSubkey-Type: 1\nSubkey-Length: 4096\nPassphrase: "$PW"\nName-Real: KeyRNG\nExpire-Date: 0\nCreation-Date:1984-01-01\n" | gpg --homedir gpg-KeyRNG/ --quiet --batch --gen-key
+unset PW; unset CPW
 chown -R "$USER" gpg-KeyRNG/
 chown -R "$USER" gpg-KeyRNG/*
 chmod -R 0600 gpg-KeyRNG/gpg.conf
@@ -53,9 +67,11 @@ echo ""
 read -s -p "Once more:" CHKPW
 CHKPW=$(echo -n "$CHKPW" | shasum -t -a 512 | cut -b -128)
 if [[ "$PW" = "$CHKPW" ]]; then
-    rm -rf checksum; touch checksum
-    cat keyrng | shasum -t -a 512 | cut -b 128 > checksum
-    tar -cf KeyRNG.tar.gz *-KeyRNG/ pybtctools/ libkeyrng
+    rm -rf checksum
+    touch checksum
+    chmod 0600 checksum
+    cat keyrng | shasum -t -a 512 | cut -b -128 > checksum
+    tar -cf KeyRNG.tar.gz gpg-KeyRNG/ btc-KeyRNG/ pybtctools/ libkeyrng
     gpg --quiet --output KeyRNG.gpg --passphrase "$PW"  --cipher-algo aes256 --symmetric KeyRNG.tar.gz
     gpg --quiet --passphrase "$PW"  --cipher-algo aes256 --symmetric checksum
     unset PW; unset CHKPW;
@@ -114,7 +130,7 @@ fi
 #---------------------
 genkey ()
 {
-gpg --homedir gpg-KeyRNG/ --no-permission-warning --gen-key
+gpg --homedir gpg-KeyRNG/  --gen-key
 }
 #--------------------------
 ## LIST FULL KEY DETAILS ##
@@ -123,7 +139,7 @@ listfullkeydetails ()
 {
 echo "Press enter to see a list of possible recipients by UID."
 echo "Use up/down arrows to navigate. Press "q" when your finished."
-gpg --quiet --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | less
+gpg --quiet --homedir gpg-KeyRNG/  --list-keys | grep -e "uid" -e "fingerprint" -e "0x" | sed -e 's|              ||g' | less
 }
 #------------------
 ## LIST KEY UIDS ##
@@ -133,7 +149,7 @@ listkeyuids ()
 echo "Press enter to see a list of possible recipients by UID."
 echo "Use up/down arrows to navigate. Press "q" when your finished."
 read
-gpg --quiet --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "uid" | cut -b 21- | less
+gpg --quiet --homedir gpg-KeyRNG/  --list-keys | grep "uid" | cut -b 21- | less
 }
 #---------------------------------
 ## LIST FULL SECRET KEY DETAILS ##
@@ -142,7 +158,7 @@ listfullseckey ()
 {
 echo "Press enter to see a list of possible recipients by UID."
 echo "Use up/down arrows to navigate. Press "q" when your finished."
-gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-secret-keys | less
+gpg --homedir gpg-KeyRNG/  --list-secret-keys | grep -e "uid" -e "fingerprint" -e "0x" | sed -e 's|                         ||g' | less
 }
 #-------------------------
 ## LIST SECRET KEY UIDS ##
@@ -151,7 +167,7 @@ listseckeyuid ()
 {
 echo "Press enter to see a list of possible recipients by UID."
 echo "Use up/down arrows to navigate. Press "q" when your finished."
-gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-secret-keys | grep "uid" | cut -b 21- | less
+gpg --homedir gpg-KeyRNG/  --list-secret-keys | grep "uid" | cut -b 21- | less
 }
 #-------------------------
 ## IMPORT KEY FROM FILE ##
@@ -160,7 +176,7 @@ importkeyfile ()
 {
 echo "What file to import to KeyRNG?"
 read $IMPORT_KEYFILE
-gpg --homedir gpg-KeyRNG/ --no-permission-warning --import "$IMPORT_KEYFILE"
+gpg --homedir gpg-KeyRNG/  --import "$IMPORT_KEYFILE"
 }
 #------------------------------
 ## IMPORT KEY FROM CLIPBOARD ##
@@ -171,7 +187,7 @@ echo "Press enter when you are ready to paste key to import."
 read
 rm -rf temp/temp
 nano temp/temp
-gpg --homedir gpg-KeyRNG/ --no-permission-warning --import temp/temp
+gpg --homedir gpg-KeyRNG/  --import temp/temp
 echo "Shredding temp file..."
 DEL=temp/temp
 secdelete
@@ -199,7 +215,8 @@ read LIST_KEYS
   fi
 echo "What key UID do you want to import to KeyRNG?"
 read IMPORT_KEY
-gpg --homedir "$DEFAULT_GPG" --export "$IMPORT_KEY" | gpg --homedir gpg-KeyRNG/ --no-permission-warning --import -
+gpg --homedir "$DEFAULT_GPG" --export "$IMPORT_KEY" | gpg --homedir gpg-KeyRNG/  --quiet --import -
+gpg --homedir gpg-KeyRNG/  --list-keys "$IMPORT_KEY" | grep "fingerprint" | cut -b 25- | tr -d " " | sed 's|$|\:6\:|' | gpg --homedir gpg-KeyRNG/ --no-permission-warning --quiet --import-owner-trust
 }
 #--------------------------------------------
 ## IMPORT ALL PUBLIC KEYS FROM ANOTHER GPG ##
@@ -210,16 +227,16 @@ echo "Import all public keys from default location (/home/"$USER"/.gnupg/)? (y/n
 read DEFAULT
 if [[ "$DEFAULT" != "no" ]]; then
     GPG=/home/"$USER"/.gnupg/
-    
 else
     echo "Give the path and folder name."
     read GPG
 fi
 rm -rf temp/temp
-gpg --homedir $(echo "$GPG") --no-permission-warning --list-keys --keyid-format 0xlong | grep "0x" | cut -b 13- | cut -b -19 > temp/temp
+gpg --homedir $(echo "$GPG")  --list-keys --keyid-format 0xlong | grep "0x" | cut -b 13- | cut -b -19 > temp/temp
 LINES=$(grep -c "0x" temp/temp)
 if [ "$LINES" -gt "0" ]; then
-    cat temp/temp | xargs -I{} -d"\n" gpg --no-permission-warning --homedir $(echo "$GPG") --export {} | gpg --no-permission-warning --homedir gpg-KeyRNG/ --import
+    cat temp/temp | xargs -I{} -d"\n" gpg  --homedir $(echo "$GPG") --export {} | gpg --no-permission-warning --homedir gpg-KeyRNG/ --quiet --import
+gpg --homedir gpg-KeyRNG/ --list-keys | grep "fingerprint" | cut -b 25- | tr -d " " | sed 's|$|\:6\:|' | gpg --homedir gpg-KeyRNG/ --quiet --import-ownertrust
 fi
 echo "Shredding temp file..."
 DEL=temp/temp
@@ -232,11 +249,11 @@ importseckeyfromgpg ()
 {
 echo "From defualt /home/"$USER"/.gnupg file? (y/no)"
 read IS_DEFAULT_GPG
-  if [[ "$DEFAULT_GPG" = "no" ]]; then
+  if [[ "$IS_DEFAULT_GPG" = "no" ]]; then
       echo "Please give the full path to the gnupg file:"
-      read DEFAULT_GPG
+      read GPG
   else
-      DEFAULT_GPG=/home/"$USER"/.gnupg/
+      GPG=/home/"$USER"/.gnupg/
   fi
 echo "List keys from "$DEFAULT_GPG"? (y/no)"
 read LIST_KEYS
@@ -244,11 +261,11 @@ read LIST_KEYS
       echo "Press enter to see a list of possible recipients by UID."
       echo "Use up/down arrows to navigate. Press "q" when finished."
       read
-      gpg --homedir "$DEFAULT_GPG" --list-secret-keys --keyid-format 0xlong | less
+      gpg --homedir "$GPG" --list-secret-keys --keyid-format 0xlong | less
   fi
 echo "What key UID do you want to import to KeyRNG?"
 read IMPORT_KEY
-gpg --homedir "$DEFAULT_GPG" --export "$IMPORT_KEY" | gpg --homedir gpg-KeyRNG/ --no-permission-warning --import
+gpg --homedir "$GPG" --export "$IMPORT_KEY" | gpg --homedir gpg-KeyRNG/  --import
 }
 #---------------------------------------------
 ## IMPORT ALL PRIVATE KEYS FROM ANOTHER GPG ##
@@ -267,7 +284,7 @@ rm -rf temp/temp
 gpg --homedir "$GPG" --no-permission-warning --list-secret-keys --keyid-format 0xlong | grep "0x" | cut -b 13- | cut -b -19 > temp/temp
 LINES=$(grep -c "0x" temp/temp)
 if [ "$LINES" -gt "0" ]; then
-    cat temp/temp | xargs -I{} -d"\n" gpg --no-permission-warning --homedir "$GPG" --export-secret-keys {} | gpg --no-permission-warning --homedir gpg-KeyRNG/ --import
+    cat temp/temp | xargs -I{} -d"\n" gpg  --homedir "$GPG" --export-secret-keys {} | gpg --no-permission-warning --homedir gpg-KeyRNG/ --import
 fi
 echo "Shredding temp file..."
 DEL=temp/temp
@@ -280,10 +297,10 @@ exportpubkey ()
 {
 echo "Press enter to see a list of your public keys. Press "q" when finished."
 read
-gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "uid" | cut -b 21- | less
+gpg --homedir gpg-KeyRNG/  --list-keys | grep "uid" | cut -b 21- | less
 echo "Enter the UID you would like to export."
 read EXPORT_UID
-gpg --homedir gpg-KeyRNG/ --no-permission-warning --armor --export "$EXPORT_UID"
+gpg --homedir gpg-KeyRNG/  --armor --export "$EXPORT_UID"
 }
 #------------------------------
 ## EXPORT PUBLIC KEY TO FILE ##
@@ -292,12 +309,12 @@ exportpubkeyfile ()
 {
 echo "Press enter to see a list of your public keys. Press "q" when finished."
 read
-gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "uid" | cut -b 21- | less
+gpg --homedir gpg-KeyRNG/  --list-keys | grep "uid" | cut -b 21- | less
 echo "Enter the UID you would like to export."
 read EXPORT_UID
 echo "What file to write to?"
 read PUBKEY_FILE
-gpg --homedir gpg-KeyRNG/ --no-permission-warning --armor --output "$PUBKEY_FILE" --export "$EXPORT_UID"
+gpg --homedir gpg-KeyRNG/  --armor --output "$PUBKEY_FILE" --export "$EXPORT_UID"
 }
 #----------------------
 ## EXPORT SECRET KEY ##
@@ -306,10 +323,10 @@ exportseckey ()
 {
 echo "Press enter to see a list of your secret keys. Press "q" when finished."
 read
-gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-secret-keys | grep "uid" | cut -b 21- | less
+gpg --homedir gpg-KeyRNG/  --list-secret-keys | grep "uid" | cut -b 21- | less
 echo "Enter the UID you would like to export."
 read EXPORT_SECRET_UID
-gpg --homedir gpg-KeyRNG/ --no-permission-warning --armor --export "$EXPORT_SECRET_UID"
+gpg --homedir gpg-KeyRNG/  --armor --export "$EXPORT_SECRET_UID"
 }
 #------------------------------
 ## EXPORT SECRET KEY TO FILE ##
@@ -318,12 +335,12 @@ exportseckeyfile ()
 {
 echo "Press enter to see a list of your public keys. Press "q" when finished."
 read
-gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-secret-keys | grep "uid" | cut -b 21- | less
+gpg --homedir gpg-KeyRNG/  --list-secret-keys | grep "uid" | cut -b 21- | less
 echo "Enter the UID you would like to export."
 read EXPORT_SECRET_UID
 echo "What file to write to?"
 read SECKEY_FILE
-gpg --homedir gpg-KeyRNG/ --no-permission-warning --armor --output "$SECKEY_FILE" --export "$EXPORT_SECRET_UID"
+gpg --homedir gpg-KeyRNG/  --armor --output "$SECKEY_FILE" --export "$EXPORT_SECRET_UID"
 }
 #
 ## WRITE FUNC TO CHECK FOR TAILS/TOR ##
@@ -337,10 +354,10 @@ sendkeyserv ()
 echo "Copy the key ID starting with "0x...", press "q" when finished."
 echo "Press enter to see a list of your public keys."
 read
-gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | less
+gpg --homedir gpg-KeyRNG/  --list-keys | less
 echo "Enter the UID you would like to send to the keyserver."
 read SEND_KEYSERV_UID
-gpg --homedir gpg-KeyRNG/ --no-permission-warning --send-keys "$SEND_KEYSERV_UID"
+gpg --homedir gpg-KeyRNG/  --send-keys "$SEND_KEYSERV_UID"
 }
 #-----------------------------
 ## RECEIVE KEYS FROM SERVER ##
@@ -350,8 +367,17 @@ recvkeyserv ()
 {
 echo "Please enter the UID you would like to receive from the keyserver."
 read RECV_KEYSERV_UID
-gpg --homedir gpg-KeyRNG/ --no-permission-warning --recv-keys "$RECV_KEYSERV_UID"
+gpg --homedir gpg-KeyRNG/  --recv-keys "$RECV_KEYSERV_UID"
 }
+#-----------------
+## REFRESH KEYS ##
+#-----------------
+refreshkeys (){
+read -p "Refresh all keys? (y/no) " ALL
+if [[ "$ALL" != "no" ]]; then gpg --homedir gpg-KeyRNG/  --quiet --refresh-keys
+else read -p "What key to refresh? " ID; gpg --homedir gpg-KeyRNG/  --quiet --refresh-keys "$ID"
+fi; }
+
 #####################################
 ##### ENCRYPTION AND DECRYPTION #####
 #####################################
@@ -373,7 +399,7 @@ if [ "$SIGN" = "Y" ]; then
         echo "Press enter to see a list of signing keys."
         echo "Use up/down arrows to navigate. Press "q" when your finished."
         read
-        gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "sig"
+        gpg --homedir gpg-KeyRNG/  --list-keys | grep "sig"
         echo "Paste UID to sign with:"
         read PRIVKEY
     else
@@ -387,7 +413,7 @@ if [ "$SHOW_UIDS" != "no" ]; then
     echo "Press enter to see a list of possible recipients by uid."
     echo "Use up/down arrows to navigate. Press "q" when your finished."
     read
-    gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "uid" | cut -b 21- | less
+    gpg --homedir gpg-KeyRNG/  --list-keys | grep "uid" | cut -b 21- | less
 fi
 echo "What recipient?"
 read MSG_RECP
@@ -400,32 +426,32 @@ read IF_MSG_RECP_TWO
           echo "Press enter to see a list of possible recipients by uid."
           echo "Use up/down arrows to navigate. Press "q" when your finished."
           read
-          gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "uid" | cut -b 21- | less
+          gpg --homedir gpg-KeyRNG/  --list-keys | grep "uid" | cut -b 21- | less
       fi
       echo "Second recipient?"
       read MSG_RECP_TWO
   fi
 if [[ "$SIGN" != "Y" ]]; then
   if [[ "$IF_MSG_RECP_TWO" = "no" ]]; then
-      gpg --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$MSG_RECP" --output temp/newmsg.asc --encrypt "$EFILE"
+      gpg --homedir gpg-KeyRNG/  --armor --recipient "$MSG_RECP" --output temp/newmsg.asc --encrypt "$EFILE"
   else
       echo "Do you want the second recipient hidden? (y/no)"
       read HIDE_RECP_TWO
       if [ "$HIDE_RECP_TWO" != "no" ]; then
-          gpg --homedir gpg-KeyRNG/ --no-permission-warning --armor --hidden-recipient "$MSG_RECP_TWO" --recipient "$MSG_RECP" --output temp/newmsg.asc --encrypt "$EFILE"
+          gpg --homedir gpg-KeyRNG/  --armor --hidden-recipient "$MSG_RECP_TWO" --recipient "$MSG_RECP" --output temp/newmsg.asc --encrypt "$EFILE"
       fi
-      gpg --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$MSG_RECP" --recipient "$MSG_RECP_TWO" --output temp/newmsg.asc --encrypt "$EFILE"
+      gpg --homedir gpg-KeyRNG/  --armor --recipient "$MSG_RECP" --recipient "$MSG_RECP_TWO" --output temp/newmsg.asc --encrypt "$EFILE"
   fi
 else
   if [[ "$IF_MSG_RECP_TWO" = "no" ]]; then
-      gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign --no-permission-warning --armor --recipient "$MSG_RECP" --output temp/newmsg.asc --encrypt "$EFILE"
+      gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign  --armor --recipient "$MSG_RECP" --output temp/newmsg.asc --encrypt "$EFILE"
   else
       echo "Do you want the second recipient hidden? (y/no)"
       read HIDE_RECP_TWO
       if [ "$HIDE_RECP_TWO" != "no" ]; then
-          gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign --no-permission-warning --armor --hidden-recipient "$MSG_RECP_TWO" --recipient "$MSG_RECP" --output temp/newmsg.asc --encrypt "$EFILE"
+          gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign  --armor --hidden-recipient "$MSG_RECP_TWO" --recipient "$MSG_RECP" --output temp/newmsg.asc --encrypt "$EFILE"
       fi
-      gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign --no-permission-warning --armor --recipient "$MSG_RECP" --recipient "$MSG_RECP_TWO" --output temp/newmsg.asc --encrypt "$EFILE"
+      gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign  --armor --recipient "$MSG_RECP" --recipient "$MSG_RECP_TWO" --output temp/newmsg.asc --encrypt "$EFILE"
   fi
 fi
 echo "File is stored temporarily at KeyRNG/temp/newmsg.asc."
@@ -459,7 +485,7 @@ if [ "$SIGN" = "Y" ]; then
         echo "Press enter to see a list of signing keys."
         echo "Use up/down arrows to navigate. Press "q" when your finished."
         read
-        gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "sig"
+        gpg --homedir gpg-KeyRNG/  --list-keys | grep "sig"
         echo "Give UID to sign with:"
         read PRIVKEY
     else
@@ -473,7 +499,7 @@ read SHOW_UIDS
       echo "Press enter to see a list of possible recipients by UID."
       echo "Use up/down arrows to navigate. Press "q" when your finished."
       read
-      gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "uid" | cut -b 21- | less
+      gpg --homedir gpg-KeyRNG/  --list-keys | grep "uid" | cut -b 21- | less
   fi
 echo "What recipient?"
 read NEWMSG_RECP
@@ -486,7 +512,7 @@ if [ "$IF_NEWMSG_RECP_TWO" != "no" ]; then
         echo "Press enter to see a list of possible recipients by UID."
         echo "Use up/down arrows to navigate. Press "q" when your finished."
         read
-        gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-keys | grep "uid" | cut -b 21- | less
+        gpg --homedir gpg-KeyRNG/  --list-keys | grep "uid" | cut -b 21- | less
     fi
     echo "Second recipient UID?"
     read NEWMSG_RECP_TWO
@@ -494,22 +520,22 @@ if [ "$IF_NEWMSG_RECP_TWO" != "no" ]; then
     read HIDE_RECP_TWO
     if [[ "$SIGN" != "Y" ]]; then
       if [[ "$HIDE_RECP_TWO" != "no" ]]; then
-          gpg --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$NEWMSG_RECP" --hidden-recipient "$NEWMSG_RECP_TWO" --output temp/newmsg.asc --encrypt temp/newmsg
+          gpg --homedir gpg-KeyRNG/  --armor --recipient "$NEWMSG_RECP" --hidden-recipient "$NEWMSG_RECP_TWO" --output temp/newmsg.asc --encrypt temp/newmsg
       else
-          gpg --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$NEWMSG_RECP" --recipient "$NEWMSG_RECP_TWO" --output temp/newmsg.asc --encrypt temp/newmsg
+          gpg --homedir gpg-KeyRNG/  --armor --recipient "$NEWMSG_RECP" --recipient "$NEWMSG_RECP_TWO" --output temp/newmsg.asc --encrypt temp/newmsg
       fi
     else
       if [[ "$HIDE_RECP_TWO" != "no" ]]; then
-          gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign --no-permission-warning --armor --recipient "$NEWMSG_RECP" --hidden-recipient "$NEWMSG_RECP_TWO" --output temp/newmsg.asc --encrypt temp/newmsg
+          gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign  --armor --recipient "$NEWMSG_RECP" --hidden-recipient "$NEWMSG_RECP_TWO" --output temp/newmsg.asc --encrypt temp/newmsg
       else
-          gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign --no-permission-warning --armor --recipient "$NEWMSG_RECP" --recipient "$NEWMSG_RECP_TWO" --output temp/newmsg.asc --encrypt temp/newmsg
+          gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign  --armor --recipient "$NEWMSG_RECP" --recipient "$NEWMSG_RECP_TWO" --output temp/newmsg.asc --encrypt temp/newmsg
       fi  
     fi
 else
   if [[ "$SIGN" != "Y" ]]; then
-      gpg --homedir gpg-KeyRNG/ --no-permission-warning --armor --recipient "$NEWMSG_RECP" --output temp/newmsg.asc --encrypt temp/newmsg
+      gpg --homedir gpg-KeyRNG/  --armor --recipient "$NEWMSG_RECP" --output temp/newmsg.asc --encrypt temp/newmsg
   else
-      gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign --no-permission-warning --armor --recipient "$NEWMSG_RECP" --output temp/newmsg.asc --encrypt temp/newmsg
+      gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign  --armor --recipient "$NEWMSG_RECP" --output temp/newmsg.asc --encrypt temp/newmsg
   fi
 fi
 echo "File is stored temporarily at KeyRNG/temp/newmsg.asc"
@@ -548,7 +574,7 @@ read IS_HIDDEN_UID
             echo "Press enter to try all secret keys."
             read
             rm -rf temp/newmsg
-            gpg --homedir gpg-KeyRNG/ --no-permission-warning --try-all-secrets --output temp/newmsg --decrypt "$DFILE"
+            gpg --homedir gpg-KeyRNG/  --try-all-secrets --output temp/newmsg --decrypt "$DFILE"
             echo "File is stored temporarily at KeyRNG/temp/newmsg."
             echo "Do you want to print it now? (y/no)"
             read PRINT_NOW
@@ -568,7 +594,7 @@ read IS_HIDDEN_UID
         else
             echo "What UID?"
             read HIDDEN_UID
-            gpg --homedir gpg-KeyRNG/ --no-permission-warning --local-user "$HIDDEN_ID" --output temp/newmsg --decrypt "$DFILE"
+            gpg --homedir gpg-KeyRNG/  --local-user "$HIDDEN_ID" --output temp/newmsg --decrypt "$DFILE"
             echo "File is stored temporarily at KeyRNG/temp/newmsg."
             echo "Do you want to print it now? (y/no)"
             read PRINT_NOW
@@ -587,7 +613,7 @@ read IS_HIDDEN_UID
               fi
         fi
   else
-      gpg --homedir gpg-KeyRNG/ --no-permission-warning --local-user "$HIDDEN_ID" --output temp/newmsg --decrypt "$DFILE"   
+      gpg --homedir gpg-KeyRNG/  --local-user "$HIDDEN_ID" --output temp/newmsg --decrypt "$DFILE"   
       echo "File is stored temporarily at KeyRNG/temp/newmsg."
             echo "Do you want to print it now? (y/no)"
             read PRINT_NOW
@@ -625,7 +651,7 @@ read IS_HIDDEN_UID
             echo "Press enter to try all secret keys."
             read
             rm -rf temp/newmsg
-            gpg --homedir gpg-KeyRNG/ --no-permission-warning --try-all-secrets --output temp/newmsg --decrypt "$DFILE"
+            gpg --homedir gpg-KeyRNG/  --try-all-secrets --output temp/newmsg --yes --decrypt "$DFILE"
             echo "File is stored temporarily at KeyRNG/temp/newmsg."
             echo "Do you want to print it now? (y/no)"
             read PRINT_NOW
@@ -645,7 +671,7 @@ read IS_HIDDEN_UID
         else
             echo "What UID?"
             read HIDDEN_UID
-            gpg --homedir gpg-KeyRNG/ --no-permission-warning --local-user "$HIDDEN_ID" --output temp/newmsg --decrypt "$DFILE"
+            gpg --homedir gpg-KeyRNG/  --local-user "$HIDDEN_ID" --yes --output temp/newmsg --decrypt "$DFILE"
             echo "File is stored temporarily at KeyRNG/temp/newmsg."
             echo "Do you want to print it now? (y/no)"
             read PRINT_NOW
@@ -664,7 +690,7 @@ read IS_HIDDEN_UID
               fi
         fi
   else
-      gpg --homedir gpg-KeyRNG/ --no-permission-warning --local-user "$HIDDEN_ID" --output temp/newmsg --decrypt "$DFILE"   
+      gpg --homedir gpg-KeyRNG/  --local-user "$HIDDEN_ID" --output temp/newmsg --yes --decrypt "$DFILE"   
       echo "File is stored temporarily at KeyRNG/temp/newmsg."
             echo "Do you want to print it now? (y/no)"
             read PRINT_NOW
@@ -697,11 +723,11 @@ read SEE
       echo "Press enter to see a list of possible recipients by uid."
       echo "Use up/down arrows to navigate. Press "q" when finished."
       read
-      gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-secret-keys | grep "uid" | cut -b 21- | less
+      gpg --homedir gpg-KeyRNG/  --list-secret-keys | grep -e "uid" -e "fingerprint" -e "0x" | sed -e 's|                         ||g' | less
   fi
 echo "Give UID to sign with:"
 read PRIVKEY
-gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --no-permission-warning --armor --output "$FILE".asc --clearsign "$FILE"
+gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY"  --yes --armor --output "$FILE".asc --clearsign "$FILE"
 echo "Signed file is stored at "$FILE".asc."
 echo "Do you want to copy the file to another location? (Y/no)"
 read COPY
@@ -733,11 +759,11 @@ read SEE
       echo "Press enter to see a list of possible recipients by uid."
       echo "Use up/down arrows to navigate. Press "q" when finished."
       read
-      gpg --homedir gpg-KeyRNG/ --no-permission-warning --list-secret-keys | grep "uid" | cut -b 21- | less
+      gpg --homedir gpg-KeyRNG/  --list-secret-keys | grep -e "uid" -e "fingerprint" -e "0x" | sed -e 's|                         ||g' | less
   fi
 echo "Give UID to sign with:"
 read PRIVKEY
-gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --no-permission-warning --armor --output "$FILE".asc --clearsign "$FILE"
+gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY"  --yes --armor --output "$FILE".asc --clearsign "$FILE"
 echo "Signed file is stored at "$FILE".asc."
 echo "This file will be deleted when you do the LOCK UP! option."
 echo "Do you want to copy the file to another location? (Y/no)"
@@ -760,7 +786,7 @@ gpgfileverify ()
 {
 echo "Which file to verify?"
 read FILE
-gpg --homedir gpg-KeyRNG/ --no-permission-warning --verify "$FILE"
+gpg --homedir gpg-KeyRNG/  --verify "$FILE"
 }
 #------------------------------------
 ## GPG VERIFY CLIPBOARD SIGNATURE  ##
@@ -772,7 +798,7 @@ read
 rm -rf temp/newmsg
 nano temp/newmsg
 FILE=temp/newmsg
-gpg --homedir gpg-KeyRNG/ --no-permission-warning --verify "$FILE"
+gpg --homedir gpg-KeyRNG/  --verify "$FILE"
 }
 #################################
 ##### GENERAL BTC FUNCTIONS #####
@@ -826,6 +852,7 @@ read
 #----------------
 getnewaddress ()
 {
+KEYRNG=$(gpg --homedir gpg-KeyRNG/ --list-keys KeyRNG | grep pub | tr -d "pub" | cut -b 10- | cut -b -18)
 HAS_SPRIV=$(ls btc-KeyRNG/ | grep -c "s.priv")
 HAS_ADDRFILE=$(ls btc-KeyRNG/ | grep -c "standard")
 if [ "$HAS_ADDRFILE" = "0" ]; then
@@ -843,22 +870,27 @@ if [ "$HAS_SPRIV" = "0" ]; then
     echo "-----------------------------------------------------------------" > btc-KeyRNG/s.priv
     echo "| S T A N D A R D   A D D R E S S E S   P R I V A T E   K E Y S |" >> btc-KeyRNG/s.priv
     echo "-----------------------------------------------------------------" >> btc-KeyRNG/s.priv
-    echo -e "\nSince this is your first run, you need to create a pass to encrypt your keys."
-    echo -e "\nIF YOU FORGET YOUR PASSWORD YOU WILL NOT BE ABLE TO SPEND FROM THESE ADDRESSES!\n"
-    read -s -p "Enter your password to encrypt your STANDARD private keys: " PW
+    echo -e "\nYOUR PRIVATE KEYS WILL BE ENCRYPTED WITH THE MASTER GPG KEY\nTHAT WAS CREATED WHEN YOU FIRST RAN THIS PROGRAM."
+    echo -e "TO MAKE SURE YOU HAVE NOT FORGOT THE PASSPHRASE YOU WILL\nNEED TO COMPLETE A CHALLENGE."
     echo ""
-    PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
-    read -s -p "Once more: " CHKPW
-    CHKPW=$(echo -n "$CHKPW" | shasum -t -a 512 | cut -b -128)
-    gpg --homedir gpg-KeyRNG/ --quiet --output btc-KeyRNG/s.priv.gpg --cipher-algo aes256 --passphrase "$PW" --symmetric btc-KeyRNG/s.priv && rm -rf btc-KeyRNG/s.priv
-    unset PW; unset CHKPW
+    read -p "Press enter to decrypt the challenge."
+    TEST=$(gpg --armor --gen-random 2 38); echo -n "$TEST" > temp/test; gpg --homedir gpg-KeyRNG/ -ae -r KeyRNG temp/test
+    echo ""
+    TRY=$(gpg --homedir gpg-KeyRNG/ --quiet -d temp/test.asc)
+    if [ "$TEST" != "$TRY" ]; then 
+      read -p "Do you want to create a new master key? (Y/no)" NEWMK
+        if [[ "$NEWMK" = "Y" ]]; then 
+          firstrun
+        else
+          break
+        fi
+    fi
+    gpg --homedir gpg-KeyRNG/ --yes --quiet --output btc-KeyRNG/s.priv.gpg -ae -r "$KEYRNG" btc-KeyRNG/s.priv && rm -rf btc-KeyRNG/s.priv
 fi
 PRIV_LOCKED=$(ls btc-KeyRNG/ | grep -c "s.priv.gpg")
 if [ "$PRIV_LOCKED" = "1" ]; then
-    read -s -p "Enter your password to unlock your private keys: " PW
-    echo ""
-    PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
-    gpg --homedir gpg-KeyRNG --quiet  --output btc-KeyRNG/s.priv --passphrase "$PW" -d btc-KeyRNG/s.priv.gpg && rm -rf btc-KeyRNG/s.priv.gpg
+    echo "Unlock the private key file."
+    gpg --homedir gpg-KeyRNG --yes --output btc-KeyRNG/s.priv -d btc-KeyRNG/s.priv.gpg && rm -rf btc-KeyRNG/s.priv.gpg
 fi    
 PRIVKEY=$(pybtctools/pybtctool random_key)
 WIF_COMP=$(pybtctools/pybtctool encode_privkey $(echo -n "$PRIVKEY") wif_compressed)
@@ -867,9 +899,9 @@ ADDRESS=$(pybtctools/pybtctool pubkey_to_address $(echo -n "$PUBKEY"))
 NUM_PRIV=$(grep -c "Pubkey" btc-KeyRNG/standard.addr)
 if [[ "$NUM_PRIV" = "0" ]]; then
     echo -e "\n\nStandard Privkey 1: "$WIF_COMP"" >> btc-KeyRNG/s.priv
-    gpg --quiet  --homedir gpg-KeyRNG/ --output btc-KeyRNG/s.priv.gpg --passphrase "$PW" --cipher-algo aes256 --symmetric btc-KeyRNG/s.priv && srm -dr btc-KeyRNG/s.priv
+    gpg --quiet  --homedir gpg-KeyRNG/ --output btc-KeyRNG/s.priv.gpg -ae -r "$KEYRNG" btc-KeyRNG/s.priv && srm -dr btc-KeyRNG/s.priv
     unset PW; unset CHKPW
-    echo -e "\n\nStnadard Address 1: "$ADDRESS"\nStnadard Pubkey 1:  "$PUBKEY"\n---"
+    echo -e "\n\nStandard Address 1: "$ADDRESS"\nStandard Pubkey 1:  "$PUBKEY"\n---"
     echo "Add a note to address? (y/no)"
     read IS_NOTE
     if [[ "$IS_NOTE" = "y" ]]; then
@@ -889,8 +921,7 @@ else
     NUM_PRIV=$(expr "$NUM_PRIV" + 1)
     echo -e "\nStnadard Address "$NUM_PRIV": "$ADDRESS"\nStnadard Pubkey "$NUM_PRIV":  "$PUBKEY"\n---"
     echo -e "Stnadard Privkey "$NUM_PRIV":  "$WIF_COMP"" >> btc-KeyRNG/s.priv
-    gpg --quiet  --homedir gpg-KeyRNG/ --output btc-KeyRNG/s.priv.gpg --passphrase "$PW" --cipher-algo aes256 --symmetric btc-KeyRNG/s.priv && srm -dr btc-KeyRNG/s.priv
-    unset PW; unset CHKPW
+    gpg --quiet  --homedir gpg-KeyRNG/ --output btc-KeyRNG/s.priv.gpg -ae -r "$KEYRNG" btc-KeyRNG/s.priv && DEL=btc-KeyRNG/s.priv; secdelete
         echo "Add a note to address? (y/no)"
         read IS_NOTE
         if [[ "$IS_NOTE" = "y" ]]; then
@@ -898,12 +929,10 @@ else
             read NOTE 
             echo -e "\nStandard Address "$NUM_PRIV": "$ADDRESS"     Note: "$NOTE"\nStandard Pubkey "$NUM_PRIV":  "$PUBKEY"\n---" >> btc-KeyRNG/standard.addr
             echo "DONE!"
-            sleep 1
             clear
         else
             echo -e "\nStandard Address "$NUM_PRIV": "$ADDRESS"\nStandard Pubkey "$NUM_PRIV":  "$PUBKEY"\n---" >> btc-KeyRNG/standard.addr
             echo "DONE!"
-            sleep 1
             clear
         fi 
 fi
@@ -913,6 +942,7 @@ fi
 #---------------------------------------
 multiplestandaddr ()
 {
+KEYRNG=$(gpg --homedir gpg-KeyRNG/ --list-keys KeyRNG | grep pub | tr -d "pub" | cut -b 10- | cut -b -18)
 HAS_SPRIV=$(ls btc-KeyRNG/ | grep -c "s.priv")
 HAS_ADDRFILE=$(ls btc-KeyRNG/ | grep -c "standard.addr")
 if [ "$HAS_ADDRFILE" = "0" ]; then
@@ -930,20 +960,25 @@ if [ "$HAS_SPRIV" = "0" ]; then
     echo "-----------------------------------------------------------------" > btc-KeyRNG/s.priv
     echo "| S T A N D A R D   A D D R E S S E S   P R I V A T E   K E Y S |" >> btc-KeyRNG/s.priv
     echo "-----------------------------------------------------------------" >> btc-KeyRNG/s.priv
-    echo -e "\nSince this is your first run, you need to create a pass to encrypt your keys."
-    echo -e "\nIF YOU FORGET YOUR PASSWORD YOU WILL NOT BE ABLE TO SPEND FROM THESE ADDRESSES!\n"
-    read -s -p "Enter your password to encrypt your STANDARD private keys: " PW
+       echo -e "\nYOUR PRIVATE KEYS WILL BE ENCRYPTED WITH THE MASTER GPG KEY\nTHAT WAS CREATED WHEN YOU FIRST RAN THIS PROGRAM."
+    echo -e "TO MAKE SURE YOU HAVE NOT FORGOT THE PASSPHRASE YOU WILL\nNEED TO COMPLETE A CHALLENGE."
     echo ""
-    PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
-    read -s -p "Once more: " CHKPW
-    CHKPW=$(echo -n "$CHKPW" | shasum -t -a 512 | cut -b -128)
-    gpg --homedir gpg-KeyRNG/ --quiet --output btc-KeyRNG/s.priv.gpg  --passphrase "$PW" --symmetric btc-KeyRNG/s.priv && rm -rf btc-KeyRNG/s.priv
+    read -p "Press enter to decrypt the challenge."
+    TEST=$(gpg --armor --gen-random 2 38); echo -n "$TEST" > temp/test; gpg --homedir gpg-KeyRNG/ -ae -r "$KEYRNG" temp/test
     echo ""
+    TRY=$(gpg --homedir gpg-KeyRNG/ --quiet -d temp/test.asc)
+    if [ "$TEST" != "$TRY" ]; then 
+      read -p "Do you want to create a new master key? (Y/no)" NEWMK
+        if [[ "$NEWMK" = "Y" ]]; then 
+          firstrun
+        else
+          break
+        fi
+    fi
+    gpg --homedir gpg-KeyRNG/ --quiet --output btc-KeyRNG/s.priv.gpg -ae -r "$KEYRNG" btc-KeyRNG/s.priv && rm -rf btc-KeyRNG/s.priv
 fi
-read -s -p "Enter your password to unlock your private keys: " PW
-echo ""
-PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
-gpg --homedir gpg-KeyRNG/ --quiet  --output btc-KeyRNG/s.priv --cipher-algo aes256 --passphrase "$PW" -d btc-KeyRNG/s.priv.gpg && rm -rf btc-KeyRNG/s.priv.gpg
+echo "Unlocking your private keys..."
+gpg --homedir gpg-KeyRNG/ --quiet --output btc-KeyRNG/s.priv -d btc-KeyRNG/s.priv.gpg && rm -rf btc-KeyRNG/s.priv.gpg
 echo -e "\nHow may standard addresses to create?"
 read NUM
 echo "Creating "$NUM" standard addresses..."
@@ -965,7 +1000,7 @@ do
         echo -e "\nStandard Address "$NUM_PRIV": "$ADDRESS"\nStandard Pubkey "$NUM_PRIV":  "$PUBKEY"\n---" >> btc-KeyRNG/standard.addr
     fi
 done
-gpg --homedir gpg-KeyRNG/ --quiet --output btc-KeyRNG/s.priv.gpg  --passphrase "$PW" --symmetric btc-KeyRNG/s.priv && srm -dr btc-KeyRNG/s.priv
+gpg --homedir gpg-KeyRNG/ --quiet --output btc-KeyRNG/s.priv.gpg  -ae -r "$KEYRNG" btc-KeyRNG/s.priv && srm -dr btc-KeyRNG/s.priv
 unset PW; unset CHKPW
 echo -e "\nDONE CREATING "$NUM" STANDARD ADDRESSES."
 echo -e "ADDRESSES ARE STORED IN KeyRNG/btc-KeyRNG/standard.addr\n"
@@ -978,15 +1013,13 @@ clear
 #----------------------
 showstandardpriv ()
 {
-read -s -p "Enter password: " PW
-PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
-gpg --homedir gpg-KeyRNG/ --quiet  --passphrase "$PW" --output btc-KeyRNG/s.priv -d btc-KeyRNG/s.priv.gpg && rm -rf btc-KeyRNG/s.priv.gpg
+echo "Unlocking private keys..."
+gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/s.priv -d btc-KeyRNG/s.priv.gpg && rm -rf btc-KeyRNG/s.priv.gpg
 echo "Press enter to see private keys."
 echo "Use up/down arrows to navigate. Press q when finished."
 read
 cat btc-KeyRNG/s.priv | less
-gpg --homedir gpg-KeyRNG/ --quiet  --passphrase "$PW" --output btc-KeyRNG/s.priv.gpg --cipher-algo aes256 --symmetric btc-KeyRNG/s.priv && srm -dr btc-KeyRNG/s.priv
-unset PW
+gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/s.priv.gpg -ae -r "$KEYRNG" btc-KeyRNG/s.priv && DEL=btc-KeyRNG/s.priv; secdelete
 clear
 }
 #--------------------------------
@@ -999,9 +1032,9 @@ echo "Use up/down arrows to navigate. Press "q" when finished."
 read
 cat btc-KeyRNG/standard.addr | grep "Address" | less
 }
-#-----------------------------------------
-## SHOW STANDARD ADDRESSES AND PRIVKEYS ##
-#-----------------------------------------
+#----------------------------------------
+## SHOW STANDARD ADDRESSES AND PUBKEYS ##
+#----------------------------------------
 showalladdr ()
 {
 echo "Press enter to see addresses and private keys."
@@ -1017,9 +1050,11 @@ cat btc-KeyRNG/standard.addr | less
 #----------------------
 checkeleseed ()
 {
+KEYRNG=$(gpg --homedir gpg-KeyRNG/ --list-keys KeyRNG | grep pub | tr -d "pub" | cut -b 10- | cut -b -18)
 HAS_SEEDFILE=$(ls btc-KeyRNG/ | grep -c "ele.seed")
 if [[ "$HAS_SEEDFILE" -lt "1" ]]; then
-    touch btc-KeyRNG/ele.seed btc-KeyRNG/ele.priv
+    touch btc-KeyRNG/ele.seed
+    touch btc-KeyRNG/ele.priv
     chown "$USER" btc-KeyRNG/ele*
     chmod 0600 btc-KeyRNG/ele*
     newelectrumseed
@@ -1029,17 +1064,12 @@ if [[ "$HAS_SEEDFILE" -lt "1" ]]; then
     clear
     echo "THIS IS YOUR PRIVATE SEED TO RESTORE PRIVATE KEYS."
     echo "WRITE IT DOWN SOMEWHERE SAFE AS A BACKUP!"
-    echo -ne "\n"$SEED"\n"
-    echo -e "--------------------------------\n"
-    echo -e "\nPress enter when you have your seed backed up.\n"
+    echo -e "\nPress enter to see your seed. Press q when you are finished.\n"
     read
-    read -s -p "Enter a password to encrypt your seed/private keys: " PW
-    echo ""
-    PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
-    read -s -p "Once more: " CHKPW
-    CHKPW=$(echo -n "$CHKPW" | shasum -t -a 512 | cut -b -128)
-    gpg --homedir gpg-KeyRNG/ --quiet --output btc-KeyRNG/ele.priv.gpg  --passphrase "$PW" --symmetric btc-KeyRNG/ele.priv && rm -rf btc-KeyRNG/ele.priv
-    gpg --homedir gpg-KeyRNG/ --quiet --output btc-KeyRNG/ele.seed.gpg  --passphrase "$PW" --symmetric btc-KeyRNG/ele.seed && rm -rf btc-KeyRNG/ele.seed
+    echo -ne "\n"$SEED"\n" | less
+    echo "Encrypting you seed and private keys file..."
+    gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/ele.priv.gpg -ae -r "$KEYRNG" btc-KeyRNG/ele.priv && rm -rf btc-KeyRNG/ele.priv
+    gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/ele.seed.gpg -ae -r "$KEYRNG"  btc-KeyRNG/ele.seed && rm -rf btc-KeyRNG/ele.seed
 fi
 clear
 }
@@ -1056,10 +1086,10 @@ echo -n ""$SEED"" > btc-KeyRNG/ele.seed
 #-------------------------
 elecreateaddr ()
 {
-read -s -p "Enter Electrum seed/private key password: " PW
-PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
-gpg --homedir gpg-KeyRNG/ --quiet  --passphrase "$PW" --output btc-KeyRNG/ele.seed -d btc-KeyRNG/ele.seed.gpg && rm -rf btc-KeyRNG/ele.seed.gpg
-gpg --homedir gpg-KeyRNG/ --quiet  --passphrase "$PW" --output btc-KeyRNG/ele.priv -d btc-KeyRNG/ele.priv.gpg && rm -rf btc-KeyRNG/ele.priv.gpg
+KEYRNG=$(gpg --homedir gpg-KeyRNG/ --list-keys KeyRNG | grep pub | tr -d "pub" | cut -b 10- | cut -b -18)
+echo "Unlocking private keys and seed..."
+gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/ele.seed -d btc-KeyRNG/ele.seed.gpg && rm -rf btc-KeyRNG/ele.seed.gpg
+gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/ele.priv -d btc-KeyRNG/ele.priv.gpg && rm -rf btc-KeyRNG/ele.priv.gpg
 SEED=$(cat btc-KeyRNG/ele.seed)
 HAS_ADDRFILE=$(ls btc-KeyRNG/ | grep -c "ele.addr")
 if [ "$HAS_ADDRFILE" -lt "1" ]; then
@@ -1078,7 +1108,7 @@ if [[ "$ADDR_COUNT" = "0" ]]; then
     PUB=$(pybtctools/pybtctool privtopub $(echo -n "$WIF_COMP"))
     ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$PUB"))
     echo -e "\n\nEle Address 1: "$ADDR"\nEle Pubkey 1:  "$PUB"\n---"
-    echo -e "\nEle Privkey 1:  "$WIF_COMP"" >> ele.priv
+    echo -e "\nEle Privkey 1:  "$WIF_COMP"" >> btc-KeyRNG/ele.priv
     echo "Add a note to address? (y/no)"
     read IS_NOTE
     if [[ "$IS_NOTE" = "y" ]]; then
@@ -1105,9 +1135,8 @@ else
         echo -e "\nEle Address "$ADDR_COUNT": "$ADDR"\nEle Pubkey "$ADDR_COUNT":  "$PUB"\n---" >> btc-KeyRNG/ele.addr
     fi
 fi
-gpg --homedir gpg-KeyRNG/ --quiet  --passphrase "$PW" --output btc-KeyRNG/ele.seed.gpg --symmetric btc-KeyRNG/ele.seed && srm -dr btc-KeyRNG/ele.seed
-gpg --homedir gpg-KeyRNG/ --quiet  --passphrase "$PW" --output btc-KeyRNG/ele.priv.gpg --symmetric btc-KeyRNG/ele.priv && srm -dr btc-KeyRNG/ele.priv
-unset PW
+gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/ele.seed.gpg -ae -r "$KEYRNG" btc-KeyRNG/ele.seed && DEL=btc-KeyRNG/ele.seed; secdelete
+gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/ele.priv.gpg -ae -r "$KEYRNG" btc-KeyRNG/ele.priv && DEL=btc-KeyRNG/ele.priv; secdelete
 echo "DONE!"
 clear
 }
@@ -1116,10 +1145,10 @@ clear
 #--------------------------------------------
 multipleeleaddr ()
 {
-read -s -p "Enter Electrum seed/private key password: " PW
-PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
-gpg --homedir gpg-KeyRNG/ --quiet  --passphrase "$PW" --output btc-KeyRNG/ele.seed -d btc-KeyRNG/ele.seed.gpg && rm -rf btc-KeyRNG/ele.seed.gpg
-gpg --homedir gpg-KeyRNG/ --quiet  --passphrase "$PW" --output btc-KeyRNG/ele.priv -d btc-KeyRNG/ele.priv.gpg && rm -rf btc-KeyRNG/ele.priv.gpg
+KEYRNG=$(gpg --homedir gpg-KeyRNG/ --list-keys KeyRNG | grep pub | tr -d "pub" | cut -b 10- | cut -b -18)
+echo "Unlock private keys and seed..."
+gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/ele.seed -d btc-KeyRNG/ele.seed.gpg && rm -rf btc-KeyRNG/ele.seed.gpg
+gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/ele.priv -d btc-KeyRNG/ele.priv.gpg && rm -rf btc-KeyRNG/ele.priv.gpg
 SEED=$(cat btc-KeyRNG/ele.seed)
 HAS_ADDRFILE=$(ls btc-KeyRNG/ | grep -c "ele.addr")
 if [ "$HAS_ADDRFILE" -lt "1" ]; then
@@ -1134,7 +1163,7 @@ if [ "$HAS_ADDRFILE" -lt "1" ]; then
     echo -e "\n\nMaster Public Key:  "$MPK"" >> btc-KeyRNG/ele.addr
 fi
 echo ""
-echo -e "\nHow may Electrum seed addresses to create?"
+echo -e "\nHow many Electrum seed addresses to create?"
 read NUM
 echo "Creating "$NUM" Electrum addresses..."
 for i in $(seq 1 "$NUM")
@@ -1157,8 +1186,8 @@ do
         echo -e "\nEle Address "$ADDR_COUNT": "$ADDR"\nEle Pubkey "$ADDR_COUNT":  "$PUB"\n---" >> btc-KeyRNG/ele.addr
     fi
 done
-gpg --homedir gpg-KeyRNG/ --quiet  --passphrase "$PW" --output btc-KeyRNG/ele.seed.gpg --symmetric btc-KeyRNG/ele.seed && srm -dr btc-KeyRNG/ele.seed
-gpg --homedir gpg-KeyRNG/ --quiet  --passphrase "$PW" --output btc-KeyRNG/ele.priv.gpg --symmetric btc-KeyRNG/ele.priv && srm -dr btc-KeyRNG/ele.priv
+gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/ele.seed.gpg -ae -r "$KEYRNG" btc-KeyRNG/ele.seed && DEL=btc-KeyRNG/ele.seed; secdelete
+gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/ele.priv.gpg -ae -r "$KEYRNG" btc-KeyRNG/ele.priv && DEL=btc-KeyRNG/ele.priv; secdelete
 unset PW
 echo -e "\nDONE CREATING "$NUM" ELECTRUM ADDRESSES."
 echo -e "ADDRESSES ARE STORED IN KeyRNG/btc-KeyRNG/ele.addr\n"
@@ -1191,16 +1220,26 @@ cat btc-KeyRNG/ele.addr | less
 #-----------------------------------
 showelepriv ()
 {
-read -s -p "Enter password: " PW
-PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
-gpg --homedir gpg-KeyRNG/ --quiet  --passphrase "$PW" --output btc-KeyRNG/ele.priv -d btc-KeyRNG/ele.priv.gpg && rm -rf btc-KeyRNG/ele.priv.gpg
+echo "Unlocking keys..."
+gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/ele.priv -d btc-KeyRNG/ele.priv.gpg && rm -rf btc-KeyRNG/ele.priv.gpg
 echo "Press enter to see private keys."
 echo "Use up/down arrows to navigate. Press q when finished."
 read
 cat btc-KeyRNG/ele.priv | less
-gpg --homedir gpg-KeyRNG/ --quiet  --passphrase "$PW" --output btc-KeyRNG/ele.priv.gpg --cipher-algo aes256 --symmetric btc-KeyRNG/ele.priv && srm -dr btc-KeyRNG/ele.priv
-unset PW
+gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/ele.priv.gpg -ae -r "$KEYRNG" btc-KeyRNG/ele.priv && DEL=btc-KeyRNG/ele.priv; secdelete
 clear
+}
+#-----------------------
+## ELECTRUM SHOW SEED ##
+#-----------------------
+eleshowseed (){
+clear
+echo "Press enter to see your bip32 private keys."
+echo "Use up/down arrows to navigate. Press q when finished."
+read
+gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/ele.seed -d btc-KeyRNG/ele.seed.gpg && rm -rf btc-KeyRNG/ele.seed.gpg
+cat btc-KeyRNG/ele.seed | less
+gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/ele.seed.gpg -ae -r "$KEYRNG" btc-KeyRNG/ele.seed && DEL=btc-KeyRNG/ele.seed; secdelete
 }
 ########################################
 ##### BIP32 SEED ADDRESS FUNCTIONS #####
@@ -1210,32 +1249,24 @@ clear
 #----------------------
 checkbipseed ()
 {
+KEYRNG=$(gpg --homedir gpg-KeyRNG/ --list-keys KeyRNG | grep pub | tr -d "pub" | cut -b 10- | cut -b -18)
 HAS_SEEDFILE=$(ls btc-KeyRNG/ | grep -c "bip.seed")
-if [[ "$HAS_SEEDFILE" -lt "1" ]]; then
+if [ "$HAS_SEEDFILE" -lt "1" ]; then
+    touch btc-KeyRNG/bip.priv
     touch btc-KeyRNG/bip.seed
-    chown "$USER" btc-KeyRNG/bip.seed
+    chown "$USER" btc-KeyRNG/*
     chmod 0600 btc-KeyRNG/bip.seed
+    chmod 0600 btc-KeyRNG/bip.priv
     newbipseed
     clear
     echo "THIS IS YOUR PRIVATE BIP32 SEED TO RESTORE PRIVATE KEYS."
     echo "WRITE IT DOWN SOMEWHERE SAFE AS A BACKUP!"
-    echo "WHILE KeyRNG IS UNLOCKED THE SEED IS STORED DECRYPTED AT KeyRNG/btc-KeyRNG/bip.seed"
-    echo -ne "\n"$SEED"\n"
-    echo -e "\nPress enter when you have your seed backed up."
+    echo "Press enter to see your seed. Press q when finished."
     read
-else
-    EMPTY=$(cat btc-KeyRNG/bip.seed | grep -c "")
-    if [ "$EMPTY" -lt "1" ]; then
-        chown "$USER" btc-KeyRNG/bip.seed
-        chmod 0600 btc-KeyRNG/bip.seed
-        newbipseed
-        echo "THIS IS YOUR PRIVATE BIP32 SEED TO RESTORE PRIVATE KEYS."
-        echo "WRITE IT DOWN SOMEWHERE SAFE AS A BACKUP!"
-        echo "WHILE KeyRNG IS UNLOCKED THE SEED IS STORED DECRYPTED AT KeyRNG/btc-KeyRNG/bip.seed"
-        echo -ne "\n"$SEED"\n"
-        echo -e "\nPress enter when you have your seed backed up."
-        read
-    fi
+    echo -ne "\n"$SEED"\n" | less
+    echo "Encrypting you seed and private keys file..."
+    gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.priv.gpg -ae -r "$KEYRNG" btc-KeyRNG/bip.priv && rm -rf btc-KeyRNG/bip.priv
+    gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.seed.gpg -ae -r "$KEYRNG"  btc-KeyRNG/bip.seed && rm -rf btc-KeyRNG/bip.seed
 fi
 clear
 }
@@ -1252,74 +1283,87 @@ echo -en ""$SEED"" > btc-KeyRNG/bip.seed
 #-----------------------------
 bipcreateaddr ()
 {
+KEYRNG=$(gpg --homedir gpg-KeyRNG/ --list-keys KeyRNG | grep pub | tr -d "pub" | cut -b 10- | cut -b -18)
+echo "Unlock private keys and seed..."
+gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.seed -d btc-KeyRNG/bip.seed.gpg && rm -rf btc-KeyRNG/bip.seed.gpg
+gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.priv -d btc-KeyRNG/bip.priv.gpg && rm -rf btc-KeyRNG/bip.priv.gpg
 SEED=$(cat btc-KeyRNG/bip.seed)
 HAS_ADDRFILE=$(ls btc-KeyRNG/ | grep -c "bip.addr")
-if [ "$HAS_ADDRFILE" -lt "1" ]; then
+if [[ "$HAS_ADDRFILE" = "0" ]]; then
+    touch btc-KeyRNG/bip.priv
+    touch btc-KeyRNG/bip.seed
+    chown -R "$USER" btc-KeyRNG/
+    chmod 0600 btc-KeyRNG/*
+    XPRIV=$(pybtctools/pybtctool bip32_ckd $(echo -n "$SEED") 0)
+    XPUB=$(pybtctools/pybtctool bip32_privtopub $(echo -n "$XPRIV"))
+    ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$XPUB"))
+    echo -e "\n\nBIP32 Address 1: "$ADDR"\nBIP32 Pubkey 1:  "$XPUB"\n---"
+    echo "---------------------------------------" > btc-KeyRNG/bip.priv
+    echo "| B I P 3 2   P R I V A T E   K E Y S |" >> btc-KeyRNG/bip.priv
+    echo "---------------------------------------" >> btc-KeyRNG/bip.priv
     touch btc-KeyRNG/bip.addr
     chown -R "$USER" btc-KeyRNG/
     chmod 0600 btc-KeyRNG/bip.addr
     echo "----------------------------------" > btc-KeyRNG/bip.addr
     echo "| B I P 3 2    A D D R E S S E S |" >> btc-KeyRNG/bip.addr
     echo "----------------------------------" >> btc-KeyRNG/bip.addr
-    echo -e "\n\n------------------------------------------------------------------------------------------------------------------------\n|Seed| "$SEED" |\n------------------------------------------------------------------------------------------------------------------------" >> btc-KeyRNG/bip.addr
 fi
 ADDR_COUNT=$(cat btc-KeyRNG/bip.addr | grep -c "Pubkey")
 if [[ "$ADDR_COUNT" = "0" ]]; then
     XPRIV=$(pybtctools/pybtctool bip32_ckd $(echo -n "$SEED") 0)
     XPUB=$(pybtctools/pybtctool bip32_privtopub $(echo -n "$XPRIV"))
     ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$XPUB"))
-    echo -e "\n\nBIP32 Address 1: "$ADDR"\nBIP32 Pubkey 1:  "$XPUB"\nBIP32 Privkey 1:  "$XPRIV"\n\n---"
-    echo "Add to backup file: btc-KeyRNG/bip.addr? (y/no)"
-    read BACKUPKEY
-    if [ "$BACKUPKEY" != "no" ]; then
-        echo "Add a note to address? (y/no)"
-        read IS_NOTE
-        if [[ "$IS_NOTE" = "y" ]]; then
-            echo "Type the note and press enter:"
-            read NOTE 
-            echo -e "\nBIP32 Address 1: "$ADDR"     Note: "$NOTE"\nBIP32 Pubkey 1:  "$XPUB"\nBIP32 Privkey 1:  "$XPRIV"\n\n---" >> btc-KeyRNG/bip.addr
-            echo "DONE!"
-            sleep 1
-            clear
-        else
-            echo -e "\n\nBIP32 Address 1: "$ADDR"\nBIP32 Pubkey 1:  "$XPUB"\nBIP32 Privkey 1:  "$XPRIV"\n\n---" >> btc-KeyRNG/bip.addr
-            echo "DONE!"
-            sleep 1
-            clear
-        fi
+    echo "---------------------------------------" > btc-KeyRNG/bip.priv
+    echo "| B I P 3 2   P R I V A T E   K E Y S |" >> btc-KeyRNG/bip.priv
+    echo "---------------------------------------" >> btc-KeyRNG/bip.priv
+    echo "Add a note to address? (y/no)"
+    read IS_NOTE
+    if [[ "$IS_NOTE" = "y" ]]; then
+        echo "Type the note and press enter:"
+        read NOTE 
+        echo -e "\n\nBIP32 Address 1: "$ADDR"     Note: "$NOTE"\nBIP32 Pubkey 1:  "$XPUB"\n---" >> btc-KeyRNG/bip.addr
+        echo -e "\n\nBIP32 Privkey 1:  "$XPRIV"\n" >> btc-KeyRNG/bip.priv
+        echo "DONE!"
+        clear
+    else
+        echo -e "\n\nBIP32 Address 1: "$ADDR"\nBIP32 Pubkey 1:  "$XPUB"\n---" >> btc-KeyRNG/bip.addr
+        echo -e "\nBIP32 Privkey 1:  "$XPRIV"\n" >> btc-KeyRNG/bip.priv
+        echo "DONE!"
+        clear
     fi
 else
     ADDR_COUNT=$(expr "$ADDR_COUNT" + 1)
     XPRIV=$(pybtctools/pybtctool bip32_ckd $(echo -n "$SEED") $(echo -n "$ADDR_COUNT"))
     XPUB=$(pybtctools/pybtctool bip32_privtopub $(echo -n "$XPRIV"))
     ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$XPUB"))
-    echo -e "\n\nBIP32 Address "$ADDR_COUNT": "$ADDR"\nBIP32 Pubkey "$ADDR_COUNT":  "$XPUB"\nBIP32 Privkey "$ADDR_COUNT":  "$XPRIV"\n\n---"
-    echo "Add to backup file: btc-KeyRNG/bip.addr? (y/no)"
-    read BACKUPKEY
-    if [ "$BACKUPKEY" != "no" ]; then
-        echo "Add a note to address? (y/no)"
-        read IS_NOTE
-        if [[ "$IS_NOTE" = "y" ]]; then
-            echo "Type the note and press enter:"
-            read NOTE 
-            echo -e "\n\nBIP32 Address "$ADDR_COUNT": "$ADDR"     Note: "$NOTE"\nBIP32 Pubkey "$ADDR_COUNT":  "$XPUB"\nBIP32 Privkey "$ADDR_COUNT":  "$XPRIV"\n\n---" >> btc-KeyRNG/bip.addr
-            echo "DONE!"
-            sleep 1
-            clear
-        else
-            echo -e "\n\nBIP32 Address "$ADDR_COUNT": "$ADDR"\nBIP32 Pubkey "$ADDR_COUNT":  "$XPUB"\nBIP32 Privkey "$ADDR_COUNT":  "$XPRIV"\n\n---" >> btc-KeyRNG/bip.addr
-            echo "DONE!"
-            sleep 1
-            clear
-        fi
+    echo -e "\n\nBIP32 Address "$ADDR_COUNT": "$ADDR"\nBIP32 Pubkey "$ADDR_COUNT":  "$XPUB"\n---"
+    echo "Add a note to address? (y/no)"
+    read IS_NOTE
+    if [[ "$IS_NOTE" = "y" ]]; then
+        echo "Type the note and press enter:"
+        read NOTE 
+        echo -e "\nBIP32 Address "$ADDR_COUNT": "$ADDR"     Note: "$NOTE"\nBIP32 Pubkey "$ADDR_COUNT":  "$XPUB"\n---" >> btc-KeyRNG/bip.addr
+        echo -e "\nBIP32 Privkey "$ADDR_COUNT":  "$XPRIV"" >> btc-KeyRNG/bip.priv
+        echo "DONE!"
+        clear
+    else
+        echo -e "\nBIP32 Address "$ADDR_COUNT": "$ADDR"\nBIP32 Pubkey "$ADDR_COUNT":  "$XPUB"\n---" >> btc-KeyRNG/bip.addr
+        echo -e "\nBIP32 Privkey "$ADDR_COUNT":  "$XPRIV"\n" >> btc-KeyRNG/bip.priv
+        echo "DONE!"
+        clear
     fi
 fi
+gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.priv.gpg -ae -r "$KEYRNG" btc-KeyRNG/bip.priv && DEL=btc-KeyRNG/bip.priv; secdelete
+gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.seed.gpg -ae -r "$KEYRNG"  btc-KeyRNG/bip.seed && DEL=btc-KeyRNG/bip.seed; secdelete
 }
 #------------------------------------
 ## CREATE MULTIPLE BIP32 ADDRESSES ##
 #------------------------------------
 multiplebipaddr ()
 {
+KEYRNG=$(gpg --homedir gpg-KeyRNG/ --list-keys KeyRNG | grep pub | tr -d "pub" | cut -b 10- | cut -b -18)
+gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.seed -d btc-KeyRNG/bip.seed.gpg && rm -rf btc-KeyRNG/bip.seed.gpg
+gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.priv -d btc-KeyRNG/bip.priv.gpg && rm -rf btc-KeyRNG/bip.priv.gpg
 SEED=$(cat btc-KeyRNG/bip.seed)
 HAS_ADDRFILE=$(ls btc-KeyRNG/ | grep -c "bip.addr")
 if [ "$HAS_ADDRFILE" -lt "1" ]; then
@@ -1329,7 +1373,6 @@ if [ "$HAS_ADDRFILE" -lt "1" ]; then
     echo "----------------------------------" > btc-KeyRNG/bip.addr
     echo "| B I P 3 2    A D D R E S S E S |" >> btc-KeyRNG/bip.addr
     echo "----------------------------------" >> btc-KeyRNG/bip.addr
-    echo -e "\n\n------------------------------------------------------------------------------------------------------------------------\n|Seed| "$SEED" |\n------------------------------------------------------------------------------------------------------------------------" >> btc-KeyRNG/bip.addr
 fi
 echo -e "\nHow may BIP32 seed addresses to create?"
 read NUM
@@ -1341,17 +1384,21 @@ do
         XPRIV=$(pybtctools/pybtctool bip32_ckd $(echo -n "$SEED") 0)
         XPUB=$(pybtctools/pybtctool bip32_privtopub $(echo -n "$XPRIV"))
         ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$XPUB"))
-        echo -e "\n\nBIP32 Address 1: "$ADDR"\nBIP32 Pubkey 1:  "$XPUB"\nBIP32 Privkey 1:  "$XPRIV"\n\n---"
-        echo -e "\n\nBIP32 Address 1: "$ADDR"\nBIP32 Pubkey 1:  "$XPUB"\nBIP32 Privkey 1:  "$XPRIV"\n\n---" >> btc-KeyRNG/bip.addr
+        echo -e "\n\nBIP32 Address 1: "$ADDR"\nBIP32 Pubkey 1:  "$XPUB"\n---"
+        echo -e "\n\nBIP32 Address 1: "$ADDR"\nBIP32 Pubkey 1:  "$XPUB"\n---" >> btc-KeyRNG/bip.addr
+        echo -e "\n\n\nBIP32 Privkey 1:  "$XPRIV"\n" >> btc-KeyRNG/bip.priv
     else
         ADDR_COUNT=$(expr "$ADDR_COUNT" + 1)
         XPRIV=$(pybtctools/pybtctool bip32_ckd $(echo -n "$SEED") $(echo -n "$ADDR_COUNT"))
         XPUB=$(pybtctools/pybtctool bip32_privtopub $(echo -n "$XPRIV"))
         ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$XPUB"))
-        echo -e "\n\nBIP32 Address "$ADDR_COUNT": "$ADDR"\nBIP32 Pubkey "$ADDR_COUNT":  "$XPUB"\nBIP32 Privkey "$ADDR_COUNT":  "$XPRIV"\n\n---"
-        echo -e "\n\nBIP32 Address "$ADDR_COUNT": "$ADDR"\nBIP32 Pubkey "$ADDR_COUNT":  "$XPUB"\nBIP32 Privkey "$ADDR_COUNT":  "$XPRIV"\n\n---" >> btc-KeyRNG/bip.addr
+        echo -e "\nBIP32 Address "$ADDR_COUNT": "$ADDR"\nBIP32 Pubkey "$ADDR_COUNT":  "$XPUB"\n---"
+        echo -e "\nBIP32 Address "$ADDR_COUNT": "$ADDR"\nBIP32 Pubkey "$ADDR_COUNT":  "$XPUB"\n---" >> btc-KeyRNG/bip.addr
+        echo -e "\n\nBIP32 Privkey "$ADDR_COUNT":  "$XPRIV"\n" >> btc-KeyRNG/bip.priv
     fi
 done
+gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.priv.gpg -ae -r "$KEYRNG" btc-KeyRNG/bip.priv && DEL=btc-KeyRNG/bip.priv; secdelete
+gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.seed.gpg -ae -r "$KEYRNG"  btc-KeyRNG/bip.seed && DEL=btc-KeyRNG/bip.seed; secdelete
 echo -e "\nDONE CREATING "$NUM" BIP32 ADDRESSES."
 echo -e "ADDRESSES AND PRIVKEYS STORED IN KeyRNG/btc-KeyRNG/bip.addr\n"
 echo "Press enter to return to BIP32 ADDRESS MENU."
@@ -1368,9 +1415,9 @@ echo "Use up/down arrows to navigate. Press "q" when finished."
 read
 cat btc-KeyRNG/bip.addr | grep -e "Address" | less
 }
-#---------------------------------
-## BIP32 SHOW ADDR AND PRIVKEYS ##
-#---------------------------------
+#--------------------------------
+## BIP32 SHOW ADDR AND PUBKEYS ##
+#--------------------------------
 bipshowall ()
 {
 clear
@@ -1378,6 +1425,30 @@ echo "Press enter to see addresses and private keys."
 echo "Use up/down arrows to navigate. Press "q" when finished."
 read
 cat btc-KeyRNG/bip.addr | less
+}
+#------------------------
+## BIP32 SHOW PRIVKEYS ##
+#------------------------
+bipshowpriv(){
+clear
+echo "Press enter to see your bip32 private keys."
+echo "Use up/down arrows to navigate. Press q when finished."
+read
+gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.priv -d btc-KeyRNG/bip.priv.gpg && rm -rf btc-KeyRNG/bip.priv.gpg
+cat btc-KeyRNG/bip.priv | less
+gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.priv.gpg -ae -r "$KEYRNG" btc-KeyRNG/bip.priv && DEL=btc-KeyRNG/bip.priv; secdelete
+}
+#--------------------
+## BIP32 SHOW SEED ##
+#--------------------
+bipshowseed (){
+clear
+echo "Press enter to see your bip32 private keys."
+echo "Use up/down arrows to navigate. Press q when finished."
+read
+gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.seed -d btc-KeyRNG/bip.seed.gpg && rm -rf btc-KeyRNG/bip.seed.gpg
+cat btc-KeyRNG/bip.seed | less
+gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.seed.gpg -ae -r "$KEYRNG" btc-KeyRNG/bip.seed && DEL=btc-KeyRNG/bip.seed; secdelete
 }
 #####################################
 ##### BLOCKCHAIN.INFO API CALLS #####
@@ -1516,4 +1587,3 @@ cat btc-KeyRNG/*.addr | grep -e "Address" -e "Pubkey" | less
 }
 #########################
 ########## END ##########
-#########################
