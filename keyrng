@@ -9,6 +9,12 @@ USE_TOR=
 ## IS LOCKED
 IS_LOCKED=$(ls | grep -c "KeyRNG.gpg")
 if [ "$IS_LOCKED" -gt "0" ]; then
+echo_c()
+{
+w=$(stty size | cut -d" " -f2)
+l=${#1}
+printf "%"$((l+(w-l)/2))"s\n" "$1"
+}
   clear
   lkmx="-----------------------------------------"
   lkmy="| L O C K E D    K e y R N G    M E N U |"
