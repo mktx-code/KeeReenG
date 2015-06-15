@@ -1475,7 +1475,6 @@ if  [[ "$USE_TOR" = "y" && "$HAVE_API" = "y" ]]; then
     echo -e "\nAmount is in Satoshis: "$UNSPENT""
     echo -e "\nPress enter to return to BLOCKCHAIN MENU."
     read
-
 elif [[ "$USE_TOR" = "y" && "$HAVE_API" != "y" ]]; then
     UNSPENT=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/q/addressbalance/"$ADDR")
     echo -e "\nAmount is in Satoshis: "$UNSPENT""
@@ -1499,34 +1498,21 @@ fi
 getrawtx ()
 {
 clear
-echo -e "\nPaste the transaction hash."
+echo -e "\nPaste the transaction hash:"
 read TXID
 echo "Getting raw transaction details..."
 if  [[ "$USE_TOR" = "y" && "$HAVE_API" = "y" ]]; then
     RAWTX=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/rawtx/"$TXID"?api_code="$BCI_API")
-    echo -e "\nPress enter to see transaction details."
-    echo "Use up/down arrows to navigate. Press "q" when finished."
-    read
-    echo "$RAWTX" | less
 elif [[ "$USE_TOR" = "y" && "$HAVE_API" != "y" ]]; then
     UNSPENT=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/rawtx/"$TXID")
-    echo -e "\nPress enter to see transaction details."
-    echo "Use up/down arrows to navigate. Press "q" when finished."
-    read
-    echo "$RAWTX" | less
 elif [[ "$USE_TOR" != "y" && "$HAVE_API" = "y" ]]; then
     UNSPENT=$(curl --silent --get https://blockchain.info/rawtx/"$TXID"?api_code="$BCI_API")
-    echo -e "\nPress enter to see transaction details."
-    echo "Use up/down arrows to navigate. Press "q" when finished."
-    read
-    echo "$RAWTX" | less
 else
     UNSPENT=$(curl --silent --get https://blockchain.info/rawtx/"$TXID")
-    echo -e "\nPress enter to see transaction details."
-    echo "Use up/down arrows to navigate. Press "q" when finished."
-    read
-    echo "$RAWTX" | less
 fi
+echo "Use up/down arrows to navigate. Press "q" when finished."
+read "Press enter to see transaction details."
+echo "$RAWTX" | tr -d "\}\{\,\]\"\[" | sed -e 's|         ||g' -e 's|   ||g' | less
 }
 #------------------------
 ## RAW ADDRESS HISTORY ##
@@ -1547,33 +1533,16 @@ read ADDR
 echo "Getting history..."
 if  [[ "$USE_TOR" = "y" && "$HAVE_API" = "y" ]]; then
     HIST=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/rawaddr/"$ADDR"?api_code="$BCI_API")
-    echo -e "\nPress enter to see history."
-    echo "Use up/down arrows to navigate. Press "q" when finished."
-    echo -e " "$HIST""
-    echo -e "\nPress enter to return to BLOCKCHAIN MENU."
-    read
 elif [[ "$USE_TOR" = "y" && "$HAVE_API" != "y" ]]; then
     HIST=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/rawaddr/"$ADDR")
-    echo -e "\nPress enter to see history."
-    echo "Use up/down arrows to navigate. Press "q" when finished."
-    echo -e " "$HIST""
-    echo -e "\nPress enter to return to BLOCKCHAIN MENU."
-    read
 elif [[ "$USE_TOR" != "y" && "$HAVE_API" = "y" ]]; then
     HIST=$(curl --silent --get https://blockchain.info/rawaddr/"$ADDR"?api_code="$BCI_API")
-    echo -e "\nPress enter to see history."
-    echo "Use up/down arrows to navigate. Press "q" when finished."
-    echo -e " "$HIST""
-    echo -e "\nPress enter to return to BLOCKCHAIN MENU."
-    read
 else
     HIST=$(curl --silent --get https://blockchain.info/rawaddr/"$ADDR")
-    echo -e "\nPress enter to see history."
-    echo "Use up/down arrows to navigate. Press "q" when finished."
-    echo -e " "$HIST""
-    echo -e "\nPress enter to return to BLOCKCHAIN MENU."
-    read
 fi
+read "Press enter to see history."
+echo "Use up/down arrows to navigate. Press "q" when finished."
+echo "$HIST" | tr -d "\}\{\,\]\"\[" | sed -e 's|         ||g' -e 's|   ||g'
 }
 #-----------------------------------
 ## SHOW ALL ADDRESSES AND PUBKEYS ##
