@@ -10,9 +10,9 @@ USE_TOR=y
 IS_LOCKED=$(ls | grep -c "KeyRNG.gpg")
 if [ "$IS_LOCKED" -gt "0" ]; then
     clear
-    echo "                    ---------------------------------------"
-    echo "                    | L O C K E D   K e y R N G   M E N U |"
-    echo "                    ---------------------------------------"
+    echo "     ---------------------------------------"
+    echo "     | L O C K E D   K e y R N G   M E N U |"
+    echo "     ---------------------------------------"
     PS3='Enter choice (press enter to see options again): '
     options=("Unlock KeyRNG Files" "Copy Encrypted Files For Backup" "About Locked File" "Quit")
     select opt in "${options[@]}"
@@ -82,9 +82,9 @@ fi
 IS_FIRST_RUN=$(gpg --homedir gpg-KeyRNG/ --list-keys | grep -c KeyRNG)
 if [ "$IS_FIRST_RUN" -lt "2" ]; then
     clear
-    echo "                    -------------------------------------"
-    echo "                    | W E L C O M E   T O   K e y R N G |"
-    echo "                    -------------------------------------"
+    echo "     -------------------------------------"
+    echo "     | W E L C O M E   T O   K e y R N G |"
+    echo "     -------------------------------------"
     echo "This is your first run."
     echo "Press enter to move on."
     read
