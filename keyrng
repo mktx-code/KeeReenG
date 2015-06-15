@@ -85,7 +85,6 @@ fi
 ## FIRST TIME
 IS_FIRST_RUN=$(gpg --homedir gpg-KeyRNG/ --list-keys | grep -c KeyRNG)
 if [ "$IS_FIRST_RUN" -lt "2" ]; then
-    clear
     welcomemenu
     echo "Welcome to KeyRNG. We will do some initial steps now."
     read -p "Press enter to move on."
@@ -98,7 +97,6 @@ if [ "$HAS_TEMP_FILE" -lt "1" ]; then
     mkdir temp/
 fi
 ## MAIN MENU 
-clear
 mainmenu
 PS3='Enter choice (press enter to see options again): '
 options=("GnuPG Management" "Bitcoin Management" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
@@ -114,7 +112,6 @@ do
         do
             case "$opt" in
                 "Key Management Menu")
-                    clear
                     keymanagementmenu
                     PS3='Enter choice (press enter to see options again): '
                     options=("Generate New Keypair" "Public Keys" "Secret Keys" "BACK TO GPG MAIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
@@ -125,7 +122,6 @@ do
                                 genkey
                                 ;;
                             "Public Keys")
-                                clear
                                 pubkeymenu
                                 PS3='Enter choice (press enter to see options again): '
                                 options=("List Pubkeys By UID" "List All Public Key Data" "Import Keys" "Export/Send Keys" "BACK TO KEY MANAGEMENT MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
@@ -139,7 +135,6 @@ do
                                             listfullkeydetails
                                             ;;
                                         "Import Keys")
-                                            clear
                                             importkeysmenu
                                             PS3='Enter choice (press enter to see options again): '
                                             options=("Receive From Keyserver" "Import Public Key From File" "Import Public Key From Clipboard" "Import Single Key From Another GPG" "Import All Public Keys From Another GPG" "Refresh Keys From Keyserver" "BACK TO PUBLIC KEYS MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
@@ -316,7 +311,6 @@ do
                         done
                         ;;
                     "Encryption Menu")
-                        clear
                         encryptmenu
                         PS3='Enter choice (press enter to see options again): '
                         options=("Encrypt A File" "Encrypt A New Message" "BACK TO GPG MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
@@ -346,7 +340,6 @@ do
                         done
                         ;;
                     "Decryption Menu")
-                        clear
                         decryptmenu
                         PS3='Enter choice (press enter to see options again): '
                         options=("Decrypt From A File" "Decrypt From Clipboard" "BACK TO GPG MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
@@ -376,7 +369,6 @@ do
                         done
                         ;;
                     "Clearsign Menu")
-                        clear
                         clearsignmenu
                         PS3='Enter option (press enter to show options again): '
                         options=("Clearsign From File" "Clearsign New Message" "Verify Clearsigned File" "Verify Clearsigned Message From Clipboard" "BACK TO GPG MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
@@ -444,7 +436,6 @@ do
                 DEL=*tar.gz*
                 secdelete
             fi
-            clear
             mainbtcmenu
             PS3='Enter option (press enter to see options again): '
             options=("Standard Addresses" "Electrum Addresses Menu" "BIP32 Seed Addresses" "Show All Addresses" "Blockchain Interaction" "Sign Message" "BACK TO MAIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
@@ -452,7 +443,6 @@ do
             do
                 case "$opt" in
                     "Standard Addresses")
-                    clear
                     standaddrmenu
                     PS3='Enter option (press enter to see options again): '
                     options=("Create New Address" "Create Multiple New Addresses" "Show Addresses Only" "Show Addresses And Pubkeys" "Show Private Keys" "BACK TO BITCOIN MGMT MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
@@ -491,7 +481,6 @@ do
                     done
                     ;;
                     "Electrum Addresses Menu")
-                        clear
                         checkeleseed
                         eleaddrmenu
                         PS3='Enter choice (press enter to see options again): '
@@ -534,7 +523,6 @@ do
                         done                        
                         ;;
                     "BIP32 Seed Addresses")
-                        clear
                         checkbipseed
                         bipaddrmenu
                         PS3='Enter choice (press enter to see options again): '
@@ -594,7 +582,6 @@ do
                             read BCI_API
                         fi
                     fi
-                    clear
                     bcimenu
                     PS3='Enter option (press enter to see options again): '
                     options=("Check Unspent Balance" "Raw Transaction Details" "Raw Address History" "Show All Addresses And Pubkeys" "BACK TO BITCOIN MGMT MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
