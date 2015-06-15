@@ -185,6 +185,7 @@ importkeyfile ()
 echo "What file to import to KeyRNG?"
 read $IMPORT_KEYFILE
 gpg --homedir gpg-KeyRNG/  --import "$IMPORT_KEYFILE"
+gpg --homedir gpg-KeyRNG/  --list-keys "$IMPORT_KEYFILE" | grep "fingerprint" | cut -b 25- | tr -d " " | sed 's|$|\:6\:|' | gpg --homedir gpg-KeyRNG/ --no-permission-warning --quiet --import-owner-trust
 }
 #------------------------------
 ## IMPORT KEY FROM CLIPBOARD ##
@@ -196,6 +197,7 @@ read
 rm -rf temp/temp
 nano temp/temp
 gpg --homedir gpg-KeyRNG/  --import temp/temp
+gpg --homedir gpg-KeyRNG/  --list-keys $(cat temp/temp) | grep "fingerprint" | cut -b 25- | tr -d " " | sed 's|$|\:6\:|' | gpg --homedir gpg-KeyRNG/ --no-permission-warning --quiet --import-owner-trust
 echo "Shredding temp file..."
 DEL=temp/temp
 secdelete
@@ -273,7 +275,7 @@ read LIST_KEYS
   fi
 echo "What key UID do you want to import to KeyRNG?"
 read IMPORT_KEY
-gpg --homedir "$GPG" --export "$IMPORT_KEY" | gpg --homedir gpg-KeyRNG/  --import
+gpg --quiet --no-permission-warning --homedir "$GPG" --export "$IMPORT_KEY" | gpg --homedir gpg-KeyRNG/  --import
 }
 #---------------------------------------------
 ## IMPORT ALL PRIVATE KEYS FROM ANOTHER GPG ##
@@ -289,7 +291,7 @@ else
     read GPG
 fi
 rm -rf temp/temp
-gpg --homedir "$GPG" --no-permission-warning --list-secret-keys --keyid-format 0xlong | grep "0x" | cut -b 13- | cut -b -19 > temp/temp
+gpg --quiet --homedir "$GPG" --no-permission-warning --list-secret-keys --keyid-format 0xlong | grep "0x" | cut -b 13- | cut -b -19 > temp/temp
 LINES=$(grep -c "0x" temp/temp)
 if [ "$LINES" -gt "0" ]; then
     cat temp/temp | xargs -I{} -d"\n" gpg  --homedir "$GPG" --export-secret-keys {} | gpg --no-permission-warning --homedir gpg-KeyRNG/ --import
@@ -359,13 +361,21 @@ gpg --homedir gpg-KeyRNG/  --armor --output "$SECKEY_FILE" --export "$EXPORT_SEC
 #---------------------------
 sendkeyserv ()
 {
-echo "Copy the key ID starting with "0x...", press "q" when finished."
-echo "Press enter to see a list of your public keys."
-read
-gpg --homedir gpg-KeyRNG/  --list-keys | less
-echo "Enter the UID you would like to send to the keyserver."
-read SEND_KEYSERV_UID
-gpg --homedir gpg-KeyRNG/  --send-keys "$SEND_KEYSERV_UID"
+read -p "Send all keys? (Y/no) " ALL
+if [[ "$ALL" = "Y" ]]; then
+  gpg --homedir gpg-KeyRNG/ --list-keys | grep "0x" | cut -b 13- | cut -b -19 > temp/temp
+  cat temp/temp | xargs -I{} -d"\n" gpg  --homedir gpg-KeyRNG --send-keys {}
+  echo "Shredding temp file..."
+  DEL=temp/temp; secdelete
+else
+  echo "Copy the key ID starting with "0x...", press "q" when finished."
+  echo "Press enter to see a list of your public keys."
+  read
+  gpg --homedir gpg-KeyRNG/  --list-keys | less
+  echo "Enter the UID you would like to send to the keyserver."
+  read SEND_KEYSERV_UID
+  gpg --homedir gpg-KeyRNG/  --send-keys "$SEND_KEYSERV_UID"
+fi
 }
 #-----------------------------
 ## RECEIVE KEYS FROM SERVER ##
@@ -376,13 +386,22 @@ recvkeyserv ()
 echo "Please enter the UID you would like to receive from the keyserver."
 read RECV_KEYSERV_UID
 gpg --homedir gpg-KeyRNG/  --recv-keys "$RECV_KEYSERV_UID"
+gpg --homedir gpg-KeyRNG/  --list-keys "$RECV_KEYSERV_UID" | grep "fingerprint" | cut -b 25- | tr -d " " | sed 's|$|\:6\:|' | gpg --homedir gpg-KeyRNG/ --no-permission-warning --quiet --import-owner-trust
 }
-#-----------------
-## REFRESH KEYS ##
-#-----------------
+#---------------------------------------
+## REFRESH KEYS/FIX OWNER PERMISSIONS ##
+#---------------------------------------
 refreshkeys (){
 read -p "Refresh all keys? (y/no) " ALL
-if [[ "$ALL" != "no" ]]; then gpg --homedir gpg-KeyRNG/  --quiet --refresh-keys
+if [[ "$ALL" != "no" ]]; then 
+  gpg --homedir gpg-KeyRNG/  --quiet --refresh-keys
+  gpg --homedir gpg-KeyRNG/ --list-keys | grep "0x" | cut -b 13- | cut -b -19 > temp/temp
+  LINES=$(grep -c "0x" temp/temp)
+    if [ "$LINES" -gt "0" ]; then
+      cat temp/temp | xargs -I{} -d"\n" gpg  --homedir gpg-KeyRNG --list-keys {} | grep "fingerprint" | cut -b 25- | tr -d " " | sed 's|$|\:6\:|' | gpg --homedir gpg-KeyRNG/ --no-permission-warning --quiet --import-owner-trust
+      echo "Shredding temp file..."
+      DEL=temp/temp; secdelete
+    fi
 else read -p "What key to refresh? " ID; gpg --homedir gpg-KeyRNG/  --quiet --refresh-keys "$ID"
 fi; }
 
@@ -520,7 +539,7 @@ if [ "$IF_NEWMSG_RECP_TWO" != "no" ]; then
         echo "Press enter to see a list of possible recipients by UID."
         echo "Use up/down arrows to navigate. Press "q" when your finished."
         read
-        gpg --homedir gpg-KeyRNG/  --list-keys | grep "uid" | cut -b 21- | less
+        gpg --homedir gpg-KeyRNG/ --list-keys | grep "uid" | cut -b 21- | less
     fi
     echo "Second recipient UID?"
     read NEWMSG_RECP_TWO
@@ -528,22 +547,22 @@ if [ "$IF_NEWMSG_RECP_TWO" != "no" ]; then
     read HIDE_RECP_TWO
     if [[ "$SIGN" != "Y" ]]; then
       if [[ "$HIDE_RECP_TWO" != "no" ]]; then
-          gpg --homedir gpg-KeyRNG/  --armor --recipient "$NEWMSG_RECP" --hidden-recipient "$NEWMSG_RECP_TWO" --output temp/newmsg.asc --encrypt temp/newmsg
+          gpg --homedir gpg-KeyRNG/ --armor --recipient "$NEWMSG_RECP" --hidden-recipient "$NEWMSG_RECP_TWO" --yes --output temp/newmsg.asc --encrypt temp/newmsg
       else
-          gpg --homedir gpg-KeyRNG/  --armor --recipient "$NEWMSG_RECP" --recipient "$NEWMSG_RECP_TWO" --output temp/newmsg.asc --encrypt temp/newmsg
+          gpg --homedir gpg-KeyRNG/ --armor --recipient "$NEWMSG_RECP" --recipient "$NEWMSG_RECP_TWO" --yes --output temp/newmsg.asc --encrypt temp/newmsg
       fi
     else
       if [[ "$HIDE_RECP_TWO" != "no" ]]; then
-          gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign  --armor --recipient "$NEWMSG_RECP" --hidden-recipient "$NEWMSG_RECP_TWO" --output temp/newmsg.asc --encrypt temp/newmsg
+          gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign  --armor --recipient "$NEWMSG_RECP" --hidden-recipient "$NEWMSG_RECP_TWO" --yes --output temp/newmsg.asc --encrypt temp/newmsg
       else
-          gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign  --armor --recipient "$NEWMSG_RECP" --recipient "$NEWMSG_RECP_TWO" --output temp/newmsg.asc --encrypt temp/newmsg
+          gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign  --armor --recipient "$NEWMSG_RECP" --recipient "$NEWMSG_RECP_TWO" --yes --output temp/newmsg.asc --encrypt temp/newmsg
       fi  
     fi
 else
   if [[ "$SIGN" != "Y" ]]; then
-      gpg --homedir gpg-KeyRNG/  --armor --recipient "$NEWMSG_RECP" --output temp/newmsg.asc --encrypt temp/newmsg
+      gpg --homedir gpg-KeyRNG/  --armor --recipient "$NEWMSG_RECP" --yes --output temp/newmsg.asc --encrypt temp/newmsg
   else
-      gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign  --armor --recipient "$NEWMSG_RECP" --output temp/newmsg.asc --encrypt temp/newmsg
+      gpg --homedir gpg-KeyRNG/ --local-user "$PRIVKEY" --sign  --armor --recipient "$NEWMSG_RECP" --yes --output temp/newmsg.asc --encrypt temp/newmsg
   fi
 fi
 echo "File is stored temporarily at KeyRNG/temp/newmsg.asc"
@@ -1554,6 +1573,7 @@ cat btc-KeyRNG/*.addr | grep -e "Address" -e "Pubkey" | less
 }
 #####################  M E N U S ######################
 welcomemenu (){
+clear
 wmx="---------------------------------------"
 wmy="| W E L C O M E    T O    K e y R N G |"
 wmz="---------------------------------------"
@@ -1562,6 +1582,7 @@ echo_c "$wmy"
 echo_c "$wmz"; }
 
 mainmenu (){
+clear
 mmx="-------------------------------------"
 mmy="| K e y R N G    M A I N    M E N U |"
 mmz="-------------------------------------"
@@ -1570,6 +1591,7 @@ echo_c "$mmy"
 echo_c "$mmz"; }
 
 gpgmainmenu (){
+clear
 gmmx="-----------------------------------------------"
 gmmy="| G n u P G    M A N A G E M E N T    M E N U |"
 gmmz="-----------------------------------------------"
@@ -1578,6 +1600,7 @@ echo_c "$gmmy"
 echo_c "$gmmz"; }
 
 keymanagementmenu (){
+clear
 kmx="-------------------------------------------"
 kmy="| K E Y    M A N A G E M E N T    M E N U |"
 kmz="-------------------------------------------"
@@ -1586,6 +1609,7 @@ echo_c "$kmy"
 echo_c "$kmz"; }
 
 pubkeymenu (){
+clear
 pkx="-------------------------------------"
 pky="| P U B L I C    K E Y S    M E N U |"
 pkz="-------------------------------------"
@@ -1594,6 +1618,7 @@ echo_c "$pky"
 echo_c "$pkz"; }
 
 importkeysmenu (){
+clear
 ikx="-------------------------------------"
 iky="| I M P O R T    K E Y S    M E N U |"
 ikz="-------------------------------------"
@@ -1602,14 +1627,16 @@ echo_c "$iky"
 echo_c "$ikz"; }
 
 exportkeysmenu (){
+clear
 esx="-----------------------------------------------"
 esy="| E X P O R T / S E N D    K E Y S    M E N U |"
-exz="-----------------------------------------------"
+esz="-----------------------------------------------"
 echo_c "$esx"
 echo_c "$esy"
 echo_c "$esz"; }
 
 seckeysmenu (){
+clear
 skx="-------------------------------------"
 sky="| S E C R E T    K E Y S    M E N U |"
 skz="-------------------------------------"
@@ -1618,6 +1645,7 @@ echo_c "$sky"
 echo_c "$skz"; }
 
 importseckeysmenu (){
+clear
 iskx="----------------------------------------------------"
 isky="| I M P O R T    S E C R E T    K E Y S    M E N U |"
 iskz="----------------------------------------------------"
@@ -1626,6 +1654,7 @@ echo_c "$isky"
 echo_c "$iskz"; }
 
 encryptmenu (){
+clear
 emx="----------------------------------"
 emy="| E N C R Y P T I O N    M E N U |"
 emz="----------------------------------"
@@ -1634,6 +1663,7 @@ echo_c "$emy"
 echo_c "$emz"; }
 
 decryptmenu (){
+clear
 dmx="----------------------------------"
 dmy="| D E C R Y P T I O N    M E N U |"
 dmz="----------------------------------"
@@ -1642,6 +1672,7 @@ echo_c "$dmy"
 echo_c "$dmz"; }
 
 clearsignmenu (){
+clear
 csx="-------------------------------"
 csy="| C L E A R S I G N   M E N U |"
 csz="-------------------------------"
@@ -1650,6 +1681,7 @@ echo_c "$csy"
 echo_c "$csz"; }
 
 mainbtcmenu (){
+clear
 bmx="--------------------------------------------------"
 bmy="| B I T C O I N    M A N A G E M E N T   M E N U |"
 bmz="--------------------------------------------------"
@@ -1658,6 +1690,7 @@ echo_c "$bmy"
 echo_c "$bmz"; }
 
 standaddrmenu () {
+clear
 sax="-----------------------------------------------"
 say="| S T A N D A R D    A D D R E S S    M E N U |"
 saz="-----------------------------------------------"
@@ -1666,6 +1699,7 @@ echo_c "$say"
 echo_c "$saz"; }
 
 eleaddrmenu (){
+clear
 eax="-----------------------------------------------"
 eay="| E L E C T R U M    A D D R E S S    M E N U |"
 eaz="-----------------------------------------------"
@@ -1674,6 +1708,7 @@ echo_c "$eay"
 echo_c "$eaz"; }
 
 bipaddrmenu (){
+clear
 bax="-----------------------------------------"
 bay="| B I P 3 2    A D D R E S S    M E N U |"
 baz="-----------------------------------------"
@@ -1682,6 +1717,7 @@ echo_c "$bay"
 echo_c "$baz"; }
 
 bcimenu (){
+clear
 bix="-----------------------------------------------------------"
 biy="| B L O C K C H A I N    I N T E R A C T I O N    M E N U |"
 biz="-----------------------------------------------------------"
