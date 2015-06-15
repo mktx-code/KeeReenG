@@ -4,19 +4,15 @@ unset "$HISTFILE"
 BCI_API=
 USE_TOR=y
 #
-#
-#
-#
 #Blah first run, about, menu.
-#
 #
 ## IS LOCKED
 IS_LOCKED=$(ls | grep -c "KeyRNG.gpg")
 if [ "$IS_LOCKED" -gt "0" ]; then
     clear
-    echo "---------------------------------------"
-    echo "| L O C K E D   K e y R N G   M E N U |"
-    echo "---------------------------------------"
+    echo "                    ---------------------------------------"
+    echo "                    | L O C K E D   K e y R N G   M E N U |"
+    echo "                    ---------------------------------------"
     PS3='Enter choice (press enter to see options again): '
     options=("Unlock KeyRNG Files" "Copy Encrypted Files For Backup" "About Locked File" "Quit")
     select opt in "${options[@]}"
@@ -80,41 +76,41 @@ fi
         esac
     done
 fi
+## LIBRARY
+. libkeyrng
+## FIRST TIME
+IS_FIRST_RUN=$(gpg --homedir gpg-KeyRNG/ --list-keys | grep -c KeyRNG)
+if [ "$IS_FIRST_RUN" -lt "2" ]; then
+    clear
+    echo "                    -------------------------------------"
+    echo "                    | W E L C O M E   T O   K e y R N G |"
+    echo "                    -------------------------------------"
+    echo "This is your first run."
+    echo "Press enter to move on."
+    read
+    clear
+    firstrun
+fi
 ## TEMP FILE
 HAS_TEMP_FILE=$(ls | grep -c "temp")
 if [ "$HAS_TEMP_FILE" -lt "1" ]; then
     mkdir temp/
 fi
-## LOAD LIBRARY
-. libkeyrng
 ## MAIN MENU 
 clear
-echo "---------------------"
-echo "| M A I N   M E N U |"
-echo "---------------------"
+echo "     ---------------------"
+echo "     | M A I N   M E N U |"
+echo "     ---------------------"
 PS3='Enter choice (press enter to see options again): '
 options=("GnuPG Management" "Bitcoin Management" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
 select opt in "${options[@]}"
 do
     case "$opt" in
         "GnuPG Management")
-        IS_FIRST_RUN=$(ls gpg-KeyRNG | grep -c "secring")
-        if [ "$IS_FIRST_RUN" -lt "1" ]; then
-            clear
-            echo "---------------------"
-            echo "| F I R S T   R U N |"
-            echo "---------------------"
-            echo "This is your first run."
-            echo "You must create a gpg key to begin with."
-            echo "Press enter to move on."
-            read
-            clear
-            firstrun
-        fi
         clear
-        echo "------------"
-        echo "| GPG MENU |"
-        echo "------------"
+        echo "     -------------------"
+        echo "     | G P G   M E N U |"
+        echo "     -------------------"
         PS3='Enter choice (press enter to see options again): '
         options=("Key Management" "Encryption" "Decryption" "Clearsign" "Back To MAIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
         select opt in "${options[@]}"
@@ -122,9 +118,9 @@ do
             case "$opt" in
                 "Key Management")
                     clear
-                    echo "-------------------------------"
-                    echo "| K E Y   M A N A G E M E N T |"
-                    echo "-------------------------------"
+                    echo "     -------------------------------"
+                    echo "     | K E Y   M A N A G E M E N T |"
+                    echo "     -------------------------------"
                     PS3='Enter choice (press enter to see options again): '
                     options=("Generate New Keypair" "Public Keys" "Secret Keys" "Back To GPG MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                     select opt in "${options[@]}"
@@ -135,9 +131,9 @@ do
                                 ;;
                             "Public Keys")
                                 clear
-                                echo "-------------------------"
-                                echo "| P U B L I C   K E Y S |"
-                                echo "-------------------------"
+                                echo "     -------------------------"
+                                echo "     | P U B L I C   K E Y S |"
+                                echo "     -------------------------"
                                 PS3='Enter choice (press enter to see options again): '
                                 options=("List Pubkeys By UID" "List All Public Key Data" "Import Keys" "Export/Send Keys" "Back To KEY MANAGEMENT MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                                 select opt in "${options[@]}"
@@ -151,11 +147,11 @@ do
                                             ;;
                                         "Import Keys")
                                             clear
-                                            echo "------------------------"
-                                            echo "| I M P O R T   K E Y S|"
-                                            echo "------------------------"
+                                            echo "     ------------------------"
+                                            echo "     | I M P O R T   K E Y S|"
+                                            echo "     ------------------------"
                                             PS3='Enter choice (press enter to see options again): '
-                                            options=("Receive From Keyserver" "Import Public Key From File" "Import Public Key From Clipboard" "Import Single Key From Another GPG" "Import All Public Keys From Another GPG" "Back To PUBLIC KEYS MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+                                            options=("Receive From Keyserver" "Import Public Key From File" "Import Public Key From Clipboard" "Import Single Key From Another GPG" "Import All Public Keys From Another GPG" "Refresh Keys From Keyserver" "Back To PUBLIC KEYS MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                                             select opt in "${options[@]}"
                                             do
                                                 case "$opt" in
@@ -173,6 +169,9 @@ do
                                                         ;;
                                                     "Import All Public Keys From Another GPG")
                                                         gpgimportallpub
+                                                        ;;
+                                                    "Refresh Keys From Keyserver")
+                                                        refreshkeys
                                                         ;;
                                                     "Back To PUBLIC KEYS MENU")
                                                         break
@@ -239,9 +238,9 @@ do
                                 ;;
                             "Secret Keys")
                                 clear
-                                echo "-------------------------"
-                                echo "| S E C R E T   K E Y S |"
-                                echo "-------------------------"
+                                echo "     -------------------------"
+                                echo "     | S E C R E T   K E Y S |"
+                                echo "     -------------------------"
                                 PS3='Enter choice (press enter to see options again): '
                                 options=("Import Secret Keys" "List Secret Keys By UID" "List Full Secret Key Info" "Export Secret Key To Terminal" "Export Secret Key To File" "Back To KEY MANAGEMENT MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                                 select opt in "${options[@]}"
@@ -327,9 +326,9 @@ do
                         ;;
                     "Encryption")
                         clear
-                        echo "---------------------------------"
-                        echo "| E N C R Y P T I O N   M E N U |"
-                        echo "---------------------------------"
+                        echo "     ---------------------------------"
+                        echo "     | E N C R Y P T I O N   M E N U |"
+                        echo "     ---------------------------------"
                         PS3='Enter choice (press enter to see options again): '
                         options=("Encrypt A File" "Encrypt A New Message" "Back To GPG MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                         select opt in "${options[@]}"
@@ -359,9 +358,9 @@ do
                         ;;
                     "Decryption")
                         clear
-                        echo "---------------------------------"
-                        echo "| D E C R Y P T I O N   M E N U |"
-                        echo "---------------------------------"
+                        echo "     ---------------------------------"
+                        echo "     | D E C R Y P T I O N   M E N U |"
+                        echo "     ---------------------------------"
                         PS3='Enter choice (press enter to see options again): '
                         options=("Decrypt From A File" "Decrypt From Clipboard" "Back To GPG MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                         select opt in "${options[@]}"
@@ -391,9 +390,9 @@ do
                         ;;
                     "Clearsign")
                         clear
-                        echo "-------------------------------"
-                        echo "| C L E A R S I G N   M E N U |"
-                        echo "-------------------------------"
+                        echo "     -------------------------------"
+                        echo "     | C L E A R S I G N   M E N U |"
+                        echo "     -------------------------------"
                         PS3='Enter option (press enter to show options again): '
                         options=("Clearsign From File" "Clearsign New Message" "Verify Clearsigned File" "Verify Clearsigned Message From Clipboard" "Back To GPG MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                         select opt in "${options[@]}"
@@ -461,9 +460,9 @@ do
                 secdelete
             fi
             clear
-            echo "---------------------------"
-            echo "| B I T C O I N   M E N U |"
-            echo "---------------------------"
+            echo "     ---------------------------"
+            echo "     | B I T C O I N   M E N U |"
+            echo "     ---------------------------"
             PS3='Enter option (press enter to see options again): '
             options=("Standard Addresses" "Electrum Addresses Menu" "BIP32 Seed Addresses" "Show All Addresses" "Blockchain Interaction" "Sign Message" "Back To MAIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
             select opt in "${options[@]}"
@@ -471,11 +470,11 @@ do
                 case "$opt" in
                     "Standard Addresses")
                     clear
-                    echo "---------------------------------------------"
-                    echo "| S T A N D A R D   A D D R E S S   M E N U |"
-                    echo "---------------------------------------------"
+                    echo "     ---------------------------------------------"
+                    echo "     | S T A N D A R D   A D D R E S S   M E N U |"
+                    echo "     ---------------------------------------------"
                     PS3='Enter option (press enter to see options again): '
-                    options=("Create New Address" "Create Multiple New Addresses" "Show Addresses Only" "Show Addresses And Public Keys" "Show Private Keys" "Back To BITCOIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+                    options=("Create New Address" "Create Multiple New Addresses" "Show Addresses Only" "Show Addresses And Pubkeys" "Show Private Keys" "Back To BITCOIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                     select opt in "${options[@]}"
                     do
                         case "$opt" in
@@ -488,7 +487,7 @@ do
                             "Show Addresses Only")
                                 showaddr
                                 ;;
-                            "Show Addresses And Public Keys")
+                            "Show Addresses And Pubkeys")
                                 showalladdr
                                 ;;
                             "Show Private Keys")
@@ -513,11 +512,11 @@ do
                     "Electrum Addresses Menu")
                         clear
                         checkeleseed
-                        echo "---------------------------------------------"
-                        echo "| E L E C T R U M   A D D R E S S   M E N U |"
-                        echo "---------------------------------------------"
+                        echo "     ---------------------------------------------"
+                        echo "     | E L E C T R U M   A D D R E S S   M E N U |"
+                        echo "     ---------------------------------------------"
                         PS3='Enter choice (press enter to see options again): '
-                        options=("Create New Address" "Create Multiple Addresses" "Show Addresses Only" "Show Addresses And Public Keys" "Show Private Keys" "Back to BITCOIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+                        options=("Create New Address" "Create Multiple Addresses" "Show Addresses Only" "Show Addresses And Pubkeys" "Show Private Keys" "Show Seed" "Back to BITCOIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                         select opt in "${options[@]}"
                         do
                             case "$opt" in
@@ -530,11 +529,14 @@ do
                                 "Show Addresses Only")
                                     eleshowaddr
                                     ;;
-                                "Show Addresses And Public Keys")
+                                "Show Addresses And Pubkeys")
                                     eleshowall
                                     ;;
                                 "Show Private Keys")
                                     showelepriv
+                                    ;;
+                                "Show Seed")
+                                    eleshowseed
                                     ;;
                                 "Back to BITCOIN MENU")
                                     break
@@ -555,11 +557,11 @@ do
                     "BIP32 Seed Addresses")
                         clear
                         checkbipseed
-                        echo "---------------------------------------"
-                        echo "| B I P 3 2   A D D R E S S   M E N U |"
-                        echo "---------------------------------------"
+                        echo "     ---------------------------------------"
+                        echo "     | B I P 3 2   A D D R E S S   M E N U |"
+                        echo "     ---------------------------------------"
                         PS3='Enter choice (press enter to see options again): '
-                        options=("Create New Address" "Create Multiple Addresses" "Show Addresses Only" "Show Addresses, Privkeys, And Seed" "Back to BITCOIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+                        options=("Create New Address" "Create Multiple Addresses" "Show Addresses Only" "Show Addresses And Pubkeys" "Show Private Keys" "Show Seed" "Back to BITCOIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                         select opt in "${options[@]}"
                         do
                             case "$opt" in
@@ -572,8 +574,14 @@ do
                                 "Show Addresses Only")
                                     bipshowaddr
                                     ;;
-                                "Show Addresses, Privkeys, And Seed")
+                                "Show Addresses And Pubkeys")
                                     bipshowall
+                                    ;;
+                                "Show Private Keys")
+                                    bipshowpriv
+                                    ;;
+                                "Show Seed")
+                                    bipshowseed
                                     ;;
                                 "Back to BITCOIN MENU")
                                     break
@@ -610,9 +618,9 @@ do
                         fi
                     fi
                     clear
-                    echo "-------------------------------"
-		    echo "| BLOCKCHAIN INTERACTION MENU |"
-		    echo "-------------------------------"
+                    echo "     -------------------------------"
+		    echo "     | BLOCKCHAIN INTERACTION MENU |"
+		    echo "     -------------------------------"
                     PS3='Enter option (press enter to see options again): '
                     options=("Check Unspent Balance" "Raw Transaction Details" "Raw Address History" "Back to BITCOIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                     select opt in "${options[@]}"
