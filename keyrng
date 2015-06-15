@@ -2,7 +2,7 @@
 set +o history
 unset "$HISTFILE"
 BCI_API=
-USE_TOR=y
+USE_TOR=
 #
 #Blah first run, about, menu.
 #
