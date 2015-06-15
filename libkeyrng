@@ -1586,9 +1586,12 @@ clear
 mmx="-------------------------------------"
 mmy="| K e y R N G    M A I N    M E N U |"
 mmz="-------------------------------------"
+bannr="- P R I V A C Y    B E F O R E    P R O F I T -"
 echo_c "$mmx"
 echo_c "$mmy"
-echo_c "$mmz"; }
+echo_c "$mmz"
+echo_c "$bannr"
+echo ""; }
 
 gpgmainmenu (){
 clear
