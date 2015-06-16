@@ -57,9 +57,9 @@ secdelete ()
 {
 HAS_SRM=$(ls /usr/bin/ /usr/sbin/ /usr/local/bin/ | grep -c srm)
 if [[ "$HAS_SRM" -gt "0" ]]; then
-    srm -d -r -v "$DEL"
+    srm -d -r "$DEL"
 else
-    shred -v -u -z "$DEL"
+    shred -u -z "$DEL"
 fi
 }
 #
@@ -950,7 +950,7 @@ PUBKEY=$(pybtctools/pybtctool privtopub $(echo -n "$WIF_COMP"))
 ADDRESS=$(pybtctools/pybtctool pubkey_to_address $(echo -n "$PUBKEY"))
 NUM_PRIV=$(grep -c "Pubkey" btc-KeyRNG/standard.addr)
 if [[ "$NUM_PRIV" = "0" ]]; then
-    echo -e "\n\nStandard Privkey 1: "$WIF_COMP"" >> btc-KeyRNG/s.priv
+    echo -e "\n\nStandard Address 1: "$ADDRESS"\nStandard Privkey 1: "$WIF_COMP"" >> btc-KeyRNG/s.priv
     gpg --quiet  --homedir gpg-KeyRNG/ --output btc-KeyRNG/s.priv.gpg -ae -r "$KEYRNG" btc-KeyRNG/s.priv && srm -dr btc-KeyRNG/s.priv
     unset PW; unset CHKPW
     echo -e "\n\nStandard Address 1: "$ADDRESS"\nStandard Pubkey 1:  "$PUBKEY"\n---"
@@ -971,8 +971,8 @@ if [[ "$NUM_PRIV" = "0" ]]; then
     fi
 else
     NUM_PRIV=$(expr "$NUM_PRIV" + 1)
-    echo -e "\nStnadard Address "$NUM_PRIV": "$ADDRESS"\nStnadard Pubkey "$NUM_PRIV":  "$PUBKEY"\n---"
-    echo -e "Stnadard Privkey "$NUM_PRIV":  "$WIF_COMP"" >> btc-KeyRNG/s.priv
+    echo -e "\nStanadard Address "$NUM_PRIV": "$ADDRESS"\nStanadard Pubkey "$NUM_PRIV":  "$PUBKEY"\n---"
+    echo -e "\nStanadard Address "$NUM_PRIV": "$ADDRESS"\nStanadard Privkey "$NUM_PRIV":  "$WIF_COMP"\n" >> btc-KeyRNG/s.priv
     gpg --quiet  --homedir gpg-KeyRNG/ --output btc-KeyRNG/s.priv.gpg -ae -r "$KEYRNG" btc-KeyRNG/s.priv && DEL=btc-KeyRNG/s.priv; secdelete
         echo "Add a note to address? (y/no)"
         read IS_NOTE
@@ -1042,13 +1042,13 @@ do
     ADDRESS=$(pybtctools/pybtctool pubkey_to_address $(echo -n "$PUBKEY"))
     NUM_PRIV=$(grep -c "Pubkey" btc-KeyRNG/standard.addr)
     if [[ "$NUM_PRIV" = "0" ]]; then
-        echo -e "\nStandard Privkey 1:  "$WIF_COMP"" >> btc-KeyRNG/s.priv
-        echo -e "\n\nStnadard Address 1: "$ADDRESS"\nStnadard Pubkey 1:  "$PUBKEY"\n---"
+        echo -e "\n\nStandard Address 1: "$ADDRESS"\nStandard Privkey 1:  "$WIF_COMP"\n" >> btc-KeyRNG/s.priv
+        echo -e "\n\nStandard Address 1: "$ADDRESS"\nStandard Pubkey 1:  "$PUBKEY"\n---"
         echo -e "\n\nStandard Address 1: "$ADDRESS"\nStandard Pubkey 1:  "$PUBKEY"\n---" >> btc-KeyRNG/standard.addr
     else
         NUM_PRIV=$(expr "$NUM_PRIV" + 1)
-        echo -e "\nStandard Privkey "$NUM_PRIV":  "$WIF_COMP"" >> btc-KeyRNG/s.priv
-        echo -e "\nStnadard Address "$NUM_PRIV": "$ADDRESS"\nStnadard Pubkey "$NUM_PRIV":  "$PUBKEY"\n---"
+        echo -e "\nStandard Address "$NUM_PRIV": "$ADDRESS"\nStandard Privkey "$NUM_PRIV":  "$WIF_COMP"\n" >> btc-KeyRNG/s.priv
+        echo -e "\nStandard Address "$NUM_PRIV": "$ADDRESS"\nStandard Pubkey "$NUM_PRIV":  "$PUBKEY"\n---"
         echo -e "\nStandard Address "$NUM_PRIV": "$ADDRESS"\nStandard Pubkey "$NUM_PRIV":  "$PUBKEY"\n---" >> btc-KeyRNG/standard.addr
     fi
 done
@@ -1163,7 +1163,7 @@ if [[ "$ADDR_COUNT" = "0" ]]; then
     PUB=$(pybtctools/pybtctool privtopub $(echo -n "$WIF_COMP"))
     ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$PUB"))
     echo -e "\n\nEle Address 1: "$ADDR"\nEle Pubkey 1:  "$PUB"\n---"
-    echo -e "\nEle Privkey 1:  "$WIF_COMP"" >> btc-KeyRNG/ele.priv
+    echo -e "\n\nEle Address 1: "$ADDR"\nEle Privkey 1:  "$WIF_COMP"\n" >> btc-KeyRNG/ele.priv
     echo "Add a note to address? (y/no)"
     read IS_NOTE
     if [[ "$IS_NOTE" = "y" ]]; then
@@ -1179,7 +1179,7 @@ else
     PUB=$(pybtctools/pybtctool privtopub $(echo -n "$WIF_COMP"))
     ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$PUB"))
     echo -e "\nEle Address "$ADDR_COUNT": "$ADDR"\nEle Pubkey "$ADDR_COUNT":  "$PUB"\n---"
-    echo -e "\nEle Privkey "$ADDR_COUNT":  "$WIF_COMP"" >> btc-KeyRNG/ele.priv
+    echo -e "\n\nEle Address "$ADDR_COUNT":\nEle Privkey "$ADDR_COUNT":  "$WIF_COMP"\n" >> btc-KeyRNG/ele.priv
     echo "Add a note to address? (y/no)"
     read IS_NOTE
     if [[ "$IS_NOTE" = "y" ]]; then
@@ -1229,7 +1229,7 @@ do
         WIF_COMP=$(pybtctools/pybtctool electrum_privkey $(echo -n "$SEED") 0 wif_compressed)
         PUB=$(pybtctools/pybtctool privtopub $(echo -n "$WIF_COMP"))
         ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$PUB"))
-        echo -e "\n\n\nEle Privkey 1:  "$WIF_COMP"" >> btc-KeyRNG/ele.priv
+        echo -e "\n\nEle Address 1: "$ADDR"\nEle Privkey 1:  "$WIF_COMP"\n" >> btc-KeyRNG/ele.priv
         echo -e "\n\nEle Address 1: "$ADDR"\nEle Pubkey 1:  "$PUB"\n---"
         echo -e "\n\nEle Address 1: "$ADDR"\nEle Pubkey 1:  "$PUB"\n---" >> btc-KeyRNG/ele.addr
     else
@@ -1237,7 +1237,7 @@ do
         WIF_COMP=$(pybtctools/pybtctool electrum_privkey $(echo -n "$SEED") $(echo -n "$ADDR_COUNT") wif_compressed)
         PUB=$(pybtctools/pybtctool privtopub $(echo -n "$WIF_COMP"))
         ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$PUB"))
-        echo -e "\nEle Privkey "$ADDR_COUNT":  "$WIF_COMP"" >> btc-KeyRNG/ele.priv
+        echo -e "\nEle Address "$ADDR_COUNT": "$ADDR"\nEle Privkey "$ADDR_COUNT":  "$WIF_COMP"" >> btc-KeyRNG/ele.priv
         echo -e "\nEle Address "$ADDR_COUNT": "$ADDR"\nEle Pubkey "$ADDR_COUNT":  "$PUB"\n---"
         echo -e "\nEle Address "$ADDR_COUNT": "$ADDR"\nEle Pubkey "$ADDR_COUNT":  "$PUB"\n---" >> btc-KeyRNG/ele.addr
     fi
@@ -1376,16 +1376,15 @@ if [[ "$ADDR_COUNT" = "0" ]]; then
     echo_c "---------------------------------------" >> btc-KeyRNG/bip.priv
     echo "Add a note to address? (y/no)"
     read IS_NOTE
+    echo -e "\n\nBIP32 Address 1: "$ADDR"\nBIP32 Privkey 1:  "$XPRIV"\n" >> btc-KeyRNG/bip.priv
     if [[ "$IS_NOTE" = "y" ]]; then
         echo "Type the note and press enter:"
         read NOTE 
         echo -e "\n\nBIP32 Address 1: "$ADDR"     Note: "$NOTE"\nBIP32 Pubkey 1:  "$XPUB"\n---" >> btc-KeyRNG/bip.addr
-        echo -e "\n\nBIP32 Privkey 1:  "$XPRIV"\n" >> btc-KeyRNG/bip.priv
         echo "DONE!"
         clear
     else
         echo -e "\n\nBIP32 Address 1: "$ADDR"\nBIP32 Pubkey 1:  "$XPUB"\n---" >> btc-KeyRNG/bip.addr
-        echo -e "\nBIP32 Privkey 1:  "$XPRIV"\n" >> btc-KeyRNG/bip.priv
         echo "DONE!"
         clear
     fi
@@ -1394,6 +1393,7 @@ else
     XPRIV=$(pybtctools/pybtctool bip32_ckd $(echo -n "$SEED") $(echo -n "$ADDR_COUNT"))
     XPUB=$(pybtctools/pybtctool bip32_privtopub $(echo -n "$XPRIV"))
     ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$XPUB"))
+    echo -e "\nBIP32 Address "$ADDR_COUNT": "$ADDR"\nBIP32 Privkey "$ADDR_COUNT":  "$XPRIV"\n" >> btc-KeyRNG/bip.priv
     echo -e "\n\nBIP32 Address "$ADDR_COUNT": "$ADDR"\nBIP32 Pubkey "$ADDR_COUNT":  "$XPUB"\n---"
     echo "Add a note to address? (y/no)"
     read IS_NOTE
@@ -1401,16 +1401,16 @@ else
         echo "Type the note and press enter:"
         read NOTE 
         echo -e "\nBIP32 Address "$ADDR_COUNT": "$ADDR"     Note: "$NOTE"\nBIP32 Pubkey "$ADDR_COUNT":  "$XPUB"\n---" >> btc-KeyRNG/bip.addr
-        echo -e "\nBIP32 Privkey "$ADDR_COUNT":  "$XPRIV"" >> btc-KeyRNG/bip.priv
         echo "DONE!"
         clear
     else
         echo -e "\nBIP32 Address "$ADDR_COUNT": "$ADDR"\nBIP32 Pubkey "$ADDR_COUNT":  "$XPUB"\n---" >> btc-KeyRNG/bip.addr
-        echo -e "\nBIP32 Privkey "$ADDR_COUNT":  "$XPRIV"\n" >> btc-KeyRNG/bip.priv
         echo "DONE!"
         clear
     fi
 fi
+echo ""
+echo "Cleaning up..."
 gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.priv.gpg -ae -r "$KEYRNG" btc-KeyRNG/bip.priv && DEL=btc-KeyRNG/bip.priv; secdelete
 gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.seed.gpg -ae -r "$KEYRNG"  btc-KeyRNG/bip.seed && DEL=btc-KeyRNG/bip.seed; secdelete
 }
@@ -1446,7 +1446,7 @@ do
         ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$XPUB"))
         echo -e "\n\nBIP32 Address 1: "$ADDR"\nBIP32 Pubkey 1:  "$XPUB"\n---"
         echo -e "\n\nBIP32 Address 1: "$ADDR"\nBIP32 Pubkey 1:  "$XPUB"\n---" >> btc-KeyRNG/bip.addr
-        echo -e "\n\n\nBIP32 Privkey 1:  "$XPRIV"\n" >> btc-KeyRNG/bip.priv
+        echo -e "\n\nBIP32 Address 1: "$ADDR"\nBIP32 Privkey 1:  "$XPRIV"\n" >> btc-KeyRNG/bip.priv
     else
         ADDR_COUNT=$(expr "$ADDR_COUNT" + 1)
         XPRIV=$(pybtctools/pybtctool bip32_ckd $(echo -n "$SEED") $(echo -n "$ADDR_COUNT"))
@@ -1454,7 +1454,7 @@ do
         ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$XPUB"))
         echo -e "\nBIP32 Address "$ADDR_COUNT": "$ADDR"\nBIP32 Pubkey "$ADDR_COUNT":  "$XPUB"\n---"
         echo -e "\nBIP32 Address "$ADDR_COUNT": "$ADDR"\nBIP32 Pubkey "$ADDR_COUNT":  "$XPUB"\n---" >> btc-KeyRNG/bip.addr
-        echo -e "\n\nBIP32 Privkey "$ADDR_COUNT":  "$XPRIV"\n" >> btc-KeyRNG/bip.priv
+        echo -e "\n\nBIP32 Address "$ADDR_COUNT": "$ADDR"\nBIP32 Privkey "$ADDR_COUNT":  "$XPRIV"\n" >> btc-KeyRNG/bip.priv
     fi
 done
 gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.priv.gpg -ae -r "$KEYRNG" btc-KeyRNG/bip.priv && DEL=btc-KeyRNG/bip.priv; secdelete
@@ -1490,11 +1490,12 @@ cat btc-KeyRNG/bip.addr | less
 ## BIP32 SHOW PRIVKEYS ##
 #------------------------
 bipshowpriv(){
-clear
-echo "Press enter to see your bip32 private keys."
-echo "Use up/down arrows to navigate. Press q when finished."
-read
+echo ""
+echo "Unlocking keys..."
 gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.priv -d btc-KeyRNG/bip.priv.gpg && rm -rf btc-KeyRNG/bip.priv.gpg
+echo ""
+echo "Press enter to see your bip32 private keys."
+read -p "Use up/down arrows to navigate. Press q when finished."
 cat btc-KeyRNG/bip.priv | less
 gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.priv.gpg -ae -r "$KEYRNG" btc-KeyRNG/bip.priv && DEL=btc-KeyRNG/bip.priv; secdelete
 }
@@ -1590,14 +1591,13 @@ if [ "BCI_API" -gt "0" ]; then
   HAVE_API=y
 fi
 mktx (){
-echo_c()
-{
-w=$(stty size | cut -d" " -f2)
-l=${#1}
-printf "%"$((l+(w-l)/2))"s\n" "$1"
-}
 echo ""
 echo_c "MAKE NEW TRANSACTION"
+echo ""
+read -p "See your address for an address to send from? (Y/no) " seeaddr
+if [ "$seeaddr" = "Y" ]; then
+  showalladdr
+fi
 echo ""
 read -p "Input address to send from: " ADDR
 echo "Getting address history..."
@@ -1631,9 +1631,10 @@ do
   total=$(expr $total - $fee)
 done
 change=$(expr $total - $sendamount)
-echo ""
-echo_c "REVIEWING TRANSACTION"
 clear
+echo ""
+echo_c "REVIEW TRANSACTION"
+echo ""
 echo "Amount To Send: "$sendamount" satoshis"
 echo "To Address: "$sendaddr"" 
 echo "Fee: 20000 satoshis"
@@ -1663,9 +1664,10 @@ do
     total=$(expr $total - $fee)
   done
   change=$(expr $total - $sendamount)
-  echo ""
-  echo_c "REVIEWING TRANSACTION"
   clear
+  echo ""
+  echo_c "REVIEW TRANSACTION"
+  echo ""
   echo "Amount To Send: "$sendamont" satoshis"
   echo "To Address: "$sendaddr"" 
   echo "Fee: 20000 satoshis"
@@ -1700,7 +1702,12 @@ do
 done
 pvouts=$(cat temp/mktx | xargs | sed 's|\:\ |:|g') # all previous outputs:nout out:n ...
 if [[ "$change" -gt "0" ]]; then
-  tx=$(pybtctools/pybtctool mktx $(echo -n "$pvouts") "$sendaddr":"$sendamount" "$changeaddr":"$change")
+  rand=$(od -A n -t d -N 3 /dev/urandom)
+  if [[ $(($rand%2)) -eq 0 ]]; then
+    tx=$(pybtctools/pybtctool mktx $(echo -n "$pvouts") "$sendaddr":"$sendamount" "$changeaddr":"$change")
+  else
+    tx=$(pybtctools/pybtctool mktx $(echo -n "$pvouts") "$changeaddr":"$change" "$sendaddr":"$sendamount")
+  fi
 else
   tx=$(pybtctools/pybtctool mktx $(echo -n "$pvouts") "$sendaddr":"$sendamount")
 fi
@@ -1719,7 +1726,20 @@ numouts=$(echo "$HIST" | grep -e "$ADDR" -A 2 | grep -c "value")
 no=0
 echo ""
 echo_c "Now we need the private key from "$ADDR"."
-echo_c "Open another KeyRNG if you need to look it up."
+echo ""
+read -p "Do you need to look it up now? (Y/no) " lookup
+  while [[ "$lookup" = "Y" ]]
+  do
+  read -p "Standard, Electrum, or BIP32 private key? (s,e,b) " type
+    if [[ "$type" = "s" ]]; then
+      showstandardpriv
+    elif [[ "$type" = "e" ]]; then
+      showelepriv
+    else
+      bipshowpriv
+    fi
+  read -p "Do you need to see different private keys? (Y/no) " lookup
+  done  
 read -p "Input private key: " priv
 echo 
 while [[ "$no" -lt "$numouts" ]]
@@ -1729,7 +1749,7 @@ do
   tx=$(cat temp/mktx)
 done
 echo "Cleaning up temp files..."
-DEL=temp/*; secdelete
+DEL=temp/mktx; secdelete
 echo ""
 echo_c "TRANSACTION IS SIGNED."
 echo ""
@@ -1961,7 +1981,13 @@ echo_c "--------------------------------------------------"
 echo_c "| B I T C O I N    M A N A G E M E N T   M E N U |"
 echo_c "--------------------------------------------------"; }
 
-standaddrmenu () {
+addrmanagemenu(){
+clear
+echo_c "---------------------------------------------------"
+echo_c "| A D D R E S S    M A N A G E M E N T    M E N U |"
+echo_c "---------------------------------------------------";}
+
+standaddrmenu (){
 clear
 echo_c "-----------------------------------------------"
 echo_c "| S T A N D A R D    A D D R E S S    M E N U |"
