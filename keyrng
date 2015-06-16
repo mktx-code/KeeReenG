@@ -1,8 +1,8 @@
 #!/bin/bash
 set +o history
 unset "$HISTFILE"
-BCI_API=
-USE_TOR=
+BCI_API=75693266-c192-4970-ae72-c17445a17984
+USE_TOR=y
 #
 #Blah first run, about, menu.
 #
@@ -16,13 +16,12 @@ l=${#1}
 printf "%"$((l+(w-l)/2))"s\n" "$1"
 }
   clear
-  lkmx="-----------------------------------------"
-  lkmy="| L O C K E D    K e y R N G    M E N U |"
-  lkmz="-----------------------------------------"
-  echo_c "$lkmx"
-  echo_c "$lkmy"
-  echo_c "$lkmz"
+  echo_c "-----------------------------------------"
+  echo_c "| L O C K E D    K e y R N G    M E N U |"
+  echo_c "-----------------------------------------"
+  echo ""
   echo_c "$banr"
+  echo ""
   PS3='Enter choice (press enter to see options again): '
   options=("Unlock KeyRNG Files" "Copy Encrypted Files For Backup" "About Locked File" "Quit")
   select opt in "${options[@]}"
@@ -92,8 +91,10 @@ fi
 IS_FIRST_RUN=$(gpg --homedir gpg-KeyRNG/ --list-keys | grep -c KeyRNG)
 if [ "$IS_FIRST_RUN" -lt "2" ]; then
     welcomemenu
-    echo "Welcome to KeyRNG. We will do some initial steps now."
-    read -p "Press enter to move on."
+    echo_c "Welcome to KeyRNG, a GnuPG and Bitcoin client and/or keyring."
+    echo ""
+    echo_c "Press enter to move on to initial setup."
+    read
     clear
     firstrun
 fi
@@ -442,9 +443,10 @@ do
                 DEL=*tar.gz*
                 secdelete
             fi
+            haspriv
             mainbtcmenu
             PS3='Enter option (press enter to see options again): '
-            options=("Standard Addresses" "Electrum Addresses Menu" "BIP32 Seed Addresses" "Show All Addresses" "Blockchain Interaction" "Sign Message" "BACK TO MAIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+            options=("Standard Addresses" "Electrum Addresses Menu" "BIP32 Seed Addresses" "Multisig Addresses Menu" "Show All Addresses" "Blockchain Interaction" "Sign Message" "BACK TO MAIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
             select opt in "${options[@]}"
             do
                 case "$opt" in
@@ -465,7 +467,7 @@ do
                                 showaddr
                                 ;;
                             "Show Addresses And Pubkeys")
-                                showalladdr
+                                showallstandaddr
                                 ;;
                             "Show Private Keys")
                                 showstandardpriv
@@ -570,10 +572,33 @@ do
                             esac
                         done                        
                         ;;
+                    "Multisig Addresses Menu")
+                        multisigmenu
+                        PS3=
+                        options=("New Multisig Address/Script" "Show All Multisig Address/Scripts" "BACK TO BITCOIN MGMT MENU")
+                        select opt in "${options[@]}"
+                        do
+                          case "$opt" in
+                            "New Multisig Address/Script")
+                                makemultisigaddr
+                                ;;
+                            "Show All Multisig Address/Scripts")
+                                showmsaddr
+                                ;;
+                            "BACK TO BITCOIN MGMT MENU")
+                                break
+                                ;;
+                          esac
+                        done
+                        ;;
                     "Show All Addresses")
                         showalladdr
                         ;;
                     "Blockchain Interaction")
+                    HA=$(echo "$BCI_API" | grep -c "")
+                    if  [ "$HA" -gt "0" ]; then
+                      HAVE_API=y
+                    fi
                     RAN=$(echo -n "$USE_TOR" | grep -c "")
                     if [ "$RAN" = "0" ]; then
                         echo -e "\nKeyRNG is using the Blockchain.info API for blockchain interaction."
@@ -590,10 +615,13 @@ do
                     fi
                     bcimenu
                     PS3='Enter option (press enter to see options again): '
-                    options=("Check Unspent Balance" "Raw Transaction Details" "Raw Address History" "Show All Addresses And Pubkeys" "BACK TO BITCOIN MGMT MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+                    options=("Make/Send Transaction" "Check Unspent Balance" "Raw Transaction Details" "Raw Address History" "Show All Addresses And Pubkeys" "BACK TO BITCOIN MGMT MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                     select opt in "${options[@]}"
                     do
                         case "$opt" in
+                            "Make/Send Transaction")
+                                mktx
+                                ;;
                             "Check Unspent Balance")
                                 checkunspent
                                 ;;
