@@ -2,7 +2,7 @@
 set +o history
 unset "$HISTFILE"
 BCI_API=
-USE_TOR=y
+USE_TOR=
 #
 #Blah first run, about, menu.
 #
@@ -446,151 +446,184 @@ do
             haspriv
             mainbtcmenu
             PS3='Enter option (press enter to see options again): '
-            options=("Standard Addresses" "Electrum Addresses Menu" "BIP32 Seed Addresses" "Multisig Addresses Menu" "Show All Addresses" "Blockchain Interaction" "Sign Message" "BACK TO MAIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+            options=("Address Management" "Show All Addresses" "Blockchain Interaction" "Sign Message" "BACK TO MAIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
             select opt in "${options[@]}"
             do
                 case "$opt" in
-                    "Standard Addresses")
-                    standaddrmenu
+                    "Address Management")
+                    addrmanagemenu
                     PS3='Enter option (press enter to see options again): '
-                    options=("Create New Address" "Create Multiple New Addresses" "Show Addresses Only" "Show Addresses And Pubkeys" "Show Private Keys" "BACK TO BITCOIN MGMT MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+                    options=("Standard Addresses Menu" "Electrum Addresses Menu" "BIP32 Addresses Menu" "Multisig Addresses Menu" "BACK TO BITCOIN MANAGEMENT MENU" "Quit" "FAST LOCKUP!" "SECURE LOCKUP!")
                     select opt in "${options[@]}"
                     do
-                        case "$opt" in
-                            "Create New Address")
-                                getnewaddress
-                                ;;
-                            "Create Multiple New Addresses")
-                                multiplestandaddr
-                                ;;
-                            "Show Addresses Only")
-                                showaddr
-                                ;;
-                            "Show Addresses And Pubkeys")
-                                showallstandaddr
-                                ;;
-                            "Show Private Keys")
-                                showstandardpriv
-                                ;;
-                            "BACK TO BITCOIN MGMT MENU")
-                                break
-                                ;;
-                            "Quit")
-                                badquit
-                                ;;
-                            "FAST LOCK UP")
-                                fastlockup
-                                ;;
-                            "SECURE LOCK UP")
-                                lockup
-                                ;;
-                            *) echo "Invalid Option";;
-                        esac
+                      case "$opt" in
+                       "Standard Addresses Menu")
+                       standaddrmenu
+                       PS3='Enter option (press enter to see options again): '
+                       options=("Create New Address" "Create Multiple New Addresses" "Show Addresses Only" "Show Addresses And Pubkeys" "Show Private Keys" "BACK TO ADDRESS MGMT MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+                       select opt in "${options[@]}"
+                       do
+                           case "$opt" in
+                               "Create New Address")
+                                   getnewaddress
+                                   ;;
+                               "Create Multiple New Addresses")
+                                   multiplestandaddr
+                                   ;;
+                               "Show Addresses Only")
+                                   showaddr
+                                   ;;
+                               "Show Addresses And Pubkeys")
+                                   showallstandaddr
+                                   ;;
+                               "Show Private Keys")
+                                   showstandardpriv
+                                   ;;
+                               "BACK TO ADDRESS MGMT MENU")
+                                   break
+                                   ;;
+                               "Quit")
+                                   badquit
+                                   ;;
+                               "FAST LOCK UP")
+                                   fastlockup
+                                   ;;
+                               "SECURE LOCK UP")
+                                   lockup
+                                   ;;
+                               *) echo "Invalid Option";;
+                           esac
+                       done
+                       ;;
+                       "Electrum Addresses Menu")
+                           checkeleseed
+                           eleaddrmenu
+                           PS3='Enter choice (press enter to see options again): '
+                           options=("Create New Address" "Create Multiple Addresses" "Show Addresses Only" "Show Addresses And Pubkeys" "Show Private Keys" "Show Seed" "BACK TO ADDRESS MGMT MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+                           select opt in "${options[@]}"
+                           do
+                               case "$opt" in
+                                   "Create New Address")
+                                       elecreateaddr
+                                       ;;
+                                   "Create Multiple Addresses")
+                                       multipleeleaddr
+                                       ;;
+                                   "Show Addresses Only")
+                                       eleshowaddr
+                                       ;;
+                                   "Show Addresses And Pubkeys")
+                                       eleshowall
+                                       ;;
+                                   "Show Private Keys")
+                                       showelepriv
+                                       ;;
+                                   "Show Seed")
+                                       eleshowseed
+                                       ;;
+                                   "BACK TO ADDRESS MGMT MENU")
+                                       break
+                                       ;;
+                                   "Quit")
+                                       badquit
+                                       ;;
+                                   "FAST LOCK UP")
+                                       fastlockup
+                                       ;;
+                                   "SECURE LOCK UP")
+                                       lockup
+                                       ;;
+                                   *) echo "Invalid Option";;
+                               esac
+                           done                        
+                           ;;
+                       "BIP32 Addresses Menu")
+                           checkbipseed
+                           bipaddrmenu
+                           PS3='Enter choice (press enter to see options again): '
+                           options=("Create New Address" "Create Multiple Addresses" "Show Addresses Only" "Show Addresses And Pubkeys" "Show Private Keys" "Show Seed" "BACK TO ADDRESS MGMT MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+                           select opt in "${options[@]}"
+                           do
+                               case "$opt" in
+                                   "Create New Address")
+                                       bipcreateaddr
+                                       ;;
+                                   "Create Multiple Addresses")
+                                       multiplebipaddr
+                                       ;;
+                                   "Show Addresses Only")
+                                       bipshowaddr
+                                       ;;
+                                   "Show Addresses And Pubkeys")
+                                       bipshowall
+                                       ;;
+                                   "Show Private Keys")
+                                       bipshowpriv
+                                       ;;
+                                   "Show Seed")
+                                       bipshowseed
+                                       ;;
+                                   "BACK TO ADDRESS MGMT MENU")
+                                       break
+                                       ;;
+                                   "Quit")
+                                       badquit
+                                       ;;
+                                   "FAST LOCK UP")
+                                       fastlockup
+                                       ;;
+                                   "SECURE LOCK UP")
+                                       lockup
+                                       ;;
+                                   *) echo "Invalid Option";;
+                               esac
+                           done                        
+                           ;;
+                       "Multisig Addresses Menu")
+                           multisigmenu
+                           PS3='Enter choice (press enter to see options again): '
+                           options=("New Multisig Address/Script" "Show All Multisig Address/Scripts" "BACK TO ADDRESS MGMT MENU" "Quit" "FAST LOCKUP!" "SECURE LOCKUP!")
+                           select opt in "${options[@]}"
+                           do
+                             case "$opt" in
+                               "New Multisig Address/Script")
+                                   makemultisigaddr
+                                   ;;
+                               "Show All Multisig Address/Scripts")
+                                   showmsaddr
+                                   ;;
+                               "BACK TO ADDRESS MGMT MENU")
+                                   break
+                                   ;;
+                               "Quit")
+                                   badquit
+                                   ;;
+                               "FAST LOCKUP!")
+                                   fastlockup
+                                   ;;
+                               "SECURE LOCKUP!")
+                                   lockup
+                                   ;;
+                               *) echo "Invalid Option";;
+                             esac
+                           done
+                           ;;
+                       "BACK TO BITCOIN MANAGEMENT MENU")
+                           break
+                           ;;
+                       "Quit")
+                           badquit
+                           ;;
+                       "FAST LOCKUP!")
+                           fastlockup
+                           ;;
+                       "SECURE LOCKUP!")
+                           lockup
+                           ;;
+                       *) echo "Invalid Option";;
+                      esac
                     done
                     ;;
-                    "Electrum Addresses Menu")
-                        checkeleseed
-                        eleaddrmenu
-                        PS3='Enter choice (press enter to see options again): '
-                        options=("Create New Address" "Create Multiple Addresses" "Show Addresses Only" "Show Addresses And Pubkeys" "Show Private Keys" "Show Seed" "BACK TO BITCOIN MGMT MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
-                        select opt in "${options[@]}"
-                        do
-                            case "$opt" in
-                                "Create New Address")
-                                    elecreateaddr
-                                    ;;
-                                "Create Multiple Addresses")
-                                    multipleeleaddr
-                                    ;;
-                                "Show Addresses Only")
-                                    eleshowaddr
-                                    ;;
-                                "Show Addresses And Pubkeys")
-                                    eleshowall
-                                    ;;
-                                "Show Private Keys")
-                                    showelepriv
-                                    ;;
-                                "Show Seed")
-                                    eleshowseed
-                                    ;;
-                                "BACK TO BITCOIN MGMT MENU")
-                                    break
-                                    ;;
-                                "Quit")
-                                    badquit
-                                    ;;
-                                "FAST LOCK UP")
-                                    fastlockup
-                                    ;;
-                                "SECURE LOCK UP")
-                                    lockup
-                                    ;;
-                                *) echo "Invalid Option";;
-                            esac
-                        done                        
-                        ;;
-                    "BIP32 Seed Addresses")
-                        checkbipseed
-                        bipaddrmenu
-                        PS3='Enter choice (press enter to see options again): '
-                        options=("Create New Address" "Create Multiple Addresses" "Show Addresses Only" "Show Addresses And Pubkeys" "Show Private Keys" "Show Seed" "BACK TO BITCOIN MGMT MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
-                        select opt in "${options[@]}"
-                        do
-                            case "$opt" in
-                                "Create New Address")
-                                    bipcreateaddr
-                                    ;;
-                                "Create Multiple Addresses")
-                                    multiplebipaddr
-                                    ;;
-                                "Show Addresses Only")
-                                    bipshowaddr
-                                    ;;
-                                "Show Addresses And Pubkeys")
-                                    bipshowall
-                                    ;;
-                                "Show Private Keys")
-                                    bipshowpriv
-                                    ;;
-                                "Show Seed")
-                                    bipshowseed
-                                    ;;
-                                "BACK TO BITCOIN MGMT MENU")
-                                    break
-                                    ;;
-                                "Quit")
-                                    badquit
-                                    ;;
-                                "FAST LOCK UP")
-                                    fastlockup
-                                    ;;
-                                "SECURE LOCK UP")
-                                    lockup
-                                    ;;
-                                *) echo "Invalid Option";;
-                            esac
-                        done                        
-                        ;;
-                    "Multisig Addresses Menu")
-                        multisigmenu
-                        PS3=
-                        options=("New Multisig Address/Script" "Show All Multisig Address/Scripts" "BACK TO BITCOIN MGMT MENU")
-                        select opt in "${options[@]}"
-                        do
-                          case "$opt" in
-                            "New Multisig Address/Script")
-                                makemultisigaddr
-                                ;;
-                            "Show All Multisig Address/Scripts")
-                                showmsaddr
-                                ;;
-                            "BACK TO BITCOIN MGMT MENU")
-                                break
-                                ;;
-                          esac
-                        done
-                        ;;
                     "Show All Addresses")
                         showalladdr
                         ;;
