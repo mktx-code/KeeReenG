@@ -2,9 +2,9 @@
 #
 echo_c()
 {
-  w=$(stty size | cut -d" " -f2)
-  l=${#1}
-  printf "%"$((l+(w-l)/2))"s\n" "$1"
+w=$(stty size | cut -d" " -f2)
+l=${#1}
+printf "%"$((l+(w-l)/2))"s\n" "$1"
 }
 #
 ##### FIRST RUN #####
@@ -15,8 +15,11 @@ firstrun ()
 REDO=$(gpg --homedir gpg-KeyRNG/ --list-keys | grep -c KeyRNG)
 if [ "$REDO" -gt "0" ]; then gpg --homedir gpg-KeyRNG/ --delete-secret-keys KeyRNG && gpg --homedir gpg-KeyRNG/ --delete-keys KeyRNG
 fi
-echo "GENERATING GPG MASTER KEY!."
-echo "This key will be used to encrypt your private bitcoin keys and seeds."
+echo ""
+echo_c "GENERATING GPG MASTER KEY!."
+echo_c "This key will be used to encrypt your bitcoin private keys and seeds."
+echo ""
+echo ""
 read -s -p "Create a strong passphrase for this key: " PW
 echo ""
 read -s -p "Repeat: " CPW
@@ -242,11 +245,11 @@ else
     read GPG
 fi
 rm -rf temp/temp
-gpg --homedir $(echo "$GPG")  --list-keys --keyid-format 0xlong | grep "0x" | cut -b 13- | cut -b -19 > temp/temp
+gpg --homedir $(echo "$GPG") --no-permission-warning --list-keys --keyid-format 0xlong | grep "0x" | cut -b 13- | cut -b -19 > temp/temp
 LINES=$(grep -c "0x" temp/temp)
 if [ "$LINES" -gt "0" ]; then
-    cat temp/temp | xargs -I{} -d"\n" gpg  --homedir $(echo "$GPG") --export {} | gpg --no-permission-warning --homedir gpg-KeyRNG/ --quiet --import
-gpg --homedir gpg-KeyRNG/ --list-keys | grep "fingerprint" | cut -b 25- | tr -d " " | sed 's|$|\:6\:|' | gpg --homedir gpg-KeyRNG/ --quiet --import-ownertrust
+    cat temp/temp | xargs -I{} -d"\n" gpg --no-permission-warning --homedir $(echo "$GPG") --export {} | gpg --no-permission-warning --homedir gpg-KeyRNG/ --import
+gpg --homedir gpg-KeyRNG/ --list-keys | grep "fingerprint" | cut -b 25- | tr -d " " | sed 's|$|\:6\:|' | gpg --homedir gpg-KeyRNG/ --import-ownertrust
 fi
 echo "Shredding temp file..."
 DEL=temp/temp
@@ -871,9 +874,46 @@ clear
 echo "Press enter to go back to BITCOIN MENU."
 read
 }
+#-----------------------------------
+## SHOW ALL ADDRESSES AND PUBKEYS ##
+#-----------------------------------
+showalladdr ()
+{
+echo -e "\nPress enter to see all addresses and pubkeys."
+echo "Use up/down arrows to navigate. Press "q" when finished."
+read
+cat btc-KeyRNG/*.addr | grep -e "Address" -e "Pubkey" | less
+}
 ###########################################
 ##### STANDARD BTC ADDRESS MANAGEMENT #####
 ###########################################
+#---------------------------
+## CHECK FOR PRIVATE KEYS ##
+#---------------------------
+haspriv (){
+HAS_SPRIV=$(ls btc-KeyRNG/ | grep -c "priv")
+if [ "$HAS_SPRIV" = "0" ]; then
+  echo ""
+  echo_c "YOUR PRIVATE KEYS WILL BE ENCRYPTED WITH THE MASTER GPG KEY."
+  echo_c "THE ONE THAT WAS CREATED WHEN YOU FIRST RAN THIS PROGRAM."
+  echo_c
+  echo_c "TO MAKE SURE YOU HAVE NOT FORGOTTON THE PASSPHRASE,"
+  echo_c "YOU WILL NEED TO COMPLETE A CHALLENGE ONE TIME."
+  echo ""
+  read -p "Press enter to decrypt the challenge."
+  TEST=$(gpg --armor --gen-random 2 38); echo -n "$TEST" > temp/test; gpg --homedir gpg-KeyRNG/ -ae -r KeyRNG temp/test
+  echo ""
+  TRY=$(gpg --homedir gpg-KeyRNG/ --quiet -d temp/test.asc)
+  if [ "$TEST" != "$TRY" ]; then 
+    read -p "Do you want to create a new master key? (Y/no)" NEWMK
+      if [[ "$NEWMK" = "Y" ]]; then 
+        firstrun
+      else
+        break
+      fi
+  fi
+fi
+}
 #----------------
 ## NEW ADDRESS ##
 #----------------
@@ -886,32 +926,17 @@ if [ "$HAS_ADDRFILE" = "0" ]; then
     touch btc-KeyRNG/standard.addr
     chown -R "$USER" btc-KeyRNG/standard.addr
     chmod 0600 btc-KeyRNG/standard.addr
-    echo "---------------------------------------" > btc-KeyRNG/standard.addr
-    echo "| S T A N D A R D   A D D R E S S E S |" >> btc-KeyRNG/standard.addr
-    echo "---------------------------------------" >> btc-KeyRNG/standard.addr
+    echo_c "---------------------------------------" > btc-KeyRNG/standard.addr
+    echo_c "| S T A N D A R D   A D D R E S S E S |" >> btc-KeyRNG/standard.addr
+    echo_c "---------------------------------------" >> btc-KeyRNG/standard.addr
 fi
 if [ "$HAS_SPRIV" = "0" ]; then
     touch btc-KeyRNG/s.priv
     chown "$USER" btc-KeyRNG/s.priv
     chmod 0600 btc-KeyRNG/s.priv
-    echo "-----------------------------------------------------------------" > btc-KeyRNG/s.priv
-    echo "| S T A N D A R D   A D D R E S S E S   P R I V A T E   K E Y S |" >> btc-KeyRNG/s.priv
-    echo "-----------------------------------------------------------------" >> btc-KeyRNG/s.priv
-    echo -e "\nYOUR PRIVATE KEYS WILL BE ENCRYPTED WITH THE MASTER GPG KEY\nTHAT WAS CREATED WHEN YOU FIRST RAN THIS PROGRAM."
-    echo -e "TO MAKE SURE YOU HAVE NOT FORGOT THE PASSPHRASE YOU WILL\nNEED TO COMPLETE A CHALLENGE."
-    echo ""
-    read -p "Press enter to decrypt the challenge."
-    TEST=$(gpg --armor --gen-random 2 38); echo -n "$TEST" > temp/test; gpg --homedir gpg-KeyRNG/ -ae -r KeyRNG temp/test
-    echo ""
-    TRY=$(gpg --homedir gpg-KeyRNG/ --quiet -d temp/test.asc)
-    if [ "$TEST" != "$TRY" ]; then 
-      read -p "Do you want to create a new master key? (Y/no)" NEWMK
-        if [[ "$NEWMK" = "Y" ]]; then 
-          firstrun
-        else
-          break
-        fi
-    fi
+    echo_c "-----------------------------------------------------------------" > btc-KeyRNG/s.priv
+    echo_c "| S T A N D A R D   A D D R E S S E S   P R I V A T E   K E Y S |" >> btc-KeyRNG/s.priv
+    echo_c "-----------------------------------------------------------------" >> btc-KeyRNG/s.priv
     gpg --homedir gpg-KeyRNG/ --yes --quiet --output btc-KeyRNG/s.priv.gpg -ae -r "$KEYRNG" btc-KeyRNG/s.priv && rm -rf btc-KeyRNG/s.priv
 fi
 PRIV_LOCKED=$(ls btc-KeyRNG/ | grep -c "s.priv.gpg")
@@ -976,17 +1001,17 @@ if [ "$HAS_ADDRFILE" = "0" ]; then
     touch btc-KeyRNG/standard.addr
     chown -R "$USER" btc-KeyRNG/standard.addr
     chmod 0600 btc-KeyRNG/standard.addr
-    echo "---------------------------------------" > btc-KeyRNG/standard.addr
-    echo "| S T A N D A R D   A D D R E S S E S |" >> btc-KeyRNG/standard.addr
-    echo "---------------------------------------" >> btc-KeyRNG/standard.addr
+    echo_c "---------------------------------------" > btc-KeyRNG/standard.addr
+    echo_c "| S T A N D A R D   A D D R E S S E S |" >> btc-KeyRNG/standard.addr
+    echo_c "---------------------------------------" >> btc-KeyRNG/standard.addr
 fi
 if [ "$HAS_SPRIV" = "0" ]; then
     touch btc-KeyRNG/s.priv
     chown "$USER" btc-KeyRNG/s.priv
     chmod 0600 btc-KeyRNG/s.priv
-    echo "-----------------------------------------------------------------" > btc-KeyRNG/s.priv
-    echo "| S T A N D A R D   A D D R E S S E S   P R I V A T E   K E Y S |" >> btc-KeyRNG/s.priv
-    echo "-----------------------------------------------------------------" >> btc-KeyRNG/s.priv
+    echo_c "-----------------------------------------------------------------" > btc-KeyRNG/s.priv
+    echo_c "| S T A N D A R D   A D D R E S S E S   P R I V A T E   K E Y S |" >> btc-KeyRNG/s.priv
+    echo_c "-----------------------------------------------------------------" >> btc-KeyRNG/s.priv
        echo -e "\nYOUR PRIVATE KEYS WILL BE ENCRYPTED WITH THE MASTER GPG KEY\nTHAT WAS CREATED WHEN YOU FIRST RAN THIS PROGRAM."
     echo -e "TO MAKE SURE YOU HAVE NOT FORGOT THE PASSPHRASE YOU WILL\nNEED TO COMPLETE A CHALLENGE."
     echo ""
@@ -1062,7 +1087,7 @@ cat btc-KeyRNG/standard.addr | grep "Address" | less
 #----------------------------------------
 ## SHOW STANDARD ADDRESSES AND PUBKEYS ##
 #----------------------------------------
-showalladdr ()
+showallstandaddr ()
 {
 echo "Press enter to see addresses and private keys."
 echo "Use up/down arrows to navigate. Press "q" when finished."
@@ -1085,12 +1110,13 @@ if [[ "$HAS_SEEDFILE" -lt "1" ]]; then
     chown "$USER" btc-KeyRNG/ele*
     chmod 0600 btc-KeyRNG/ele*
     newelectrumseed
-    echo "---------------------------------------------" > btc-KeyRNG/ele.priv
-    echo "| E L E C T R U M   P R I V A T E   K E Y S |" >> btc-KeyRNG/ele.priv
-    echo "---------------------------------------------" >> btc-KeyRNG/ele.priv
+    echo_c "---------------------------------------------" > btc-KeyRNG/ele.priv
+    echo_c "| E L E C T R U M   P R I V A T E   K E Y S |" >> btc-KeyRNG/ele.priv
+    echo_c "---------------------------------------------" >> btc-KeyRNG/ele.priv
     clear
-    echo "THIS IS YOUR PRIVATE SEED TO RESTORE PRIVATE KEYS."
-    echo "WRITE IT DOWN SOMEWHERE SAFE AS A BACKUP!"
+    echo ""
+    echo_c "THIS IS YOUR PRIVATE SEED TO RESTORE PRIVATE KEYS."
+    echo_c "WRITE IT DOWN SOMEWHERE SAFE AS A BACKUP!"
     echo -e "\nPress enter to see your seed. Press q when you are finished.\n"
     read
     echo -ne "\n"$SEED"\n" | less
@@ -1114,18 +1140,20 @@ echo -n ""$SEED"" > btc-KeyRNG/ele.seed
 elecreateaddr ()
 {
 KEYRNG=$(gpg --homedir gpg-KeyRNG/ --list-keys KeyRNG | grep pub | tr -d "pub" | cut -b 10- | cut -b -18)
+read -s -p "Master GPG Key Password: " PW
 echo "Unlocking private keys and seed..."
-gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/ele.seed -d btc-KeyRNG/ele.seed.gpg && rm -rf btc-KeyRNG/ele.seed.gpg
-gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/ele.priv -d btc-KeyRNG/ele.priv.gpg && rm -rf btc-KeyRNG/ele.priv.gpg
+gpg --homedir gpg-KeyRNG/ --quiet --passphrase "$PW" --yes --output btc-KeyRNG/ele.seed -d btc-KeyRNG/ele.seed.gpg && rm -rf btc-KeyRNG/ele.seed.gpg
+gpg --homedir gpg-KeyRNG/ --quiet --passphrase "$PW" --yes --output btc-KeyRNG/ele.priv -d btc-KeyRNG/ele.priv.gpg && rm -rf btc-KeyRNG/ele.priv.gpg
+unset PW
 SEED=$(cat btc-KeyRNG/ele.seed)
 HAS_ADDRFILE=$(ls btc-KeyRNG/ | grep -c "ele.addr")
 if [ "$HAS_ADDRFILE" -lt "1" ]; then
     touch btc-KeyRNG/ele.addr
     chown -R "$USER" btc-KeyRNG/
     chmod 0600 btc-KeyRNG/ele.addr
-    echo "----------------------------------------" > btc-KeyRNG/ele.addr
-    echo "| E L E C T R U M    A D D R E S S E S |" >> btc-KeyRNG/ele.addr
-    echo "----------------------------------------" >> btc-KeyRNG/ele.addr
+    echo_c "----------------------------------------" > btc-KeyRNG/ele.addr
+    echo_c "| E L E C T R U M    A D D R E S S E S |" >> btc-KeyRNG/ele.addr
+    echo_c "----------------------------------------" >> btc-KeyRNG/ele.addr
     MPK=$(pybtctools/pybtctool electrum_mpk $(echo -n "$SEED"))
     echo -e "\n\nMaster Public Key:  "$MPK"" >> btc-KeyRNG/ele.addr
 fi
@@ -1173,25 +1201,26 @@ clear
 multipleeleaddr ()
 {
 KEYRNG=$(gpg --homedir gpg-KeyRNG/ --list-keys KeyRNG | grep pub | tr -d "pub" | cut -b 10- | cut -b -18)
+read -s -p "Master GPG Key Password: " PW
 echo "Unlock private keys and seed..."
-gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/ele.seed -d btc-KeyRNG/ele.seed.gpg && rm -rf btc-KeyRNG/ele.seed.gpg
-gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/ele.priv -d btc-KeyRNG/ele.priv.gpg && rm -rf btc-KeyRNG/ele.priv.gpg
+gpg --homedir gpg-KeyRNG/ --quiet --passphrase "$PW" --yes --output btc-KeyRNG/ele.seed -d btc-KeyRNG/ele.seed.gpg && rm -rf btc-KeyRNG/ele.seed.gpg
+gpg --homedir gpg-KeyRNG/ --quiet --passphrase "$PW" --yes --output btc-KeyRNG/ele.priv -d btc-KeyRNG/ele.priv.gpg && rm -rf btc-KeyRNG/ele.priv.gpg
+unset PW
 SEED=$(cat btc-KeyRNG/ele.seed)
 HAS_ADDRFILE=$(ls btc-KeyRNG/ | grep -c "ele.addr")
 if [ "$HAS_ADDRFILE" -lt "1" ]; then
     touch btc-KeyRNG/ele.addr
     chown -R "$USER" btc-KeyRNG/
     chmod 0600 btc-KeyRNG/ele.addr
-    echo "----------------------------------------" > btc-KeyRNG/ele.addr
-    echo "| E L E C T R U M    A D D R E S S E S |" >> btc-KeyRNG/ele.addr
-    echo "----------------------------------------" >> btc-KeyRNG/ele.addr
-    echo -e "\n\n-----------------------------------------\n|Seed| "$SEED" |\n-----------------------------------------" >> btc-KeyRNG/ele.addr
+    echo_c "----------------------------------------" > btc-KeyRNG/ele.addr
+    echo_c "| E L E C T R U M    A D D R E S S E S |" >> btc-KeyRNG/ele.addr
+    echo_c "----------------------------------------" >> btc-KeyRNG/ele.addr
     MPK=$(pybtctools/pybtctool electrum_mpk $(echo -n "$SEED"))
-    echo -e "\n\nMaster Public Key:  "$MPK"" >> btc-KeyRNG/ele.addr
+    echo "" >> btc-KeyRNG/ele.addr
+    echo_c "Master Public Key:  "$MPK"" >> btc-KeyRNG/ele.addr
 fi
 echo ""
-echo -e "\nHow many Electrum seed addresses to create?"
-read NUM
+read -p "How many Electrum seeded addresses to create? " NUM
 echo "Creating "$NUM" Electrum addresses..."
 for i in $(seq 1 "$NUM")
 do
@@ -1311,9 +1340,11 @@ echo -en ""$SEED"" > btc-KeyRNG/bip.seed
 bipcreateaddr ()
 {
 KEYRNG=$(gpg --homedir gpg-KeyRNG/ --list-keys KeyRNG | grep pub | tr -d "pub" | cut -b 10- | cut -b -18)
+read -s -p "Master GPG Key Password: " PW
 echo "Unlock private keys and seed..."
-gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.seed -d btc-KeyRNG/bip.seed.gpg && rm -rf btc-KeyRNG/bip.seed.gpg
-gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.priv -d btc-KeyRNG/bip.priv.gpg && rm -rf btc-KeyRNG/bip.priv.gpg
+gpg --homedir gpg-KeyRNG/ --quiet --passphrase "$PW" --yes --output btc-KeyRNG/bip.seed -d btc-KeyRNG/bip.seed.gpg && rm -rf btc-KeyRNG/bip.seed.gpg
+gpg --homedir gpg-KeyRNG/ --quiet --passphrase "$PW" --yes --output btc-KeyRNG/bip.priv -d btc-KeyRNG/bip.priv.gpg && rm -rf btc-KeyRNG/bip.priv.gpg
+unset PW
 SEED=$(cat btc-KeyRNG/bip.seed)
 HAS_ADDRFILE=$(ls btc-KeyRNG/ | grep -c "bip.addr")
 if [[ "$HAS_ADDRFILE" = "0" ]]; then
@@ -1325,24 +1356,24 @@ if [[ "$HAS_ADDRFILE" = "0" ]]; then
     XPUB=$(pybtctools/pybtctool bip32_privtopub $(echo -n "$XPRIV"))
     ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$XPUB"))
     echo -e "\n\nBIP32 Address 1: "$ADDR"\nBIP32 Pubkey 1:  "$XPUB"\n---"
-    echo "---------------------------------------" > btc-KeyRNG/bip.priv
-    echo "| B I P 3 2   P R I V A T E   K E Y S |" >> btc-KeyRNG/bip.priv
-    echo "---------------------------------------" >> btc-KeyRNG/bip.priv
+    echo_c "---------------------------------------" > btc-KeyRNG/bip.priv
+    echo_c "| B I P 3 2   P R I V A T E   K E Y S |" >> btc-KeyRNG/bip.priv
+    echo_c "---------------------------------------" >> btc-KeyRNG/bip.priv
     touch btc-KeyRNG/bip.addr
     chown -R "$USER" btc-KeyRNG/
     chmod 0600 btc-KeyRNG/bip.addr
-    echo "----------------------------------" > btc-KeyRNG/bip.addr
-    echo "| B I P 3 2    A D D R E S S E S |" >> btc-KeyRNG/bip.addr
-    echo "----------------------------------" >> btc-KeyRNG/bip.addr
+    echo_c "----------------------------------" > btc-KeyRNG/bip.addr
+    echo_c "| B I P 3 2    A D D R E S S E S |" >> btc-KeyRNG/bip.addr
+    echo_c "----------------------------------" >> btc-KeyRNG/bip.addr
 fi
 ADDR_COUNT=$(cat btc-KeyRNG/bip.addr | grep -c "Pubkey")
 if [[ "$ADDR_COUNT" = "0" ]]; then
     XPRIV=$(pybtctools/pybtctool bip32_ckd $(echo -n "$SEED") 0)
     XPUB=$(pybtctools/pybtctool bip32_privtopub $(echo -n "$XPRIV"))
     ADDR=$(pybtctools/pybtctool pubtoaddr $(echo -n "$XPUB"))
-    echo "---------------------------------------" > btc-KeyRNG/bip.priv
-    echo "| B I P 3 2   P R I V A T E   K E Y S |" >> btc-KeyRNG/bip.priv
-    echo "---------------------------------------" >> btc-KeyRNG/bip.priv
+    echo_c "---------------------------------------" > btc-KeyRNG/bip.priv
+    echo_c "| B I P 3 2   P R I V A T E   K E Y S |" >> btc-KeyRNG/bip.priv
+    echo_c "---------------------------------------" >> btc-KeyRNG/bip.priv
     echo "Add a note to address? (y/no)"
     read IS_NOTE
     if [[ "$IS_NOTE" = "y" ]]; then
@@ -1389,17 +1420,19 @@ gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.seed.gpg -ae -r 
 multiplebipaddr ()
 {
 KEYRNG=$(gpg --homedir gpg-KeyRNG/ --list-keys KeyRNG | grep pub | tr -d "pub" | cut -b 10- | cut -b -18)
-gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.seed -d btc-KeyRNG/bip.seed.gpg && rm -rf btc-KeyRNG/bip.seed.gpg
-gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.priv -d btc-KeyRNG/bip.priv.gpg && rm -rf btc-KeyRNG/bip.priv.gpg
+read -s -p "Master GPG Key Password: " PW
+gpg --homedir gpg-KeyRNG/ --quiet --passphrase "$PW" --yes --output btc-KeyRNG/bip.seed -d btc-KeyRNG/bip.seed.gpg && rm -rf btc-KeyRNG/bip.seed.gpg
+gpg --homedir gpg-KeyRNG/ --quiet --passphrase "$PW" --yes --output btc-KeyRNG/bip.priv -d btc-KeyRNG/bip.priv.gpg && rm -rf btc-KeyRNG/bip.priv.gpg
+unset PW
 SEED=$(cat btc-KeyRNG/bip.seed)
 HAS_ADDRFILE=$(ls btc-KeyRNG/ | grep -c "bip.addr")
 if [ "$HAS_ADDRFILE" -lt "1" ]; then
     touch btc-KeyRNG/bip.addr
     chown -R "$USER" btc-KeyRNG/
     chmod 0600 btc-KeyRNG/bip.addr
-    echo "----------------------------------" > btc-KeyRNG/bip.addr
-    echo "| B I P 3 2    A D D R E S S E S |" >> btc-KeyRNG/bip.addr
-    echo "----------------------------------" >> btc-KeyRNG/bip.addr
+    echo_c "----------------------------------" > btc-KeyRNG/bip.addr
+    echo_c "| B I P 3 2    A D D R E S S E S |" >> btc-KeyRNG/bip.addr
+    echo_c "----------------------------------" >> btc-KeyRNG/bip.addr
 fi
 echo -e "\nHow may BIP32 seed addresses to create?"
 read NUM
@@ -1477,9 +1510,256 @@ gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.seed -d btc-KeyR
 cat btc-KeyRNG/bip.seed | less
 gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.seed.gpg -ae -r "$KEYRNG" btc-KeyRNG/bip.seed && DEL=btc-KeyRNG/bip.seed; secdelete
 }
+#
+############### MULTISIG ADDRESSES ###############
+#
+makemultisigaddr (){
+clear
+echo ""
+echo_c "TO CREATE A MULTISIG ADDRESS YOU NEED AT LEAST 2 PUBLIC KEYS."
+echo ""
+read -p "Do you plan to use public keys stored in KeyRNG? (y/no) " here
+if [ "$here" != "no" ]; then
+  echo ""
+  echo "Printing list of all addresses and public keys."
+  echo "Please copy all public keys you intend to use (2-15)."
+  echo ""
+  read -p "Press enter to see all public keys."
+  cat btc-KeyRNG/*.addr | grep -e "Address" -e "Pubkey" | less
+fi
+read -p "How many total addresses to use: (2-15) " m
+while ! [[ "$m" =~ ^[0-9]+$ ]]; do
+    echo "Sorry integers only"
+    read -p "How many total addresses to use: (1-15)" m
+done
+read -p "How many signatures required to spend? (1-"$m") " n
+while ! [[ "$n" =~ ^[0-9]+$ ]]; do
+    echo "Sorry integers only"
+    read -p "How many signatures required to spend? (1-"$m") " n
+done
+a=1
+rm -rf temp/createms
+touch temp/createms
+while [ "$m" -gt "0" ]; do
+  read -p "Input public key "$a": " addr
+  a=`expr "$a" + 1`
+  m=`expr "$m" - 1`
+  echo -en "\n$addr \n" >> temp/createms
+done
+script=$(pybtctools/pybtctool mk_multisig_script $(cat temp/createms | xargs) "$n" "$m")
+msaddr=$(pybtctools/pybtctool scriptaddr "$script")
+echo ""
+echo ""
+echo_c "HERE IS YOUR ADDRESS AND REDEEM SCRIPT."
+echo ""
+echo "Address: "$msaddr""
+echo ""
+echo "Script: "$script""
+echo ""
+read -p "Would you like to save this script and address to a file? (Y/no) " SAVE
+if [ "$SAVE" = "Y" ]; then
+  HAS_FILE=$(ls btc-KeyRNG/ | grep -c "multisig.addr")
+    if [ "$HAS_FILE" = "0" ]; then
+      touch btc-KeyRNG/multisig.addr
+      chown -R "$USER" btc-KeyRNG/multisig.addr
+      chmod 0600 btc-KeyRNG/multisig.addr
+      echo_c "--------------------------------------------------------" > btc-KeyRNG/multisig.addr
+      echo_c "| M U L T I S I G    A D D R E S S E S / S C R I P T S |" >> btc-KeyRNG/multisig.addr
+      echo_c "--------------------------------------------------------" >> btc-KeyRNG/multisig.addr
+    fi
+  a=$(grep -c "Address" btc-KeyRNG/multisig.addr)
+  if  [ "$a" = "0" ]; then
+    a=`expr "$a" + 1`
+  fi
+  echo -e "\n\nMultisig Address "$a": "$msaddr"\n" >> btc-KeyRNG/multisig.addr
+  echo -e "Script "$a": "$script"\n---" >> btc-KeyRNG/multisig.addr
+fi
+read -p "Press enter to remove temp file and return to MULTISIG ADDRESS MENU."
+DEL=temp/createms; secdelete
+}
+#--------------------------------------------
+## SHOW ALL MULTISIG ADDRESSES AND SCRIPTS ##
+#--------------------------------------------
+showmsaddr (){
+cat btc-KeyRNG/multisig.addr | less
+}
 #####################################
 ##### BLOCKCHAIN.INFO API CALLS #####
 #####################################
+if [ "BCI_API" -gt "0" ]; then
+  HAVE_API=y
+fi
+mktx (){
+echo_c()
+{
+w=$(stty size | cut -d" " -f2)
+l=${#1}
+printf "%"$((l+(w-l)/2))"s\n" "$1"
+}
+echo ""
+echo_c "MAKE NEW TRANSACTION"
+echo ""
+read -p "Input address to send from: " ADDR
+echo "Getting address history..."
+if  [[ "$USE_TOR" = "y" && "$HAVE_API" = "y" ]]; then
+    HIST=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/rawaddr/"$ADDR"?api_code="$BCI_API")
+elif [[ "$USE_TOR" = "y" && "$HAVE_API" != "y" ]]; then
+    HIST=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/rawaddr/"$ADDR")
+elif [[ "$USE_TOR" != "y" && "$HAVE_API" = "y" ]]; then
+    HIST=$(curl --silent --get https://blockchain.info/rawaddr/"$ADDR"?api_code="$BCI_API")
+else
+    HIST=$(curl --silent --get https://blockchain.info/rawaddr/"$ADDR")
+fi
+total=$(echo "$HIST" | grep -e "final_balance" | tr -d "\"\," | cut -b 16-)
+echo ""
+echo "Total Available in "$ADDR": "$total" Satoshis"
+echo ""
+read -p "Input address to send to: " sendaddr
+read -p "Input amount to send in satoshis: " sendamount
+fee=20000
+total=$(expr $total - $fee)
+while [ "$total" -lt "1" ]
+do
+  echo "Not enough in $ADDR to send."
+  total=$(echo "$HIST" | grep -e "total_received" | tr -d "\"\," | cut -b 17-)
+  echo ""
+  echo "Total Available in "$ADDR": "$total" Satoshis"
+  echo ""
+  read -p "Input address to send to: " sendaddr
+  read -p "Input amount to send in satoshis: " sendamount
+  fee=20000
+  total=$(expr $total - $fee)
+done
+change=$(expr $total - $sendamount)
+echo ""
+echo_c "REVIEWING TRANSACTION"
+clear
+echo "Amount To Send: "$sendamount" satoshis"
+echo "To Address: "$sendaddr"" 
+echo "Fee: 20000 satoshis"
+if [ "$change" -gt "0" ]; then
+  echo "Change: "$change""
+fi
+echo ""
+read -p "Is this correct so far (y/no)? " correct
+while [ "$correct" = "no" ]
+do
+  echo "Total Available in "$ADDR": "$total" Satoshis"
+  echo ""
+  read -p "Input address to send to: " sendaddr
+  read -p "Input amount to send in satoshis: " sendamount
+  fee=20000
+  total=$(expr $total - $fee)
+  while [ "$total" -lt "1" ]
+  do
+    echo "Not enough in $ADDR to send."
+    total=$(echo "$HIST" | grep -e "total_received" | tr -d "\"\," | cut -b 17-)
+    echo ""
+    echo "Total Available in "$ADDR": "$total" Satoshis"
+    echo ""
+    read -p "Input address to send to: " sendaddr
+    read -p "Input amount to send in satoshis: " sendamount
+    fee=20000
+    total=$(expr $total - $fee)
+  done
+  change=$(expr $total - $sendamount)
+  echo ""
+  echo_c "REVIEWING TRANSACTION"
+  clear
+  echo "Amount To Send: "$sendamont" satoshis"
+  echo "To Address: "$sendaddr"" 
+  echo "Fee: 20000 satoshis"
+  if [ "$change" -gt "0" ]; then
+    echo "Change: "$change""
+  fi
+  echo ""
+  read -p "Is this correct so far? (y/no) " correct
+done
+if [ "$change" -gt "0" ]; then
+  echo ""
+  read -p "See addresses to send change to? (y/no) " see
+  if [ "$see" != "no" ]; then
+    echo ""
+    echo "Use up/down arrows to navigate. Press q when finished."
+    read -p "Press enter to see possible addresses for change."
+    cat btc-KeyRNG/*.addr | grep "Address" | less
+  fi
+read -p "Input address for the change of "$change" satoshis: " changeaddr
+fi
+numouts=$(echo "$HIST" | grep -e "$ADDR" -A 2 | grep -c "value")
+numouts=$(expr $numouts + 1)
+po=1
+vo=1
+touch temp/mktx
+while [[ "$po" -lt "$numouts" ]]
+do
+  echo "$HIST" | grep "hash" | tr -d " " | tr -d "\"\}\{\]\[\-\," | tail -n "$po" | head -n 1 | cut -b 6- | sed 's|$|:|g' >> temp/mktx #get pouts
+  echo "$HIST" | grep -e "$ADDR" -A 2 | tr -d " " | tr -d "\"\}\{\]\[\-\," | tail -n "$vo" | head -n 1 | cut -b 3- >> temp/mktx #get matching nout
+  po=$(expr $po + 1)
+  vo=$(expr $vo + 4)
+done
+pvouts=$(cat temp/mktx | xargs | sed 's|\:\ |:|g') # all previous outputs:nout out:n ...
+if [[ "$change" -gt "0" ]]; then
+  tx=$(pybtctools/pybtctool mktx $(echo -n "$pvouts") "$sendaddr":"$sendamount" "$changeaddr":"$change")
+else
+  tx=$(pybtctools/pybtctool mktx $(echo -n "$pvouts") "$sendaddr":"$sendamount")
+fi
+echo_c "TRANSACTION IS CREATED, BUT NOT SIGNED."
+echo ""
+read -p "Do you want to sign it now? (y/no) " signit
+if  [ "$signit" = no ]; then
+  touch btc-KeyRNG/unsigned.tx
+  ustx=(grep -c "TX" btc-KeyRNG/unsigned.tx)
+  echo "Saving tx to btc-KeyRNG/unsigned.tx as TX:"$ustx"."
+  echo -en "\nTX:"$ustx"\n"$tx"\n---\n" >> btc-KeyRNG/unsigned.tx
+  read -p "Press enter to return to BLOCKCHAIN INTERACTION MENU."
+  break
+fi
+numouts=$(echo "$HIST" | grep -e "$ADDR" -A 2 | grep -c "value")
+no=0
+echo ""
+echo_c "Now we need the private key from "$ADDR"."
+echo_c "Open another KeyRNG if you need to look it up."
+read -p "Input private key: " priv
+echo 
+while [[ "$no" -lt "$numouts" ]]
+do
+  pybtctools/pybtctool sign "$tx" "$no" "$priv" > temp/mktx
+  no=$(expr $no + 1)
+  tx=$(cat temp/mktx)
+done
+echo "Cleaning up temp files..."
+DEL=temp/*; secdelete
+echo ""
+echo_c "TRANSACTION IS SIGNED."
+echo ""
+read -p "Would you like to see it now? (Y/no) " seeit
+  if  [ "$seeit" = "Y" ]; then
+    echo "Use up/down arrows to navigate. Press q when finished."
+    read -p "Press enter to see signed tx."
+    echo "$tx" | less
+  fi
+echo ""
+read -p "Would you like to push the tx to the network now? (Y/no) " push
+if [[ "$push" = "Y" ]]; then
+  if  [[ "$USE_TOR" = "y" && "$HAVE_API" = "y" ]]; then
+    HIST=$(curl --silent -x socks5://127.0.0.1:9050 -d tx="$tx" https://blockchainbdgpzk.onion/pushtx?api_code="$BCI_API")
+  elif [[ "$USE_TOR" = "y" && "$HAVE_API" != "y" ]]; then
+    HIST=$(curl --silent -x socks5://127.0.0.1:9050 -d tx="$tx" https://blockchainbdgpzk.onion/pushtx)
+  elif [[ "$USE_TOR" != "y" && "$HAVE_API" = "y" ]]; then
+    HIST=$(curl --silent -d tx="$tx" https://blockchain.info/pushtx?api_code="$BCI_API")
+  else
+    HIST=$(curl --silent -d tx="$tx" https://blockchain.info/pushtx)
+  fi
+else
+  read -p "Would you like to save the signed transaction hash somewhere? (y/NO) " savestx
+  if [ "$savestx" !=  "NO" ]; then
+    read -p "Path or filename to save it to: " file
+    echo "$stx" > "$file"
+  fi
+fi
+read -p "Done! Press enter to return to BLOCKCHAIN INTERACTION MENU."
+}
 #------------------
 ## CHECK UNSPENT ##
 #------------------
@@ -1521,14 +1801,14 @@ echo "Getting raw transaction details..."
 if  [[ "$USE_TOR" = "y" && "$HAVE_API" = "y" ]]; then
     RAWTX=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/rawtx/"$TXID"?api_code="$BCI_API")
 elif [[ "$USE_TOR" = "y" && "$HAVE_API" != "y" ]]; then
-    UNSPENT=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/rawtx/"$TXID")
+    RAWTX=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/rawtx/"$TXID")
 elif [[ "$USE_TOR" != "y" && "$HAVE_API" = "y" ]]; then
-    UNSPENT=$(curl --silent --get https://blockchain.info/rawtx/"$TXID"?api_code="$BCI_API")
+    RAWTX=$(curl --silent --get https://blockchain.info/rawtx/"$TXID"?api_code="$BCI_API")
 else
-    UNSPENT=$(curl --silent --get https://blockchain.info/rawtx/"$TXID")
+    RAWTX=$(curl --silent --get https://blockchain.info/rawtx/"$TXID")
 fi
 echo "Use up/down arrows to navigate. Press "q" when finished."
-read "Press enter to see transaction details."
+read -p "Press enter to see transaction details."
 echo "$RAWTX" | tr -d "\}\{\,\]\"\[" | sed -e 's|         ||g' -e 's|   ||g' | less
 }
 #------------------------
@@ -1557,19 +1837,9 @@ elif [[ "$USE_TOR" != "y" && "$HAVE_API" = "y" ]]; then
 else
     HIST=$(curl --silent --get https://blockchain.info/rawaddr/"$ADDR")
 fi
-read "Press enter to see history."
+read -p "Press enter to see history."
 echo "Use up/down arrows to navigate. Press "q" when finished."
 echo "$HIST" | tr -d "\}\{\,\]\"\[" | sed -e 's|         ||g' -e 's|   ||g'
-}
-#-----------------------------------
-## SHOW ALL ADDRESSES AND PUBKEYS ##
-#-----------------------------------
-showalladdr ()
-{
-echo -e "\nPress enter to see all addresses and pubkeys."
-echo "Use up/down arrows to navigate. Press "q" when finished."
-read
-cat btc-KeyRNG/*.addr | grep -e "Address" -e "Pubkey" | less
 }
 #####################  M E N U S ######################
 welcomemenu (){
@@ -1577,9 +1847,13 @@ clear
 wmx="---------------------------------------"
 wmy="| W E L C O M E    T O    K e y R N G |"
 wmz="---------------------------------------"
+bannr="- P R I V A C Y    B E F O R E    P R O F I T -"
 echo_c "$wmx"
 echo_c "$wmy"
-echo_c "$wmz"; }
+echo_c "$wmz"
+echo ""
+echo_c "$bannr"
+echo ""; }
 
 mainmenu (){
 clear
@@ -1590,6 +1864,7 @@ bannr="- P R I V A C Y    B E F O R E    P R O F I T -"
 echo_c "$mmx"
 echo_c "$mmy"
 echo_c "$mmz"
+echo ""
 echo_c "$bannr"
 echo ""; }
 
@@ -1676,57 +1951,45 @@ echo_c "$dmz"; }
 
 clearsignmenu (){
 clear
-csx="-------------------------------"
-csy="| C L E A R S I G N   M E N U |"
-csz="-------------------------------"
-echo_c "$csx"
-echo_c "$csy"
-echo_c "$csz"; }
+echo_c "-------------------------------"
+echo_c "| C L E A R S I G N   M E N U |"
+echo_c "-------------------------------"; }
 
 mainbtcmenu (){
 clear
-bmx="--------------------------------------------------"
-bmy="| B I T C O I N    M A N A G E M E N T   M E N U |"
-bmz="--------------------------------------------------"
-echo_c "$bmx"
-echo_c "$bmy"
-echo_c "$bmz"; }
+echo_c "--------------------------------------------------"
+echo_c "| B I T C O I N    M A N A G E M E N T   M E N U |"
+echo_c "--------------------------------------------------"; }
 
 standaddrmenu () {
 clear
-sax="-----------------------------------------------"
-say="| S T A N D A R D    A D D R E S S    M E N U |"
-saz="-----------------------------------------------"
-echo_c "$sax"
-echo_c "$say"
-echo_c "$saz"; }
+echo_c "-----------------------------------------------"
+echo_c "| S T A N D A R D    A D D R E S S    M E N U |"
+echo_c "-----------------------------------------------"; }
 
 eleaddrmenu (){
 clear
-eax="-----------------------------------------------"
-eay="| E L E C T R U M    A D D R E S S    M E N U |"
-eaz="-----------------------------------------------"
-echo_c "$eax"
-echo_c "$eay"
-echo_c "$eaz"; }
+echo_c "-----------------------------------------------"
+echo_c "| E L E C T R U M    A D D R E S S    M E N U |"
+echo_c "-----------------------------------------------"; }
 
 bipaddrmenu (){
 clear
-bax="-----------------------------------------"
-bay="| B I P 3 2    A D D R E S S    M E N U |"
-baz="-----------------------------------------"
-echo_c "$bax"
-echo_c "$bay"
-echo_c "$baz"; }
+echo_c "-----------------------------------------"
+echo_c "| B I P 3 2    A D D R E S S    M E N U |"
+echo_c "-----------------------------------------"; }
+
+multisigmenu (){
+clear
+echo_c "-----------------------------------------------"
+echo_c "| M U L T I S I G    A D D R E S S    M E N U |"
+echo_c "-----------------------------------------------"; }
 
 bcimenu (){
 clear
-bix="-----------------------------------------------------------"
-biy="| B L O C K C H A I N    I N T E R A C T I O N    M E N U |"
-biz="-----------------------------------------------------------"
-echo_c "$bix"
-echo_c "$biy"
-echo_c "$biz"; }
+echo_c "-----------------------------------------------------------"
+echo_c "| B L O C K C H A I N    I N T E R A C T I O N    M E N U |"
+echo_c "-----------------------------------------------------------"; }
 
 
 #########################
