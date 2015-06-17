@@ -1553,7 +1553,7 @@ echo ""
 echo ""
 echo_c "HERE IS YOUR ADDRESS AND REDEEM SCRIPT."
 echo ""
-echo "Address: "$msaddr""
+echo "Multisig Address: "$msaddr""
 echo ""
 echo "Script: "$script""
 echo ""
@@ -1569,9 +1569,7 @@ if [ "$SAVE" = "Y" ]; then
       echo_c "--------------------------------------------------------" >> btc-KeyRNG/multisig.addr
     fi
   a=$(grep -c "Address" btc-KeyRNG/multisig.addr)
-  if  [ "$a" = "0" ]; then
-    a=`expr "$a" + 1`
-  fi
+  a=$(expr "$a" + 1)
   echo -e "\n\nMultisig Address "$a": "$msaddr"\n" >> btc-KeyRNG/multisig.addr
   echo -e "Script "$a": "$script"\n---" >> btc-KeyRNG/multisig.addr
 fi
@@ -1692,6 +1690,7 @@ numouts=$(echo "$HIST" | grep -e "$ADDR" -A 2 | grep -c "value")
 numouts=$(expr $numouts + 1)
 po=1
 vo=1
+rm -rf temp/mktx
 touch temp/mktx
 while [[ "$po" -lt "$numouts" ]]
 do
@@ -1713,10 +1712,15 @@ else
 fi
 echo_c "TRANSACTION IS CREATED, BUT NOT SIGNED."
 echo ""
+read -p "Deserialize? (Y/no) " decode
+if [ "$decode" = "Y" ]; then
+  pybtctools/pybtctool deserialize "$tx"
+fi
+echo ""
 read -p "Do you want to sign it now? (y/no) " signit
 if  [ "$signit" = no ]; then
   touch btc-KeyRNG/unsigned.tx
-  ustx=(grep -c "TX" btc-KeyRNG/unsigned.tx)
+  ustx=$(cat btc-KeyRNG/unsigned.tx | grep -c "TX")
   echo "Saving tx to btc-KeyRNG/unsigned.tx as TX:"$ustx"."
   echo -en "\nTX:"$ustx"\n"$tx"\n---\n" >> btc-KeyRNG/unsigned.tx
   read -p "Press enter to return to BLOCKCHAIN INTERACTION MENU."
@@ -1748,6 +1752,7 @@ do
   no=$(expr $no + 1)
   tx=$(cat temp/mktx)
 done
+stx=$(pybtctools/pybtctool deserialize "$tx")
 echo "Cleaning up temp files..."
 DEL=temp/mktx; secdelete
 echo ""
@@ -1757,7 +1762,7 @@ read -p "Would you like to see it now? (Y/no) " seeit
   if  [ "$seeit" = "Y" ]; then
     echo "Use up/down arrows to navigate. Press q when finished."
     read -p "Press enter to see signed tx."
-    echo "$tx" | less
+    echo -e ""$tx"\n\n"$stx"" | less
   fi
 echo ""
 read -p "Would you like to push the tx to the network now? (Y/no) " push
@@ -1775,7 +1780,7 @@ else
   read -p "Would you like to save the signed transaction hash somewhere? (y/NO) " savestx
   if [ "$savestx" !=  "NO" ]; then
     read -p "Path or filename to save it to: " file
-    echo "$stx" > "$file"
+    echo -e ""$tx"\n\n"$stx"" > "$file"
   fi
 fi
 read -p "Done! Press enter to return to BLOCKCHAIN INTERACTION MENU."
@@ -1857,117 +1862,78 @@ elif [[ "$USE_TOR" != "y" && "$HAVE_API" = "y" ]]; then
 else
     HIST=$(curl --silent --get https://blockchain.info/rawaddr/"$ADDR")
 fi
+echo "Use up/down arrows to navigate. Press "q" when your finished."
 read -p "Press enter to see history."
-echo "Use up/down arrows to navigate. Press "q" when finished."
 echo "$HIST" | tr -d "\}\{\,\]\"\[" | sed -e 's|         ||g' -e 's|   ||g'
 }
 #####################  M E N U S ######################
 welcomemenu (){
 clear
-wmx="---------------------------------------"
-wmy="| W E L C O M E    T O    K e y R N G |"
-wmz="---------------------------------------"
-bannr="- P R I V A C Y    B E F O R E    P R O F I T -"
-echo_c "$wmx"
-echo_c "$wmy"
-echo_c "$wmz"
-echo ""
-echo_c "$bannr"
-echo ""; }
+echo_c "---------------------------------------"
+echo_c "| W E L C O M E    T O    K e y R N G |"
+echo_c "---------------------------------------"
+echo_c "- P R I V A C Y    B E F O R E    P R O F I T -"; }
 
 mainmenu (){
 clear
-mmx="-------------------------------------"
-mmy="| K e y R N G    M A I N    M E N U |"
-mmz="-------------------------------------"
-bannr="- P R I V A C Y    B E F O R E    P R O F I T -"
-echo_c "$mmx"
-echo_c "$mmy"
-echo_c "$mmz"
-echo ""
-echo_c "$bannr"
-echo ""; }
+echo_c "-------------------------------------"
+echo_c "| K e y R N G    M A I N    M E N U |"
+echo_c "-------------------------------------"
+echo_c "- P R I V A C Y    B E F O R E    P R O F I T -"; }
 
 gpgmainmenu (){
 clear
-gmmx="-----------------------------------------------"
-gmmy="| G n u P G    M A N A G E M E N T    M E N U |"
-gmmz="-----------------------------------------------"
-echo_c "$gmmx"
-echo_c "$gmmy"
-echo_c "$gmmz"; }
+echo_c "-----------------------------------------------"
+echo_c "| G n u P G    M A N A G E M E N T    M E N U |"
+echo_c "-----------------------------------------------"; }
 
 keymanagementmenu (){
 clear
-kmx="-------------------------------------------"
-kmy="| K E Y    M A N A G E M E N T    M E N U |"
-kmz="-------------------------------------------"
-echo_c "$kmx"
-echo_c "$kmy"
-echo_c "$kmz"; }
+echo_c "-------------------------------------------"
+echo_c "| K E Y    M A N A G E M E N T    M E N U |"
+echo_c "-------------------------------------------"; }
 
 pubkeymenu (){
 clear
-pkx="-------------------------------------"
-pky="| P U B L I C    K E Y S    M E N U |"
-pkz="-------------------------------------"
-echo_c "$pkx"
-echo_c "$pky"
-echo_c "$pkz"; }
+echo_c "-------------------------------------"
+echo_c "| P U B L I C    K E Y S    M E N U |"
+echo_c"-------------------------------------"; }
 
 importkeysmenu (){
 clear
-ikx="-------------------------------------"
-iky="| I M P O R T    K E Y S    M E N U |"
-ikz="-------------------------------------"
-echo_c "$ikx"
-echo_c "$iky"
-echo_c "$ikz"; }
+echo_c "-------------------------------------"
+echo_c "| I M P O R T    K E Y S    M E N U |"
+echo_c "-------------------------------------"; }
 
 exportkeysmenu (){
 clear
-esx="-----------------------------------------------"
-esy="| E X P O R T / S E N D    K E Y S    M E N U |"
-esz="-----------------------------------------------"
-echo_c "$esx"
-echo_c "$esy"
-echo_c "$esz"; }
+echo_c "-----------------------------------------------"
+echo_c "| E X P O R T / S E N D    K E Y S    M E N U |"
+echo_c "-----------------------------------------------"; }
 
 seckeysmenu (){
 clear
-skx="-------------------------------------"
-sky="| S E C R E T    K E Y S    M E N U |"
-skz="-------------------------------------"
-echo_c "$skx"
-echo_c "$sky"
-echo_c "$skz"; }
+echo_c "-------------------------------------"
+echo_c "| S E C R E T    K E Y S    M E N U |"
+echo_c "-------------------------------------"; }
 
 importseckeysmenu (){
 clear
-iskx="----------------------------------------------------"
-isky="| I M P O R T    S E C R E T    K E Y S    M E N U |"
-iskz="----------------------------------------------------"
-echo_c "$iskx"
-echo_c "$isky"
-echo_c "$iskz"; }
+echo_c "----------------------------------------------------"
+echo_c "| I M P O R T    S E C R E T    K E Y S    M E N U |"
+echo_c "----------------------------------------------------"; }
 
 encryptmenu (){
 clear
-emx="----------------------------------"
-emy="| E N C R Y P T I O N    M E N U |"
-emz="----------------------------------"
-echo_c "$emx"
-echo_c "$emy"
-echo_c "$emz"; }
+echo_c "----------------------------------"
+echo_c "| E N C R Y P T I O N    M E N U |"
+echo_c "----------------------------------"; }
 
 decryptmenu (){
 clear
-dmx="----------------------------------"
-dmy="| D E C R Y P T I O N    M E N U |"
-dmz="----------------------------------"
-echo_c "$dmx"
-echo_c "$dmy"
-echo_c "$dmz"; }
+echo_c "----------------------------------"
+echo_c "| D E C R Y P T I O N    M E N U |"
+echo_c "----------------------------------"; }
 
 clearsignmenu (){
 clear
