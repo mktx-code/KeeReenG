@@ -33,7 +33,6 @@ unlock ()
 read -s -p "Enter Password: " PW
 PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
 gpg --quiet --no-use-agent --output checksum --passphrase "$PW" -d checksum.gpg
-rm -rf checksum.gpg
 SUM=$(cat checksum)
 CHK=$(cat keyrng | shasum -t -a 512 | cut -b -128)
 if [ "$SUM" != "$CHK" ]; then
@@ -46,6 +45,7 @@ if [ "$SUM" != "$CHK" ]; then
         exit 0
     fi
 fi
+rm -rf checksum.gpg
 gpg --quiet --no-use-agent --output KeyRNG.tar.gz --passphrase "$PW" -d KeyRNG.gpg
 unset PW; unset CHKPW; unset SUM; unset CHKSUM
 tar -xf KeyRNG.tar.gz
