@@ -95,14 +95,14 @@ if [ "$IS_FIRST_RUN" -lt "2" ]; then
     echo ""
     echo_c "Press enter to move on to initial setup."
     read
-    clear
     firstrun
 fi
 ## TEMP FILE
 HAS_TEMP_FILE=$(ls | grep -c "temp")
 if [ "$HAS_TEMP_FILE" -lt "1" ]; then
-    mkdir temp/
+  mkdir temp/
 fi
+TMPDIR=temp/
 ## MAIN MENU 
 mainmenu
 PS3='Enter choice (press enter to see options again): '
@@ -111,7 +111,6 @@ select opt in "${options[@]}"
 do
     case "$opt" in
         "GnuPG Management")
-        clear
         gpgmainmenu
         PS3='Enter choice (press enter to see options again): '
         options=("Key Management Menu" "Encryption Menu" "Decryption Menu" "Clearsign Menu" "BACK TO MAIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
@@ -231,7 +230,6 @@ do
                                 done
                                 ;;
                             "Secret Keys")
-                                clear
                                 seckeysmenu
                                 PS3='Enter choice (press enter to see options again): '
                                 options=("Import Secret Keys" "List Secret Keys By UID" "List Full Secret Key Info" "Export Secret Key To Terminal" "Export Secret Key To File" "BACK TO KEY MANAGEMENT MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
@@ -453,7 +451,7 @@ do
                     "Address Management")
                     addrmanagemenu
                     PS3='Enter option (press enter to see options again): '
-                    options=("Standard Addresses Menu" "Electrum Addresses Menu" "BIP32 Addresses Menu" "Multisig Addresses Menu" "BACK TO BITCOIN MANAGEMENT MENU" "Quit" "FAST LOCKUP!" "SECURE LOCKUP!")
+                    options=("Standard Addresses Menu" "Electrum Addresses Menu" "BIP32 Addresses Menu" "Multisig Addresses Menu" "Import A Private Key" "BACK TO BITCOIN MANAGEMENT MENU" "Quit" "FAST LOCKUP!" "SECURE LOCKUP!")
                     select opt in "${options[@]}"
                     do
                       case "$opt" in
@@ -607,6 +605,9 @@ do
                                *) echo "Invalid Option";;
                              esac
                            done
+                           ;;
+                       "Import A Private Key")
+                           importbitpriv
                            ;;
                        "BACK TO BITCOIN MANAGEMENT MENU")
                            break
