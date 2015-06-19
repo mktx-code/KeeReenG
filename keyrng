@@ -20,7 +20,7 @@ printf "%"$((l+(w-l)/2))"s\n" "$1"
   echo_c "| L O C K E D    K e y R N G    M E N U |"
   echo_c "-----------------------------------------"
   echo ""
-  echo_c "$banr"
+  echo_c "- P R I V A C Y    B E F O R E     P R O F I T -"
   echo ""
   PS3='Enter choice (press enter to see options again): '
   options=("Unlock KeyRNG Files" "Copy Encrypted Files For Backup" "About Locked File" "Quit")
@@ -28,26 +28,24 @@ printf "%"$((l+(w-l)/2))"s\n" "$1"
   do
       case "$opt" in
           "Unlock KeyRNG Files")
-unlock ()
-{
-read -s -p "Enter Password: " PW
-PW=$(echo -n "$PW" | shasum -t -a 512 | cut -b -128)
-gpg --quiet --no-use-agent --output checksum --passphrase "$PW" -d checksum.gpg
-SUM=$(cat checksum)
-CHK=$(cat keyrng | shasum -t -a 512 | cut -b -128)
-if [ "$SUM" != "$CHK" ]; then
-    echo -e "\nCHECKSUM OF keyrng DOES NOT MATCH FROM BEFORE LOCKING."
-    echo "Do you still want to unlock your files? (Y/no)"
-    read UNLOCK
-    if [ "$UNLOCK" != "Y" ]; then
-        gpg --passphrase "$PW" --no-use-agent --cipher-algo aes256 --symmetric checksum
-        rm -rf checksum
-        exit 0
-    fi
+unlock (){
+read -s -p "Enter Password: " pw
+pw=$(echo -n "$pw" | shasum -t -a 512 | cut -b -128)
+gpg --quiet --no-use-agent --output checksum --passphrase "$pw" -d checksum.gpg
+s=$(cat checksum)
+ch=$(cat keyrng | shasum -t -a 512 | cut -b -128)
+if [ "$s" != "$ch" ]; then
+  echo -e "\nCHECKSUM OF keyrng DOES NOT MATCH FROM BEFORE LOCKING."
+  read -p "Do you still want to unlock your files? (Y/no) " u
+  if [ "$u" != "Y" ]; then
+    gpg --passphrase "$pw" --no-use-agent --cipher-algo aes256 --symmetric checksum
+    rm -rf checksum
+    exit 0
+  fi
 fi
 rm -rf checksum.gpg
-gpg --quiet --no-use-agent --output KeyRNG.tar.gz --passphrase "$PW" -d KeyRNG.gpg
-unset PW; unset CHKPW; unset SUM; unset CHKSUM
+gpg --quiet --no-use-agent --output KeyRNG.tar.gz --passphrase "$pw" -d KeyRNG.gpg
+unset pw; unset s; unset ch
 tar -xf KeyRNG.tar.gz
 chown -R "$USER" * */ */*
 chmod 0600 gpg-KeyRNG/gpg.conf
@@ -55,11 +53,10 @@ chmod 0600 btc-KeyRNG/*
 echo "Shredding temp files..."
 HAS_SRM=$(ls /usr/bin/ /usr/sbin/ /usr/local/bin/ | grep -c srm)
 if [[ "$HAS_SRM" -gt "0" ]]; then
-    srm -drlv checksum* KeyRNG.*
+  srm -drlv checksum* KeyRNG.*
 else
-    shred -vuzn 3 checksum* KeyRNG.*
-fi
-}
+  shred -vuzn 3 checksum* KeyRNG.*
+fi; }
                 unlock
                 break
                 ;;
@@ -68,7 +65,7 @@ fi
                 echo "What would you like to path and/or name to be?"
                 read BACKUP
                 echo "Copying..."
-                cp locked.KeyRNG "$BACKUP"
+                cp KeyRNG.gpg "$BACKUP"
                 echo "File is at "$BACKUP""
                 echo "You should move it somewhere else if you would like to keep it."
                 echo "Press enter to exit."
@@ -90,16 +87,15 @@ fi
 ## FIRST TIME
 IS_FIRST_RUN=$(gpg --homedir gpg-KeyRNG/ --list-keys | grep -c KeyRNG)
 if [ "$IS_FIRST_RUN" -lt "2" ]; then
-    welcomemenu
-    echo_c "Welcome to KeyRNG, a GnuPG and Bitcoin client and/or keyring."
-    echo ""
-    echo_c "Press enter to move on to initial setup."
-    read
-    firstrun
+  welcomemenu
+  echo ""; echo_c "Welcome to KeyRNG, a GnuPG and Bitcoin client and/or keyring."; echo ""
+  echo_c "Press enter to move on to initial setup."
+  read
+  firstrun
 fi
 ## TEMP FILE
-HAS_TEMP_FILE=$(ls | grep -c "temp")
-if [ "$HAS_TEMP_FILE" -lt "1" ]; then
+ht=$(ls | grep -c "temp")
+if [ "$ht" -lt "1" ]; then
   mkdir temp/
 fi
 TMPDIR=temp/
@@ -120,7 +116,7 @@ do
                 "Key Management Menu")
                     keymanagementmenu
                     PS3='Enter choice (press enter to see options again): '
-                    options=("Generate New Keypair" "Public Keys" "Secret Keys" "BACK TO GPG MAIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+                    options=("Generate New Keypair" "Public Keys" "Secret Keys" "List All Keys" "Delete A Key" "BACK TO GPG MAIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                     select opt in "${options[@]}"
                     do
                         case "$opt" in
@@ -298,6 +294,12 @@ do
                                         *) echo "Invalid Option";;
                                         esac
                                     done
+                                    ;;
+                                "List All Keys")
+                                    listkeyuids
+                                    ;;
+                                "Delete A Key")
+                                    delkeys
                                     ;;
                                 "BACK TO GPG MAIN MENU")
                                     break
