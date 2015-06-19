@@ -90,7 +90,7 @@ exit 0; }
 fastlockup (){
 echo ""
 echo "Locking up, choose a unique password to lock all files with."
-ech ""
+echo ""
 read -s -p "Set lockup password: " pw
 pw=$(echo -n "$pw" | shasum -t -a 512 | cut -b -128)
 echo ""
@@ -113,7 +113,6 @@ gpg --quiet --passphrase "$pw"  --cipher-algo aes256 --symmetric checksum
 unset pw; unset chkpw
 rm -rf *-KeyRNG/ pybtctools/ libkeyrng *.tar.gz temp/ checksum
 exit 0; }
-
 ###########################################################
 ############## GNUPG GENERAL KEY MANAGEMENT ###############
 ###########################################################
@@ -138,7 +137,7 @@ listkeyuids (){
 clear; echo ""; echo_c "LIST PUBLIC KEYS BY UID"; echo ""
 echo "Press enter to see a list of possible recipients by UID."
 read -p "Use up/down arrows to navigate. Press "q" when your finished."
-gpg --quiet --homedir gpg-KeyRNG/  --list-keys | grep "uid" | cut -b 21- | less; clear; }
+gpg --quiet --homedir gpg-KeyRNG/ --list-keys | grep -e "fingerprint" -e "uid" | sed -e 's|                 |\: |' -e 's|      ||' -e 's|   |\: |' -e '0~2 a\\' | less; clear; }
 #---------------------------------
 ## LIST FULL SECRET KEY DETAILS ##
 #---------------------------------
@@ -154,7 +153,7 @@ listseckeyuid (){
 clear; echo ""; echo_c "LIST SECRET KEYS"; echo ""
 echo "Press enter to see a list of possible recipients by UID."
 echo "Use up/down arrows to navigate. Press "q" when your finished."
-gpg --homedir gpg-KeyRNG/  --list-secret-keys | grep "uid" | cut -b 21- | less; clear; }
+gpg --homedir gpg-KeyRNG/ --list-keys | grep "uid" | sed 's|                 |\: |' | less; clear; }
 #-------------------------
 ## IMPORT KEY FROM FILE ##
 #-------------------------
@@ -338,6 +337,27 @@ if [[ "$a" != "no" ]]; then
   fi
 else read -p "What key to refresh? " id; gpg --homedir gpg-KeyRNG/  --quiet --refresh-keys "$id"
 fi; clear; }
+#----------------
+## DELETE KEYS ##
+#----------------
+delkeys (){
+clear; echo ""; echo_c "DELETE A KEY"; echo ""
+read -p "List keys? (y/no) " l
+if [ "$l" != "no" ]; then echo ""; listkeyuids
+fi; echo ""; read -p "Input key to delete: " dk
+dks=$(gpg --homedir gpg-KeyRNG/ --list-secret-keys | grep -c "$dk")
+if [[ "$dks" = "0" ]]; then
+ echo ""; gpg --homedir gpg-KeyRNG/ --yes --quiet --delete-keys "$dk"
+else
+ echo ""; echo_c "THIS KEY HAS A SECRET KEY!"; echo ""
+ read -p "Do you want to delete this secret/public key pair? (Y/no) " rly
+ if [[ "$rly" = "Y" ]]; then
+  gpg --homedir gpg-KeyRNG/ --yes --quiet --delete-secret-keys "$dk"
+  gpg --homedir gpg-KeyRNG/ --yes --quiet --delete-keys "$dk"
+ else
+  echo ""; read -p "Press enter to return to KEY MANAGEMENT MENU"
+ fi
+fi; }
 #########################################################
 ############### ENCRYPTION AND DECRYPTION ###############
 #########################################################
@@ -1321,7 +1341,7 @@ else
 fi
 gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.priv.gpg -ae -r "$KEYRNG" btc-KeyRNG/bip.priv && DEL=btc-KeyRNG/bip.priv; secdelete
 gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.seed.gpg -ae -r "$KEYRNG"  btc-KeyRNG/bip.seed && DEL=btc-KeyRNG/bip.seed; secdelete
-}
+clear; }
 #------------------------------------
 ## CREATE MULTIPLE BIP32 ADDRESSES ##
 #------------------------------------
@@ -1370,7 +1390,7 @@ done
 gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.priv.gpg -ae -r "$KEYRNG" btc-KeyRNG/bip.priv && DEL=btc-KeyRNG/bip.priv; secdelete
 gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.seed.gpg -ae -r "$KEYRNG"  btc-KeyRNG/bip.seed && DEL=btc-KeyRNG/bip.seed; secdelete
 echo -e "\nDONE CREATING "$NUM" BIP32 ADDRESSES."
-echo -e "ADDRESSES AND PRIVKEYS STORED IN KeyRNG/btc-KeyRNG/bip.addr\n"
+echo -e "ADDRESSES STORED IN KeyRNG/btc-KeyRNG/bip.addr\n"
 echo "Press enter to return to BIP32 ADDRESS MENU."
 read
 }
@@ -1500,9 +1520,9 @@ echo ""
 read -p "Input address to send from: " ADDR
 echo "Getting address history..."
 if  [[ "$USE_TOR" = "y" && "$HAVE_API" = "y" ]]; then
-    HIST=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/rawaddr/"$ADDR"?api_code="$BCI_API")
+    HIST=$(torify curl --silent --get https://blockchainbdgpzk.onion/rawaddr/"$ADDR"?api_code="$BCI_API")
 elif [[ "$USE_TOR" = "y" && "$HAVE_API" != "y" ]]; then
-    HIST=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/rawaddr/"$ADDR")
+    HIST=$(torify curl --silent --get https://blockchainbdgpzk.onion/rawaddr/"$ADDR")
 elif [[ "$USE_TOR" != "y" && "$HAVE_API" = "y" ]]; then
     HIST=$(curl --silent --get https://blockchain.info/rawaddr/"$ADDR"?api_code="$BCI_API")
 else
@@ -1515,8 +1535,8 @@ echo ""
 read -p "Input address to send to: " sendaddr
 read -p "Input amount to send in satoshis: " sendamount
 fee=20000
-total=$(expr $total - $fee)
-while [ "$total" -lt "1" ]
+ntotal=$(expr $total - $fee)
+while [ "$ntotal" -lt "1" ]
 do
   echo "Not enough in $ADDR to send."
   total=$(echo "$HIST" | grep -e "total_received" | tr -d "\"\," | cut -b 17-)
@@ -1526,9 +1546,9 @@ do
   read -p "Input address to send to: " sendaddr
   read -p "Input amount to send in satoshis: " sendamount
   fee=20000
-  total=$(expr $total - $fee)
+  ntotal=$(expr $total - $fee)
 done
-change=$(expr $total - $sendamount)
+change=$(expr $ntotal - $sendamount)
 clear
 echo ""
 echo_c "REVIEW TRANSACTION"
@@ -1548,8 +1568,8 @@ do
   read -p "Input address to send to: " sendaddr
   read -p "Input amount to send in satoshis: " sendamount
   fee=20000
-  total=$(expr $total - $fee)
-  while [ "$total" -lt "1" ]
+  ntotal=$(expr $total - $fee)
+  while [ "$ntotal" -lt "1" ]
   do
     echo "Not enough in $ADDR to send."
     total=$(echo "$HIST" | grep -e "total_received" | tr -d "\"\," | cut -b 17-)
@@ -1559,9 +1579,9 @@ do
     read -p "Input address to send to: " sendaddr
     read -p "Input amount to send in satoshis: " sendamount
     fee=20000
-    total=$(expr $total - $fee)
+    ntotal=$(expr $total - $fee)
   done
-  change=$(expr $total - $sendamount)
+  change=$(expr $ntotal - $sendamount)
   clear
   echo ""
   echo_c "REVIEW TRANSACTION"
@@ -1668,9 +1688,9 @@ echo ""
 read -p "Would you like to push the tx to the network now? (Y/no) " push
 if [[ "$push" = "Y" ]]; then
   if  [[ "$USE_TOR" = "y" && "$HAVE_API" = "y" ]]; then
-    HIST=$(curl --silent -x socks5://127.0.0.1:9050 -d tx="$tx" https://blockchainbdgpzk.onion/pushtx?api_code="$BCI_API")
+    HIST=$(torify curl --silent -d tx="$tx" https://blockchainbdgpzk.onion/pushtx?api_code="$BCI_API")
   elif [[ "$USE_TOR" = "y" && "$HAVE_API" != "y" ]]; then
-    HIST=$(curl --silent -x socks5://127.0.0.1:9050 -d tx="$tx" https://blockchainbdgpzk.onion/pushtx)
+    HIST=$(torify curl --silent -d tx="$tx" https://blockchainbdgpzk.onion/pushtx)
   elif [[ "$USE_TOR" != "y" && "$HAVE_API" = "y" ]]; then
     HIST=$(curl --silent -d tx="$tx" https://blockchain.info/pushtx?api_code="$BCI_API")
   else
@@ -1695,12 +1715,12 @@ if [ "$l" != "no" ]; then
   read -p "Use up/down arrows to navigate. Press "q" when finished."
   cat btc-KeyRNG/*.addr | grep Address | less
 fi
-echo ""; read -p "Paste address to check unspent outputs with 0 confirmations. " addr
+echo ""; echo "Paste address to check unspent outputs with 0 confirmations: "; read addr
 echo "Getting unspent outputs..."
 if  [[ "$USE_TOR" = "y" && "$HAVE_API" = "y" ]]; then
-  us=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/q/addressbalance/"$addr"?api_code="$BCI_API")
+  us=$(torify curl --silent --get https://blockchainbdgpzk.onion/q/addressbalance/"$addr"?api_code="$BCI_API")
 elif [[ "$USE_TOR" = "y" && "$HAVE_API" != "y" ]]; then
-  us=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/q/addressbalance/"$addr")
+  us=$(torify curl --silent --get https://blockchainbdgpzk.onion/q/addressbalance/"$addr")
 elif [[ "$USE_TOR" != "y" && "$HAVE_API" = "y" ]]; then
   us=$(curl --silent --get https://blockchain.info/q/addressbalance/"$addr"?api_code="$BCI_API")
 else
@@ -1716,9 +1736,9 @@ clear; echo ""; echo_c "GET RAW TRANSACTION DETAILS"; echo ""
 read -p "Input transaction hash: " tx
 echo "Getting raw transaction details..."
 if  [[ "$USE_TOR" = "y" && "$HAVE_API" = "y" ]]; then
-  rtx=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/rawtx/"$tx"?api_code="$BCI_API")
+  rtx=$(torify curl --silent --get https://blockchainbdgpzk.onion/rawtx/"$tx"?api_code="$BCI_API")
 elif [[ "$USE_TOR" = "y" && "$HAVE_API" != "y" ]]; then
-  rtx=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/rawtx/"$tx")
+  rtx=$(torify curl --silent --get https://blockchainbdgpzk.onion/rawtx/"$tx")
 elif [[ "$USE_TOR" != "y" && "$HAVE_API" = "y" ]]; then
   rtx=$(curl --silent --get https://blockchain.info/rawtx/"$tx"?api_code="$BCI_API")
 else
@@ -1741,9 +1761,9 @@ fi
 echo ""; read -p "Input address to check raw history: " addr
 echo "Getting history..."
 if  [[ "$USE_TOR" = "y" && "$HAVE_API" = "y" ]]; then
-  h=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/rawaddr/"$addr"?api_code="$BCI_API")
+  h=$(torify curl --silent --get https://blockchainbdgpzk.onion/rawaddr/"$addr"?api_code="$BCI_API")
 elif [[ "$USE_TOR" = "y" && "$HAVE_API" != "y" ]]; then
-  h=$(curl --silent -x socks5://127.0.0.1:9050 --get https://blockchainbdgpzk.onion/rawaddr/"$addr")
+  h=$(torify curl --silent --get https://blockchainbdgpzk.onion/rawaddr/"$addr")
 elif [[ "$USE_TOR" != "y" && "$HAVE_API" = "y" ]]; then
   h=$(curl --silent --get https://blockchain.info/rawaddr/"$addr"?api_code="$BCI_API")
 else
@@ -1751,7 +1771,7 @@ else
 fi
 echo "Use up/down arrows to navigate. Press "q" when your finished."
 read -p "Press enter to see history."
-echo "$h" | tr -d "\}\{\,\]\"\[" | sed -e 's|         ||g' -e 's|   ||g'; clear; }
+echo "$h" | tr -d "\}\{\,\]\"\[" | sed -e 's|         ||g' -e 's|   ||g' | less ; clear; }
 #####################  M E N U S ######################
 welcomemenu (){
 clear
