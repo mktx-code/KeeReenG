@@ -109,20 +109,110 @@ do
         "GnuPG Management")
         gpgmainmenu
         PS3='Enter choice (press enter to see options again): '
-        options=("Key Management Menu" "Encryption Menu" "Decryption Menu" "Clearsign Menu" "BACK TO MAIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+        options=("Encryption Menu" "Decryption Menu" "Clearsign Menu" "Key Management Menu" "List All Keys" "BACK TO MAIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
         select opt in "${options[@]}"
         do
             case "$opt" in
-                "Key Management Menu")
+                    "Encryption Menu")
+                        encryptmenu
+                        PS3='Enter choice (press enter to see options again): '
+                        options=("Encrypt A New Message" "Encrypt A File" "BACK TO GPG MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+                        select opt in "${options[@]}"
+                        do
+                            case "$opt" in
+                                "Encrypt A New Message")
+                                    encryptnewmsg
+                                    ;;
+                                "Encrypt A File")
+                                    encryptfile
+                                    ;;
+                                "BACK TO GPG MENU")
+                                    break
+                                    ;;
+                                "Quit")
+                                    badquit
+                                    ;;
+                                "FAST LOCK UP")
+                                    fastlockup
+                                    ;;
+                                "SECURE LOCK UP")
+                                    lockup
+                                    ;;
+                                *) echo "Invalid Option";;
+                            esac
+                        done
+                        ;;
+                    "Decryption Menu")
+                        decryptmenu
+                        PS3='Enter choice (press enter to see options again): '
+                        options=("Decrypt From Clipboard" "Decrypt From A File" "BACK TO GPG MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+                        select opt in "${options[@]}"
+                        do
+                            case "$opt" in
+                                "Decrypt From Clipboard")
+                                    decryptclip
+                                    ;;                                
+                                "Decrypt From A File")
+                                    decryptfile
+                                    ;;
+                                "BACK TO GPG MENU")
+                                    break
+                                    ;;
+                                "Quit")
+                                    badquit
+                                    ;;
+                                "FAST LOCK UP")
+                                    fastlockup
+                                    ;;
+                                "SECURE LOCK UP")
+                                    lockup
+                                    ;;
+                                *) echo "Invalid Option";;
+                            esac
+                        done
+                        ;;
+                    "Clearsign Menu")
+                        clearsignmenu
+                        PS3='Enter option (press enter to show options again): '
+                        options=("Clearsign New Message" "Verify Message From Clipboard" "Clearsign From File" "Verify Clearsigned File" "Verify Message From Clipboard" "BACK TO GPG MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+                        select opt in "${options[@]}"
+                        do
+                            case "$opt" in
+                                "Clearsign New Message")
+                                    csignnew
+                                    ;;
+                                "Verify Message From Clipboard")
+                                    gpgclipverify
+                                    ;;
+                                "Clearsign From File")
+                                    csignfile
+                                    ;;
+                                "Verify Clearsigned File")
+                                    gpgfileverify
+                                    ;;
+                                "BACK TO GPG MENU")
+                                    break
+                                    ;;
+                                "Quit")
+                                    badquit
+                                    ;;
+                                "FAST LOCK UP")
+                                    fastlockup
+                                    ;;
+                                "SECURE LOCK UP")
+                                    lockup
+                                    ;;
+                                *) echo "Invalid Option";;
+                            esac
+                        done
+                        ;;
+                    "Key Management Menu")
                     keymanagementmenu
                     PS3='Enter choice (press enter to see options again): '
-                    options=("Generate New Keypair" "Public Keys" "Secret Keys" "List All Keys" "Delete A Key" "BACK TO GPG MAIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+                    options=("Public Keys" "Secret Keys" "List All Keys" "Generate New Keypair" "Delete A Key" "BACK TO GPG MAIN MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                     select opt in "${options[@]}"
                     do
                         case "$opt" in
-                            "Generate New Keypair")
-                                genkey
-                                ;;
                             "Public Keys")
                                 pubkeymenu
                                 PS3='Enter choice (press enter to see options again): '
@@ -139,18 +229,21 @@ do
                                         "Import Keys")
                                             importkeysmenu
                                             PS3='Enter choice (press enter to see options again): '
-                                            options=("Receive From Keyserver" "Import Public Key From File" "Import Public Key From Clipboard" "Import Single Key From Another GPG" "Import All Public Keys From Another GPG" "Refresh Keys From Keyserver" "BACK TO PUBLIC KEYS MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+                                            options=("Import Public Key From Clipboard" "Receive From Keyserver" "Import All Public Keys From Another GPG" "Import Public Key From File" "Import All Public Keys From Another GPG" "Refresh Keys From Keyserver" "BACK TO PUBLIC KEYS MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                                             select opt in "${options[@]}"
                                             do
                                                 case "$opt" in
+                                                    "Import Public Key From Clipboard")
+                                                        importkeyclip
+                                                        ;;
                                                     "Receive From Keyserver")
                                                         recvkeyserv
                                                         ;;
+                                                    "Import All Public Keys From Another GPG")
+                                                        gpgimportallpub
+                                                        ;;
                                                     "Import Public Key From File")
                                                         importkeyfile
-                                                        ;;
-                                                    "Import Public Key From Clipboard")
-                                                        importkeyclip
                                                         ;;
                                                     "Import Single Key From Another GPG")
                                                         importkeyfromgpg
@@ -180,15 +273,15 @@ do
                                         "Export/Send Keys")
                                         exportkeysmenu
                                         PS3='Enter choice (press enter to see options again): '
-                                        options=("Send To Keyserver" "Print Pubkey Here" "Export Pubkey To File" "BACK TO PUBLIC KEYS MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
+                                        options=("Print Pubkey Here" "Send To Keyserver" "Export Pubkey To File" "BACK TO PUBLIC KEYS MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
                                         select opt in "${options[@]}"
                                         do
                                             case "$opt" in
-                                                "Send To Keyserver")
-                                                    sendkeyserv
-                                                    ;;
                                                 "Print Pubkey Here")
                                                     exportpubkey
+                                                    ;;
+                                                "Send To Keyserver")
+                                                    sendkeyserv
                                                     ;;
                                                 "Export Pubkey To File")
                                                     exportpubkeyfile
@@ -298,6 +391,9 @@ do
                                 "List All Keys")
                                     listkeyuids
                                     ;;
+                                "Generate New Keypair")
+                                    genkey
+                                    ;;
                                 "Delete A Key")
                                     delkeys
                                     ;;
@@ -317,98 +413,8 @@ do
                             esac
                         done
                         ;;
-                    "Encryption Menu")
-                        encryptmenu
-                        PS3='Enter choice (press enter to see options again): '
-                        options=("Encrypt A File" "Encrypt A New Message" "BACK TO GPG MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
-                        select opt in "${options[@]}"
-                        do
-                            case "$opt" in
-                                "Encrypt A File")
-                                    encryptfile
-                                    ;;
-                                "Encrypt A New Message")
-                                    encryptnewmsg
-                                    ;;
-                                "BACK TO GPG MENU")
-                                    break
-                                    ;;
-                                "Quit")
-                                    badquit
-                                    ;;
-                                "FAST LOCK UP")
-                                    fastlockup
-                                    ;;
-                                "SECURE LOCK UP")
-                                    lockup
-                                    ;;
-                                *) echo "Invalid Option";;
-                            esac
-                        done
-                        ;;
-                    "Decryption Menu")
-                        decryptmenu
-                        PS3='Enter choice (press enter to see options again): '
-                        options=("Decrypt From A File" "Decrypt From Clipboard" "BACK TO GPG MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
-                        select opt in "${options[@]}"
-                        do
-                            case "$opt" in
-                                "Decrypt From A File")
-                                    decryptfile
-                                    ;;
-                                "Decrypt From Clipboard")
-                                    decryptclip
-                                    ;;
-                                "BACK TO GPG MENU")
-                                    break
-                                    ;;
-                                "Quit")
-                                    badquit
-                                    ;;
-                                "FAST LOCK UP")
-                                    fastlockup
-                                    ;;
-                                "SECURE LOCK UP")
-                                    lockup
-                                    ;;
-                                *) echo "Invalid Option";;
-                            esac
-                        done
-                        ;;
-                    "Clearsign Menu")
-                        clearsignmenu
-                        PS3='Enter option (press enter to show options again): '
-                        options=("Clearsign From File" "Clearsign New Message" "Verify Clearsigned File" "Verify Clearsigned Message From Clipboard" "BACK TO GPG MENU" "Quit" "FAST LOCK UP" "SECURE LOCK UP")
-                        select opt in "${options[@]}"
-                        do
-                            case "$opt" in
-                                "Clearsign From File")
-                                    csignfile
-                                    ;;
-                                "Clearsign New Message")
-                                    csignnew
-                                    ;;
-                                "Verify Clearsigned File")
-                                    gpgfileverify
-                                    ;;
-                                "Verify Clearsigned Message From Clipboard")
-                                    gpgclipverify
-                                    ;;
-                                "BACK TO GPG MENU")
-                                    break
-                                    ;;
-                                "Quit")
-                                    badquit
-                                    ;;
-                                "FAST LOCK UP")
-                                    fastlockup
-                                    ;;
-                                "SECURE LOCK UP")
-                                    lockup
-                                    ;;
-                                *) echo "Invalid Option";;
-                            esac
-                        done
+                    "List All Keys")
+                        listkeyuids
                         ;;
                     "BACK TO MAIN MENU")
                         break
@@ -453,7 +459,7 @@ do
                     "Address Management")
                     addrmanagemenu
                     PS3='Enter option (press enter to see options again): '
-                    options=("Standard Addresses Menu" "Electrum Addresses Menu" "BIP32 Addresses Menu" "Multisig Addresses Menu" "Import A Private Key" "BACK TO BITCOIN MANAGEMENT MENU" "Quit" "FAST LOCKUP!" "SECURE LOCKUP!")
+                    options=("Standard Addresses Menu" "Electrum Addresses Menu" "BIP32 Addresses Menu" "Multisig Addresses Menu" "Import A Private Key" "BACK TO BITCOIN MANAGEMENT MENU" "Quit" "FAST LOCKUP" "SECURE LOCKUP")
                     select opt in "${options[@]}"
                     do
                       case "$opt" in
@@ -617,10 +623,10 @@ do
                        "Quit")
                            badquit
                            ;;
-                       "FAST LOCKUP!")
+                       "FAST LOCKUP")
                            fastlockup
                            ;;
-                       "SECURE LOCKUP!")
+                       "SECURE LOCKUP")
                            lockup
                            ;;
                        *) echo "Invalid Option";;
