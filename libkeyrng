@@ -34,7 +34,7 @@ clear; echo ""; echo_c "BAD QUIT"; echo ""
 echo -e "\nI suggest quitting by using the "FAST LOCK UP" or "SECURE LOCK UP" option on any menu."
 read -p "Do you still want to quit now? (Y/no) " rly
 if [[ "$rly" = "Y" ]]; then
-  exit 0
+  clear; exit 0
 fi; }
 #------------------
 ## SECURE-DELETE ##
@@ -46,7 +46,7 @@ if [[ "$HAS_SRM" -gt "0" ]]; then
   srm -d -r "$DEL"
 else
   shred -u -z "$DEL"
-fi; }
+fi; clear; }
 #-----------
 ## LOCKUP ##
 #-----------
@@ -83,7 +83,7 @@ else
   shred -vuz *.tar.gz checksum
   rm -rf temp/ *-KeyRNG/ libkeyrng pybtctools/
 fi
-exit 0; }
+clear; exit 0; }
 #-----------------
 ## FAST LOCKUP  ##
 #-----------------
@@ -112,7 +112,7 @@ gpg --output KeyRNG.gpg --quiet --passphrase "$pw"  --cipher-algo aes256 --symme
 gpg --quiet --passphrase "$pw"  --cipher-algo aes256 --symmetric checksum
 unset pw; unset chkpw
 rm -rf *-KeyRNG/ pybtctools/ libkeyrng *.tar.gz temp/ checksum
-exit 0; }
+clear; exit 0; }
 ###########################################################
 ############## GNUPG GENERAL KEY MANAGEMENT ###############
 ###########################################################
@@ -137,7 +137,7 @@ listkeyuids (){
 clear; echo ""; echo_c "LIST PUBLIC KEYS BY UID"; echo ""
 echo "Press enter to see a list of possible recipients by UID."
 read -p "Use up/down arrows to navigate. Press "q" when your finished."
-gpg --quiet --homedir gpg-KeyRNG/ --list-keys | grep -e "fingerprint" -e "uid" | sed -e 's|                 |\: |' -e 's|      ||' -e 's|   |\: |' -e '0~2 a\\' | less; clear; }
+gpg --quiet --homedir gpg-KeyRNG/ --list-keys | grep -e "fingerprint" -e "uid" | sed -e 's|                 |\: |' -e 's|      ||' -e 's|   |\: |' | less; clear; }
 #---------------------------------
 ## LIST FULL SECRET KEY DETAILS ##
 #---------------------------------
@@ -172,7 +172,7 @@ echo ""; read -p "Press enter when you are ready to paste a key to import."
 rm -rf temp/temp
 nano temp/temp
 gpg --homedir gpg-KeyRNG/  --import temp/temp
-gpg --homedir gpg-KeyRNG/  --list-keys $(cat temp/temp) | grep "fingerprint" | cut -b 25- | tr -d " " | sed 's|$|\:6\:|' | gpg --homedir gpg-KeyRNG/ --no-permission-warning --quiet --import-owner-trust
+gpg --homedir gpg-KeyRNG/  --list-keys $(cat temp/temp) | grep "fingerprint" | cut -b 25- | tr -d " " | sed 's|$|\:6\:|' | gpg --homedir gpg-KeyRNG/ --no-permission-warning --quiet --import-ownertrust
 DEL=temp/temp; secdelete; clear; }
 #--------------------------------
 ## IMPORT KEY FROM ANOTHER GPG ##
@@ -206,18 +206,17 @@ gpgimportallpub (){
 clear; echo ""; echo_c "IMPORT ALL PUBLIC KEYS FROM ANOTHER GNUPG KEYRING"; echo ""
 read -p "Import all public keys from default location (/home/"$USER"/.gnupg/)? (y/no) " used
 if [[ "$used" != "no" ]]; then
-    gpgh=/home/"$USER"/.gnupg/
+  gpgh=/home/"$USER"/.gnupg/
 else
-    read -p "Give the path and folder name. " gpgh
+  read -p "Give the path and folder name. " gpgh
 fi
 rm -rf temp/temp
 gpg --homedir $(echo "$gpgh") --no-permission-warning --list-keys --keyid-format 0xlong | grep "0x" | cut -b 13- | cut -b -19 > temp/temp
 lines=$(grep -c "0x" temp/temp)
 if [ "$lines" -gt "0" ]; then
-    cat temp/temp | xargs -I{} -d"\n" gpg --no-permission-warning --homedir $(echo "$gpgh") --export {} | gpg --no-permission-warning --homedir gpg-KeyRNG/ --import
+  cat temp/temp | xargs -I{} -d"\n" gpg --no-permission-warning --homedir $(echo "$gpgh") --export {} | gpg --no-permission-warning --homedir gpg-KeyRNG/ --import
 gpg --homedir gpg-KeyRNG/ --list-keys | grep "fingerprint" | cut -b 25- | tr -d " " | sed 's|$|\:6\:|' | gpg --homedir gpg-KeyRNG/ --import-ownertrust
-fi
-DEL=temp/temp; secdelete; clear; }
+fi; DEL=temp/temp; secdelete; clear; }
 #---------------------------------------
 ## IMPORT SECRET KEY FROM ANOTHER GPG ##
 #---------------------------------------
@@ -245,15 +244,15 @@ gpgimportallsec (){
 clear; echo ""; echo_c "IMPORT ALL PRIVATE KEYS FROM ANOTHER GNUPG KEYRING"; echo ""
 read -p "Import all secret keys from default location (/home/"$USER"/.gnupg/)? (y/no) " d
 if [[ "$d" != "no" ]]; then
-    gpgh=/home/"$USER"/.gnupg/
+  gpgh=/home/"$USER"/.gnupg/
 else
-    read -p "Give path to GnuPG folder to import all secret keys from. " gpgh
+  read -p "Give path to GnuPG folder to import all secret keys from. " gpgh
 fi
 rm -rf temp/temp
 gpg --quiet --homedir "$gpgh" --no-permission-warning --list-secret-keys --keyid-format 0xlong | grep "0x" | cut -b 13- | cut -b -19 > temp/temp
 l=$(grep -c "0x" temp/temp)
 if [ "$l" -gt "0" ]; then
-    cat temp/temp | xargs -I{} -d"\n" gpg  --homedir "$gpgh" --export-secret-keys {} | gpg --no-permission-warning --homedir gpg-KeyRNG/ --import
+  cat temp/temp | xargs -I{} -d"\n" gpg  --homedir "$gpgh" --export-secret-keys {} | gpg --no-permission-warning --homedir gpg-KeyRNG/ --import
 fi
 DEL=temp/temp; secdelete; }
 #----------------------
@@ -357,7 +356,7 @@ else
  else
   echo ""; read -p "Press enter to return to KEY MANAGEMENT MENU"
  fi
-fi; }
+fi; clear; }
 #########################################################
 ############### ENCRYPTION AND DECRYPTION ###############
 #########################################################
@@ -445,7 +444,7 @@ read CAT_EFILE
           secdelete
       fi
   fi
-}
+clear; }
 #--------------------------
 ## ENCRYPT A NEW MESSAGE ##
 #--------------------------
@@ -558,9 +557,6 @@ read IS_HIDDEN_UID
             echo "Do you want to print it now? (y/no)"
             read PRINT_NOW
               if [ "$PRINT_NOW" != "no" ]; then
-                  echo "Press enter to see message."
-                  echo "Use up/down arrows to navigate. Press "q" when your finished."
-                  read
                   cat temp/newmsg | less
                   echo "Destroy message now? (y/no)"
                   read DESTROY
@@ -578,9 +574,6 @@ read IS_HIDDEN_UID
             echo "Do you want to print it now? (y/no)"
             read PRINT_NOW
               if [ "$PRINT_NOW" != "no" ]; then
-                  echo "Press enter to see message."
-                  echo "Use up/down arrows to navigate. Press "q" when your finished."
-                  read
                   cat temp/newmsg | less
                   echo "Destroy message now? (y/no)"
                   read DESTROY
@@ -597,9 +590,6 @@ read IS_HIDDEN_UID
             echo "Do you want to print it now? (y/no)"
             read PRINT_NOW
               if [ "$PRINT_NOW" != "no" ]; then
-                  echo "Press enter to see message."
-                  echo "Use up/down arrows to navigate. Press "q" when finished."
-                  read
                   cat temp/newmsg | less
                   echo "Destroy message now? (y/no)"
                   read DESTROY
@@ -635,9 +625,6 @@ read IS_HIDDEN_UID
             echo "Do you want to print it now? (y/no)"
             read PRINT_NOW
               if [ "$PRINT_NOW" != "no" ]; then
-                  echo "Press enter to see message."
-                  echo "Use up/down arrows to navigate. Press "q" when finished."
-                  read
                   cat temp/newmsg | less
                   echo "Destroy message now? (y/no)"
                   read DESTROY
@@ -655,9 +642,6 @@ read IS_HIDDEN_UID
             echo "Do you want to print it now? (y/no)"
             read PRINT_NOW
               if [ "$PRINT_NOW" != "no" ]; then
-                  echo "Press enter to see message."
-                  echo "Use up/down arrows to navigate. Press "q" when finished."
-                  read
                   cat temp/newmsg | less
                   echo "Destroy message now? (y/no)"
                   read DESTROY
@@ -674,9 +658,6 @@ read IS_HIDDEN_UID
             echo "Do you want to print it now? (y/no)"
             read PRINT_NOW
               if [ "$PRINT_NOW" != "no" ]; then
-                  echo "Press enter to see message."
-                  echo "Use up/down arrows to navigate. Press "q" when finished."
-                  read
                   cat temp/newmsg | less
                   echo "Destroy message now? (y/no)"
                   read DESTROY
@@ -800,8 +781,7 @@ if [ "$DESTROY" = "Y" ]; then
 fi
 clear
 echo "Press enter to go back to BITCOIN MENU."
-read
-}
+read; clear; }
 #-----------------------------------
 ## SHOW ALL ADDRESSES AND PUBKEYS ##
 #-----------------------------------
@@ -948,8 +928,7 @@ else
             echo "DONE!"
             clear
         fi 
-fi
-}
+fi; clear; }
 #---------------------------------------
 ## CREATE MULTIPLE STANDARD ADDRESSES ##
 #---------------------------------------
@@ -1068,7 +1047,7 @@ if [[ "$HAS_SEEDFILE" -lt "1" ]]; then
     echo ""
     echo_c "THIS IS YOUR PRIVATE SEED TO RESTORE PRIVATE KEYS."
     echo_c "WRITE IT DOWN SOMEWHERE SAFE AS A BACKUP!"
-    echo -e "\nPress enter to see your seed. Press q when you are finished.\n"
+    echo ""; echo_c "PRESS ENTER..."
     read
     echo -ne "\n"$SEED"\n" | less
     echo "Encrypting you seed and private keys file..."
@@ -1082,7 +1061,7 @@ clear
 #-------------------------
 newelectrumseed (){
 s=$(pybtctools/pybtctool random_electrum_seed)
-echo -n ""$s"" > btc-KeyRNG/ele.seed; }
+echo -n ""$s"" > btc-KeyRNG/ele.seed; unset s; }
 #-------------------------
 ## NEW ELECTRUM ADDRESS ##
 #-------------------------
@@ -1141,9 +1120,7 @@ else
 fi
 gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/ele.seed.gpg -ae -r "$KEYRNG" btc-KeyRNG/ele.seed && DEL=btc-KeyRNG/ele.seed; secdelete
 gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/ele.priv.gpg -ae -r "$KEYRNG" btc-KeyRNG/ele.priv && DEL=btc-KeyRNG/ele.priv; secdelete
-echo "DONE!"
-clear
-}
+echo "DONE!"; clearl; }
 #--------------------------------------------
 ## CREATE MULTIPLE ELECTRUM SEED ADDRESSES ##
 #--------------------------------------------
@@ -1197,9 +1174,7 @@ unset PW
 echo -e "\nDONE CREATING "$NUM" ELECTRUM ADDRESSES."
 echo -e "ADDRESSES ARE STORED IN KeyRNG/btc-KeyRNG/ele.addr\n"
 echo "Press enter to return to ELECTRUM ADDRESS MENU."
-read
-clear
-}
+read; clear; }
 #---------------------------------
 ## SHOW ELECTRUM ADDRESSES ONLY ##
 #---------------------------------
@@ -1392,8 +1367,7 @@ gpg --homedir gpg-KeyRNG/ --quiet --yes --output btc-KeyRNG/bip.seed.gpg -ae -r 
 echo -e "\nDONE CREATING "$NUM" BIP32 ADDRESSES."
 echo -e "ADDRESSES STORED IN KeyRNG/btc-KeyRNG/bip.addr\n"
 echo "Press enter to return to BIP32 ADDRESS MENU."
-read
-}
+read; clear; }
 #------------------------------
 ## BIP32 SHOW ADDRESSES ONLY ##
 #------------------------------
@@ -1511,7 +1485,7 @@ fi
 ## MAKE/SEND A NEW TRANSACTION ##
 #--------------------------------
 mktx (){
-clear, echo ""; echo_c "MAKE NEW TRANSACTION"; echo ""
+clear; echo ""; echo_c "MAKE NEW TRANSACTION"; echo ""
 read -p "See your address for an address to send from? (Y/no) " seeaddr
 if [ "$seeaddr" = "Y" ]; then
   showalladdr
@@ -1793,103 +1767,103 @@ gpgmainmenu (){
 clear
 echo_c "-----------------------------------------------"
 echo_c "| G n u P G    M A N A G E M E N T    M E N U |"
-echo_c "-----------------------------------------------"; }
+echo_c "-----------------------------------------------"; echo ""; }
 
 keymanagementmenu (){
 clear
 echo_c "-------------------------------------------"
 echo_c "| K E Y    M A N A G E M E N T    M E N U |"
-echo_c "-------------------------------------------"; }
+echo_c "-------------------------------------------"; echo ""; }
 
 pubkeymenu (){
 clear
 echo_c "-------------------------------------"
 echo_c "| P U B L I C    K E Y S    M E N U |"
-echo_c"-------------------------------------"; }
+echo_c "-------------------------------------"; echo ""; }
 
 importkeysmenu (){
 clear
 echo_c "-------------------------------------"
 echo_c "| I M P O R T    K E Y S    M E N U |"
-echo_c "-------------------------------------"; }
+echo_c "-------------------------------------"; echo ""; }
 
 exportkeysmenu (){
 clear
 echo_c "-----------------------------------------------"
 echo_c "| E X P O R T / S E N D    K E Y S    M E N U |"
-echo_c "-----------------------------------------------"; }
+echo_c "-----------------------------------------------"; echo ""; }
 
 seckeysmenu (){
 clear
 echo_c "-------------------------------------"
 echo_c "| S E C R E T    K E Y S    M E N U |"
-echo_c "-------------------------------------"; }
+echo_c "-------------------------------------"; echo ""; }
 
 importseckeysmenu (){
 clear
 echo_c "----------------------------------------------------"
 echo_c "| I M P O R T    S E C R E T    K E Y S    M E N U |"
-echo_c "----------------------------------------------------"; }
+echo_c "----------------------------------------------------"; echo ""; }
 
 encryptmenu (){
 clear
 echo_c "----------------------------------"
 echo_c "| E N C R Y P T I O N    M E N U |"
-echo_c "----------------------------------"; }
+echo_c "----------------------------------"; echo ""; }
 
 decryptmenu (){
 clear
 echo_c "----------------------------------"
 echo_c "| D E C R Y P T I O N    M E N U |"
-echo_c "----------------------------------"; }
+echo_c "----------------------------------"; echo ""; }
 
 clearsignmenu (){
 clear
 echo_c "-------------------------------"
 echo_c "| C L E A R S I G N   M E N U |"
-echo_c "-------------------------------"; }
+echo_c "-------------------------------"; echo ""; }
 
 mainbtcmenu (){
 clear
 echo_c "--------------------------------------------------"
 echo_c "| B I T C O I N    M A N A G E M E N T   M E N U |"
-echo_c "--------------------------------------------------"; }
+echo_c "--------------------------------------------------"; echo ""; }
 
 addrmanagemenu(){
 clear
 echo_c "---------------------------------------------------"
 echo_c "| A D D R E S S    M A N A G E M E N T    M E N U |"
-echo_c "---------------------------------------------------";}
+echo_c "---------------------------------------------------"; echo ""; }
 
 standaddrmenu (){
 clear
 echo_c "-----------------------------------------------"
 echo_c "| S T A N D A R D    A D D R E S S    M E N U |"
-echo_c "-----------------------------------------------"; }
+echo_c "-----------------------------------------------"; echo ""; }
 
 eleaddrmenu (){
 clear
 echo_c "-----------------------------------------------"
 echo_c "| E L E C T R U M    A D D R E S S    M E N U |"
-echo_c "-----------------------------------------------"; }
+echo_c "-----------------------------------------------"; echo ""; }
 
 bipaddrmenu (){
 clear
 echo_c "-----------------------------------------"
 echo_c "| B I P 3 2    A D D R E S S    M E N U |"
-echo_c "-----------------------------------------"; }
+echo_c "-----------------------------------------"; echo ""; }
 
 multisigmenu (){
 clear
 echo_c "-----------------------------------------------"
 echo_c "| M U L T I S I G    A D D R E S S    M E N U |"
-echo_c "-----------------------------------------------"; }
+echo_c "-----------------------------------------------"; echo ""; }
 
 bcimenu (){
 clear
 echo_c "-----------------------------------------------------------"
 echo_c "| B L O C K C H A I N    I N T E R A C T I O N    M E N U |"
-echo_c "-----------------------------------------------------------"; }
+echo_c "-----------------------------------------------------------"; echo ""; }
 
 
 #########################
